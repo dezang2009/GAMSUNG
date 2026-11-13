@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>감성모험</title>
+<style>
+:root {
+  --bg: #F4EFE3; --surface: #FBF8F0; --surface2: #E9E2D2; --line: #D8CFBB;
+  --text: #26302D; --muted: #75796F; --accent: #23594E; --accent-text: #F8F4EA;
+  --gold: #9A7420; --danger: #A8321F; --hp: #B8442F; --shadow: 0 8px 30px rgba(30, 30, 20, .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #151A19; --surface: #1E2524; --surface2: #29322F; --line: #35403D;
+    --text: #E6E1D3; --muted: #969C92; --accent: #7FC4B2; --accent-text: #11201C;
+    --gold: #D9B865; --danger: #FF8E7A; --hp: #E0705A; --shadow: 0 8px 30px rgba(0, 0, 0, .5);
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 16px/1.6 -apple-system, "Noto Sans KR", "Apple SD Gothic Neo", Roboto, sans-serif;
+  overflow: hidden; overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
+textarea, input, select { font: inherit; color: var(--text); background: none; border: 0; outline: 0; width: 100%; }
+::placeholder { color: var(--muted); }
+svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; }
+.serif { font-family: "Noto Serif KR", "Noto Serif CJK KR", "Nanum Myeongjo", serif; }
+
+.screen { position: fixed; inset: 0; display: none; flex-direction: column; background: var(--bg); }
+.screen.on { display: flex; }
+header { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--line); flex: none; min-height: 57px; }
+.icon-btn { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; flex: none; }
+.icon-btn:active { background: var(--surface2); }
+.head-title { flex: 1; min-width: 0; font-weight: 600; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
+.scroll { flex: 1; overflow-y: auto; padding: 20px 16px 28px; }
+.inner { max-width: 600px; margin: 0 auto; }
+
+/* home */
+.hero h1 { font-size: 30px; margin: 4px 0 4px; letter-spacing: -.02em; }
+.hero p { margin: 0 0 22px; color: var(--muted); }
+h2 { font-size: 13px; font-weight: 700; letter-spacing: .06em; color: var(--muted); margin: 26px 0 10px; }
+.notice { border: 1px solid var(--line); border-left: 3px solid var(--gold); background: var(--surface); border-radius: 12px; padding: 12px 14px; font-size: 14.5px; margin-bottom: 8px; }
+.notice button { color: var(--accent); font-weight: 700; margin-top: 6px; display: block; }
+.genres { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.genre { border: 1.5px solid var(--line); background: var(--surface); border-radius: 14px; padding: 12px 14px; min-height: 76px; }
+.genre b { display: block; font-size: 16px; }
+.genre span { display: block; color: var(--muted); font-size: 13px; line-height: 1.4; margin-top: 2px; }
+.genre.sel { border-color: var(--accent); background: var(--surface2); }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; display: flex; align-items: center; gap: 8px; }
+.box:focus-within { border-color: var(--muted); }
+.box textarea { resize: none; min-height: 84px; }
+.box button { color: var(--accent); font-weight: 600; font-size: 14px; flex: none; }
+.seg { display: flex; background: var(--surface2); border-radius: 12px; padding: 4px; gap: 4px; }
+.seg button { flex: 1; text-align: center; padding: 9px 4px; border-radius: 9px; font-size: 14.5px; color: var(--muted); }
+.seg button.sel { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.primary { width: 100%; background: var(--accent); color: var(--accent-text); font-weight: 700; padding: 15px; border-radius: 14px; text-align: center; margin-top: 22px; }
+.primary:disabled { opacity: .5; }
+.save-item { display: flex; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; }
+.save-item .open { flex: 1; min-width: 0; padding: 12px 6px 12px 14px; }
+.save-item b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.save-item span { display: block; color: var(--muted); font-size: 13px; }
+.save-item .del { width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted); flex: none; }
+.save-item .del svg { width: 18px; height: 18px; }
+.tag { font-weight: 700; }
+.tag.victory { color: var(--gold); } .tag.defeat { color: var(--danger); }
+
+/* game */
+.statbar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--line); font-size: 13.5px; flex: none; }
+.hp { display: flex; align-items: center; gap: 8px; flex: none; }
+.hp .track { width: 84px; height: 8px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
+.hp .fill { height: 100%; background: var(--hp); border-radius: 4px; transition: width .4s; }
+.statbar .loc { flex: 1; min-width: 0; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.statbar .bag { color: var(--accent); font-weight: 600; flex: none; padding: 4px 0; }
+#log { flex: 1; overflow-y: auto; padding: 18px 18px 8px; }
+#logInner { max-width: 600px; margin: 0 auto; }
+.turn { padding-bottom: 22px; }
+.action { color: var(--muted); font-size: 14.5px; border-left: 3px solid var(--line); padding: 2px 0 2px 12px; margin-bottom: 14px; overflow-wrap: anywhere; }
+.action .roll { display: inline-block; font-weight: 700; color: var(--gold); margin-left: 6px; white-space: nowrap; }
+.narr { font-size: 17px; line-height: 1.85; overflow-wrap: anywhere; }
+.narr p { margin: 0 0 14px; }
+.narr p:last-child { margin-bottom: 0; }
+.delta { font-size: 13.5px; color: var(--muted); margin-top: 12px; }
+.delta b.minus { color: var(--danger); } .delta b.plus { color: var(--accent); }
+.dots { display: inline-flex; gap: 5px; padding: 8px 0; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite both; }
+.dots i:nth-child(2) { animation-delay: .2s; } .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+.error { border: 1px solid var(--line); border-left: 3px solid var(--danger); background: var(--surface); border-radius: 12px; padding: 12px 14px; font-size: 14.5px; }
+.error b { display: block; margin-bottom: 2px; }
+.error span { color: var(--muted); display: block; overflow-wrap: anywhere; }
+.error button { margin-top: 10px; color: var(--accent); font-weight: 700; }
+.ending { text-align: center; border-top: 1px solid var(--line); padding: 26px 0 8px; }
+.ending strong { font-size: 24px; display: block; margin-bottom: 4px; }
+.ending.victory strong { color: var(--gold); } .ending.defeat strong { color: var(--danger); }
+.ending span { color: var(--muted); font-size: 14px; }
+
+#controls { flex: none; border-top: 1px solid var(--line); padding: 10px 12px 12px; background: var(--bg); }
+#controls .inner { display: flex; flex-direction: column; gap: 8px; }
+.choice { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 14px; font-size: 15px; line-height: 1.45; display: flex; gap: 10px; }
+.choice i { font-style: normal; font-weight: 700; color: var(--accent); flex: none; }
+.choice:active { background: var(--surface2); }
+.custom { display: flex; align-items: flex-end; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 4px 4px 4px 14px; }
+.custom:focus-within { border-color: var(--muted); }
+#input { flex: 1; resize: none; max-height: 96px; padding: 7px 0; line-height: 1.45; font-size: 15px; }
+#send { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--accent-text); display: grid; place-items: center; flex: none; }
+#send svg { width: 20px; height: 20px; }
+#send:disabled { background: var(--surface2); color: var(--muted); }
+.waiting { text-align: center; color: var(--muted); font-size: 14px; padding: 6px 0; }
+.waiting button { color: var(--accent); font-weight: 600; margin-left: 8px; }
+
+/* overlays */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
+.scrim.on { opacity: 1; pointer-events: auto; }
+#bag { position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; background: var(--bg); border-radius: 20px 20px 0 0; padding: 20px 20px 28px; transform: translateY(105%); transition: transform .22s ease; box-shadow: var(--shadow); max-height: 70vh; overflow-y: auto; }
+#bag.on { transform: none; }
+#bag h3 { margin: 0 0 12px; font-size: 18px; }
+#bag ul { margin: 0; padding: 0; list-style: none; }
+#bag li { padding: 10px 0; border-bottom: 1px solid var(--line); }
+#bag li:last-child { border: 0; }
+#bag .none { color: var(--muted); }
+#settings { z-index: 20; }
+.field { margin-bottom: 24px; }
+.field label { display: block; font-weight: 600; margin-bottom: 4px; }
+.hint { color: var(--muted); font-size: 13.5px; margin: 0 0 8px; }
+.hint a { color: var(--accent); }
+.status { font-size: 13.5px; margin-top: 8px; min-height: 20px; color: var(--muted); }
+.status.ok { color: var(--accent); } .status.bad { color: var(--danger); }
+#toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 30; white-space: nowrap; }
+#toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+
+<section class="screen on" id="home">
+  <header>
+    <div class="head-title" style="padding-left:10px">감성모험</div>
+    <button class="icon-btn" id="settingsBtn" aria-label="설정"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.8 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.8-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3.1 14H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.8 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </header>
+  <div class="scroll"><div class="inner">
+    <div class="hero">
+      <h1 class="serif">당신의 이야기가<br>시작됩니다</h1>
+      <p>AI가 이야기꾼이 되어, 매번 새로운 모험을 들려줍니다.</p>
+    </div>
+    <div id="keyNotice"></div>
+    <div id="savesWrap"></div>
+    <h2>새 모험</h2>
+    <div class="genres" id="genres"></div>
+    <div id="premiseWrap" style="display:none;margin-top:10px"><div class="box"><textarea id="premise" placeholder="어떤 이야기를 하고 싶나요? 예: 조선시대 한양, 밤마다 사라지는 사람들을 쫓는 포졸"></textarea></div></div>
+    <h2>주인공 이름</h2>
+    <div class="box"><input id="heroName" maxlength="20" placeholder="비워두면 AI가 정합니다"></div>
+    <h2>이야기 길이</h2>
+    <div class="seg" id="lengths"></div>
+    <button class="primary" id="startBtn">모험 시작</button>
+  </div></div>
+</section>
+
+<section class="screen" id="game">
+  <header>
+    <button class="icon-btn" id="gameBack" aria-label="나가기"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="head-title" id="gameTitle"></div>
+    <div id="turnNo" style="color:var(--muted);font-size:13.5px;padding-right:10px;flex:none"></div>
+  </header>
+  <div class="statbar">
+    <div class="hp"><span>체력</span><div class="track"><div class="fill" id="hpFill"></div></div><b id="hpNum"></b></div>
+    <div class="loc" id="loc"></div>
+    <button class="bag" id="bagBtn"></button>
+  </div>
+  <div id="log"><div id="logInner"></div></div>
+  <div id="controls"><div class="inner" id="controlsInner"></div></div>
+</section>
+
+<div class="scrim" id="scrim"></div>
+<div id="bag"><h3>소지품</h3><ul id="bagList"></ul></div>
+
+<section class="screen" id="settings">
+  <header>
+    <button class="icon-btn" id="settingsClose" aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="head-title">설정</div>
+  </header>
+  <div class="scroll"><div class="inner">
+    <div class="field">
+      <label for="keyInput">Gemini API 키</label>
+      <p class="hint"><a href="https://aistudio.google.com/apikey">Google AI Studio</a>에서 무료로 발급받아 붙여넣으세요. 키는 이 기기에만 저장됩니다.</p>
+      <div class="box"><input id="keyInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="AIza..."><button id="keyShow">보기</button></div>
+      <div class="status" id="keyStatus"></div>
+    </div>
+    <div class="field">
+      <label for="modelSelect">모델</label>
+      <p class="hint">무료 한도는 모델마다 다릅니다. 한도를 넘으면 다른 모델로 바꿔보세요.</p>
+      <div class="box"><select id="modelSelect"></select></div>
+    </div>
+    <button class="primary" id="saveBtn" style="margin-top:0">저장</button>
+    <p class="hint" style="margin-top:18px">한 턴마다 AI를 한 번 부릅니다. 무료 등급에서는 보낸 내용이 Google의 서비스 개선에 사용될 수 있으니 민감한 개인정보는 입력하지 마세요.</p>
+  </div></div>
+</section>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+const API = 'https://generativelanguage.googleapis.com/v1beta/';
+const DEFAULT_MODEL = 'models/gemini-flash-latest';
+const STORE = 'gamsung-adventure-v1';
+const MAX_HP = 100;
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const ICON = {
+  send: '<svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
+  trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
+};
+const GENRES = [
+  { id: 'fantasy', name: '판타지', desc: '검과 마법, 잊힌 유적', setting: '검과 마법이 있는 중세 판타지 세계. 모험가가 위험한 의뢰나 유적에 얽힌다.' },
+  { id: 'mystery', name: '추리', desc: '단서를 모아 범인 찾기', setting: '현대 배경의 추리물. 주인공이 사건을 조사하며 단서와 증언을 모아 진실을 밝혀야 한다. 범인과 진상은 처음에 정해두고 끝까지 일관되게 유지한다.' },
+  { id: 'survival', name: '생존', desc: '무너진 세상에서 살아남기', setting: '문명이 무너진 뒤의 세계. 식량, 부상, 다른 생존자, 감염자의 위협 속에서 안전한 곳에 도달해야 한다.' },
+  { id: 'scifi', name: 'SF', desc: '우주선, 낯선 행성', setting: '먼 미래의 우주. 고장 난 우주선이나 낯선 행성에서 벌어지는 사건.' },
+  { id: 'horror', name: '공포', desc: '폐가, 설명할 수 없는 일', setting: '현대 한국을 배경으로 한 괴담. 서서히 조여오는 불안과 설명할 수 없는 존재. 과도하게 잔인한 묘사는 피한다.' },
+  { id: 'custom', name: '직접 정하기', desc: '원하는 배경을 적기', setting: '' },
+];
+const LENGTHS = [{ n: 10, name: '짧게 10턴' }, { n: 20, name: '보통 20턴' }, { n: 30, name: '길게 30턴' }];
+
+let state = { key: '', model: DEFAULT_MODEL, models: [], games: [], cur: null, genre: 'fantasy', length: 20 };
+try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
+let busy = null;      // AbortController while the storyteller is answering
+let lastError = null; // { gameId, title, detail, needKey }
+
+function save() {
+  try { localStorage.setItem(STORE, JSON.stringify(state)); }
+  catch (e) { toast('저장 공간이 부족합니다. 지난 모험을 삭제해 주세요.'); }
+}
+const game = () => state.games.find(g => g.id === state.cur) || null;
+const lastTurn = g => g.turns[g.turns.length - 1] || null;
+let toastTimer;
+function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => e.classList.remove('on'), 2200); }
+function show(id) { ['home', 'game'].forEach(s => $(s).classList.toggle('on', s === id)); }
+
+/* ---------- storyteller ---------- */
+const SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    narration: { type: 'STRING' },
+    title: { type: 'STRING' },
+    location: { type: 'STRING' },
+    hp: { type: 'INTEGER' },
+    items: { type: 'ARRAY', items: { type: 'STRING' } },
+    choices: { type: 'ARRAY', items: { type: 'STRING' } },
+    ending: { type: 'STRING', enum: ['none', 'victory', 'defeat'] },
+  },
+  required: ['narration', 'title', 'location', 'hp', 'items', 'choices', 'ending'],
+  propertyOrdering: ['narration', 'title', 'location', 'hp', 'items', 'choices', 'ending'],
+};
+function systemPrompt(g) {
+  return `너는 한국어 텍스트 어드벤처 게임의 이야기꾼(게임 마스터)이다. 플레이어는 주인공 한 명을 조종한다.
+
+[이야기 설정]
+배경: ${g.setting}
+주인공 이름: ${g.hero || '네가 배경에 어울리게 정한다'}
+전체 길이: 약 ${g.length}턴
+
+[진행 규칙]
+- 매 턴 플레이어의 행동을 받아 그 결과와 다음 상황을 2인칭("당신은 …")으로 서술한다. 분량은 3~6문장. 생생하고 구체적으로, 감각적인 묘사를 넣는다.
+- 플레이어 메시지에는 "[턴 n/${g.length}]"와 "주사위: 1~20"이 붙어 온다. 위험하거나 결과가 불확실한 행동은 주사위로 판정한다: 1~5 실패(대가를 치른다), 6~14 절반의 성공(얻는 것과 잃는 것이 함께), 15~20 성공. 쉬운 행동에는 주사위를 무시한다. 주사위 숫자를 서술에 직접 언급하지 않는다.
+- 플레이어가 가지지 않은 물건이나 능력을 쓰려 하거나, 세계관에 맞지 않는 행동을 하면 이야기 안에서 자연스럽게 실패시킨다.
+- 1턴에는 주인공과 상황, 뚜렷한 목표를 소개한다. 중반에는 위기를 키우고, 마지막 ${Math.max(2, Math.round(g.length / 5))}턴 안에 결말로 이끈다. ${g.length}턴째에는 반드시 이야기를 끝낸다.
+- 플레이어의 선택이 실제로 결과를 바꾸게 한다. 앞선 사건, 인물, 소지품을 기억하고 일관되게 유지한다.
+
+[출력 형식] 반드시 아래 필드를 가진 JSON 하나만 출력한다.
+- narration: 이번 턴의 서술. 문단은 \\n\\n으로 나눈다.
+- title: 이 이야기의 짧은 제목(12자 이내). 1턴에 정하고 이후 그대로 유지한다.
+- location: 현재 장소(짧게).
+- hp: 주인공의 현재 체력. 0~${MAX_HP} 정수, ${MAX_HP}에서 시작. 다치면 줄이고 쉬거나 치료하면 늘린다. 0이 되면 ending은 defeat.
+- items: 현재 소지품 전체 목록(얻으면 추가, 쓰거나 잃으면 제거). 최대 8개.
+- choices: 지금 할 수 있는 서로 성격이 다른 행동 3개. 각각 25자 이내의 "~한다" 형태. 이야기가 끝났으면 빈 배열.
+- ending: 진행 중이면 "none", 목표를 이뤘으면 "victory", 죽거나 완전히 실패했으면 "defeat". 끝날 때 narration에 결말을 충분히 서술한다.`;
+}
+function explain(status, apiMsg) {
+  const msg = apiMsg || '';
+  if (status === 429) return { title: '무료 사용 한도를 넘었습니다', detail: '잠시 후 다시 시도하거나, 설정에서 다른 모델을 골라보세요. 하루 한도는 다음 날 초기화됩니다. 진행 상황은 저장되어 있습니다.' };
+  if (status === 400 && /API key/i.test(msg) || status === 401 || status === 403) return { title: 'API 키를 확인해 주세요', detail: msg || '키가 올바르지 않거나 사용할 수 없습니다.', needKey: true };
+  if (status === 404) return { title: '선택한 모델을 사용할 수 없습니다', detail: '설정에서 다른 모델을 선택해 주세요.', needKey: true };
+  if (status === 400) return { title: '이 모델로는 진행할 수 없습니다', detail: (msg ? msg + ' ' : '') + '설정에서 다른 모델을 선택해 주세요.', needKey: true };
+  if (status >= 500) return { title: 'Gemini 서버가 혼잡합니다', detail: '잠시 후 다시 시도해 주세요.' };
+  if (!status) return { title: '연결하지 못했습니다', detail: '인터넷 연결을 확인하고 다시 시도해 주세요.' };
+  return { title: '응답을 받지 못했습니다', detail: msg || ('오류 코드 ' + status) };
+}
+async function apiError(res) {
+  let msg = '';
+  try { msg = (await res.json()).error.message; } catch (e) {}
+  return explain(res.status, msg);
+}
+const turnMessage = (g, n, t) => `[턴 ${n}/${g.length}] 주사위: ${t.roll}\n행동: ${t.action}`;
+function buildContents(g) {
+  const out = [];
+  g.turns.forEach((t, i) => {
+    out.push({ role: 'user', parts: [{ text: turnMessage(g, i + 1, t) }] });
+    out.push({ role: 'model', parts: [{ text: t.raw }] });
+  });
+  out.push({ role: 'user', parts: [{ text: turnMessage(g, g.turns.length + 1, g.pending) }] });
+  return out;
+}
+// Reads the narration out of a JSON answer that is still arriving.
+function partialNarration(raw) {
+  const m = /"narration"\s*:\s*"/.exec(raw);
+  if (!m) return '';
+  const s = raw.slice(m.index + m[0].length);
+  let out = '', i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (c === '"') break;
+    if (c !== '\\') { out += c; i++; continue; }
+    if (i + 1 >= s.length) break;
+    const n = s[i + 1];
+    if (n === 'u') {
+      if (i + 6 > s.length) break;
+      out += String.fromCharCode(parseInt(s.substr(i + 2, 4), 16)); i += 6;
+    } else { out += n === 'n' ? '\n' : n === 't' ? ' ' : n === 'r' ? '' : n; i += 2; }
+  }
+  return out;
+}
+function parseTurn(raw) {
+  let text = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  const a = text.indexOf('{'), b = text.lastIndexOf('}');
+  if (a < 0 || b < a) return null;
+  let j; try { j = JSON.parse(text.slice(a, b + 1)); } catch (e) { return null; }
+  if (!j || typeof j.narration !== 'string' || !j.narration.trim()) return null;
+  const strs = (v, max, len) => (Array.isArray(v) ? v : []).filter(x => typeof x === 'string' && x.trim()).map(x => x.trim().slice(0, len)).slice(0, max);
+  const hp = Math.max(0, Math.min(MAX_HP, Math.round(Number(j.hp))));
+  const t = {
+    narration: j.narration.trim(),
+    title: typeof j.title === 'string' ? j.title.trim().slice(0, 24) : '',
+    location: typeof j.location === 'string' ? j.location.trim().slice(0, 40) : '',
+    hp: Number.isFinite(hp) ? hp : null,
+    items: strs(j.items, 8, 30),
+    choices: strs(j.choices, 3, 60),
+    ending: j.ending === 'victory' || j.ending === 'defeat' ? j.ending : 'none',
+  };
+  return t;
+}
+async function advance() {
+  const g = game();
+  if (!g || busy || !g.pending || g.ending !== 'none') return;
+  if (!state.key) { openSettings(); return; }
+  lastError = null;
+  const ctl = busy = new AbortController();
+  renderGame();
+  const live = $('logInner').querySelector('.turn.live');
+  const narr = live.querySelector('.narr');
+  live.style.minHeight = $('log').clientHeight - 20 + 'px';
+  live.scrollIntoView({ block: 'start' });
+  let raw = '', blocked = '';
+  try {
+    const res = await fetch(API + state.model + ':streamGenerateContent?alt=sse', {
+      method: 'POST', signal: ctl.signal,
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': state.key },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt(g) }] },
+        contents: buildContents(g),
+        generationConfig: { responseMimeType: 'application/json', responseSchema: SCHEMA, temperature: 1 },
+      }),
+    });
+    if (!res.ok) throw await apiError(res);
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    const handle = line => {
+      if (!line.startsWith('data:')) return;
+      let j; try { j = JSON.parse(line.slice(5)); } catch (e) { return; }
+      if (j.error) throw explain(j.error.code, j.error.message);
+      if (j.promptFeedback && j.promptFeedback.blockReason) blocked = j.promptFeedback.blockReason;
+      const cand = (j.candidates || [])[0];
+      if (!cand) return;
+      if (cand.finishReason && !/^(STOP|MAX_TOKENS)$/.test(cand.finishReason)) blocked = cand.finishReason;
+      const t = ((cand.content || {}).parts || []).filter(p => !p.thought && p.text).map(p => p.text).join('');
+      if (!t) return;
+      raw += t;
+      const part = partialNarration(raw);
+      if (part) narr.innerHTML = prose(part);
+    };
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      lines.forEach(l => handle(l.replace(/\r$/, '')));
+    }
+    if (buf) handle(buf);
+    const t = parseTurn(raw);
+    if (!t) throw blocked
+      ? { title: '이야기가 차단되었습니다', detail: '안전 정책 때문에 이번 장면을 만들지 못했습니다. 다른 행동을 해보세요. (' + blocked + ')', redo: true }
+      : { title: '이야기꾼이 말을 더듬었습니다', detail: '응답을 이해하지 못했습니다. 다시 시도해 주세요.' };
+    const prev = lastTurn(g);
+    if (t.hp == null) t.hp = prev ? prev.hp : MAX_HP;
+    if (t.hp <= 0 && t.ending === 'none') t.ending = 'defeat';
+    if (t.ending !== 'none') t.choices = [];
+    else if (!t.choices.length) t.choices = ['주변을 살펴본다', '조심스럽게 앞으로 나아간다', '잠시 숨을 고른다'];
+    if (prev && prev.title) t.title = prev.title;
+    g.turns.push(Object.assign({ action: g.pending.action, roll: g.pending.roll, raw }, t));
+    g.pending = null;
+    g.ending = t.ending;
+    if (t.title) g.title = t.title;
+  } catch (e) {
+    if (e.name !== 'AbortError') lastError = Object.assign({ gameId: g.id }, e.title ? e : explain(0));
+  } finally {
+    if (busy === ctl) busy = null;
+    g.ts = Date.now();
+    save();
+    if (state.cur === g.id && $('game').classList.contains('on')) {
+      renderGame();
+      // Keep the start of the newest passage at the top so it reads from its first line.
+      const last = Array.from($('logInner').querySelectorAll('.turn')).pop();
+      if (last) {
+        if (g.ending === 'none') last.style.minHeight = $('log').clientHeight - 20 + 'px';
+        last.scrollIntoView({ block: 'start' });
+      }
+    }
+  }
+}
+function act(text) {
+  const g = game();
+  text = (text || '').trim().slice(0, 300);
+  if (!g || busy || !text || g.ending !== 'none' || g.pending) return;
+  g.pending = { action: text, roll: 1 + Math.floor(Math.random() * 20) };
+  save();
+  advance();
+}
+function stopTurn() { if (busy) { const b = busy; busy = null; b.abort(); } }
+
+/* ---------- game screen ---------- */
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const prose = s => s.split(/\n\s*\n|\n/).filter(p => p.trim()).map(p => '<p>' + esc(p.trim()).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') + '</p>').join('');
+function turnEl(g, t, i) {
+  const wrap = el('div', 'turn');
+  if (i > 0) {
+    const a = el('div', 'action', t.action);
+    a.append(el('span', 'roll', '주사위 ' + t.roll));
+    wrap.append(a);
+  }
+  const n = el('div', 'narr serif'); n.innerHTML = prose(t.narration); wrap.append(n);
+  const prev = i > 0 ? g.turns[i - 1] : null;
+  if (prev) {
+    const bits = [];
+    const d = t.hp - prev.hp;
+    if (d) bits.push(`<b class="${d < 0 ? 'minus' : 'plus'}">체력 ${d > 0 ? '+' : ''}${d}</b>`);
+    t.items.filter(x => !prev.items.includes(x)).forEach(x => bits.push('<b class="plus">+ ' + esc(x) + '</b>'));
+    prev.items.filter(x => !t.items.includes(x)).forEach(x => bits.push('<b class="minus">− ' + esc(x) + '</b>'));
+    if (bits.length) { const dl = el('div', 'delta'); dl.innerHTML = bits.join(' · '); wrap.append(dl); }
+  }
+  return wrap;
+}
+function renderGame() {
+  const g = game();
+  if (!g) { goHome(); return; }
+  const last = lastTurn(g);
+  $('gameTitle').textContent = g.title || g.genreName;
+  $('turnNo').textContent = g.turns.length ? g.turns.length + ' / ' + g.length + '턴' : '';
+  const hp = last ? last.hp : MAX_HP;
+  $('hpFill').style.width = hp / MAX_HP * 100 + '%';
+  $('hpNum').textContent = hp;
+  $('loc').textContent = last ? last.location : '';
+  $('bagBtn').textContent = '소지품 ' + (last ? last.items.length : 0);
+
+  const log = $('logInner'); log.innerHTML = '';
+  g.turns.forEach((t, i) => log.append(turnEl(g, t, i)));
+  const erroring = lastError && lastError.gameId === g.id;
+  if (g.pending && (busy || erroring)) {
+    const wrap = el('div', 'turn live');
+    if (g.turns.length) {
+      const a = el('div', 'action', g.pending.action);
+      a.append(el('span', 'roll', '주사위 ' + g.pending.roll));
+      wrap.append(a);
+    }
+    if (busy) { const n = el('div', 'narr serif'); n.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>'; wrap.append(n); }
+    else {
+      const e = el('div', 'error');
+      e.append(el('b', '', lastError.title), el('span', '', lastError.detail));
+      const b = el('button');
+      if (lastError.needKey) { b.textContent = '설정 열기'; b.onclick = openSettings; }
+      else if (lastError.redo && g.turns.length) { b.textContent = '다른 행동 하기'; b.onclick = () => { g.pending = null; lastError = null; save(); renderGame(); }; }
+      else { b.textContent = '다시 시도'; b.onclick = advance; }
+      e.append(b); wrap.append(e);
+    }
+    log.append(wrap);
+  }
+  if (g.ending !== 'none') {
+    const e = el('div', 'ending ' + g.ending);
+    e.append(el('strong', 'serif', g.ending === 'victory' ? '모험 성공' : '모험 실패'), el('span', '', g.turns.length + '턴 만에 이야기가 끝났습니다.'));
+    log.append(e);
+  }
+
+  const c = $('controlsInner'); c.innerHTML = '';
+  if (g.ending !== 'none') {
+    const b = el('button', 'primary', '새 모험 시작'); b.style.marginTop = '0'; b.onclick = goHome; c.append(b);
+  } else if (busy) {
+    const w = el('div', 'waiting', '이야기꾼이 다음 장면을 쓰는 중…');
+    const s = el('button', '', '중지'); s.onclick = () => { stopTurn(); lastError = { gameId: g.id, title: '중지했습니다', detail: '같은 행동으로 다시 이어갈 수 있습니다.' }; renderGame(); };
+    w.append(s); c.append(w);
+  } else if (g.pending) {
+    if (!erroring) { const b = el('button', 'primary', '이어서 진행'); b.style.marginTop = '0'; b.onclick = advance; c.append(b); }
+  } else if (last) {
+    last.choices.forEach((ch, i) => {
+      const b = el('button', 'choice'); b.append(el('i', '', String(i + 1)), el('span', '', ch));
+      b.onclick = () => act(ch); c.append(b);
+    });
+    const row = el('div', 'custom');
+    const ta = el('textarea'); ta.id = 'input'; ta.rows = 1; ta.maxLength = 300; ta.placeholder = '직접 행동 적기';
+    const sb = el('button'); sb.id = 'send'; sb.innerHTML = ICON.send; sb.disabled = true; sb.setAttribute('aria-label', '행동하기');
+    ta.oninput = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 96) + 'px'; sb.disabled = !ta.value.trim(); };
+    sb.onclick = () => act(ta.value);
+    row.append(ta, sb); c.append(row);
+  }
+}
+function openGame(id) {
+  state.cur = id; lastError = null; save();
+  show('game'); renderGame();
+  const g = game();
+  if (g && !g.turns.length && g.pending) advance();
+  else { const log = $('log'); log.scrollTop = log.scrollHeight; }
+}
+function openBag() {
+  const g = game(), last = g && lastTurn(g), list = $('bagList'); list.innerHTML = '';
+  const items = last ? last.items : [];
+  if (!items.length) list.append(el('li', 'none', '가진 것이 없습니다.'));
+  items.forEach(x => list.append(el('li', '', x)));
+  $('bag').classList.add('on'); $('scrim').classList.add('on');
+}
+function closeBag() { $('bag').classList.remove('on'); $('scrim').classList.remove('on'); }
+
+/* ---------- home screen ---------- */
+function goHome() { stopTurn(); closeBag(); state.cur = null; lastError = null; save(); show('home'); renderHome(); }
+function renderHome() {
+  const kn = $('keyNotice'); kn.innerHTML = '';
+  if (!state.key) {
+    const n = el('div', 'notice', '시작하려면 무료 Gemini API 키를 등록해 주세요.');
+    const b = el('button', '', 'API 키 등록하기'); b.onclick = openSettings; n.append(b); kn.append(n);
+  }
+  const sw = $('savesWrap'); sw.innerHTML = '';
+  const games = state.games.slice().sort((a, b) => b.ts - a.ts);
+  if (games.length) {
+    sw.append(el('h2', '', '내 모험'));
+    games.forEach(g => {
+      const row = el('div', 'save-item');
+      const open = el('button', 'open'); open.append(el('b', '', g.title || g.genreName + ' 모험'));
+      const sub = el('span');
+      if (g.ending === 'none') sub.textContent = `${g.genreName} · ${g.turns.length}/${g.length}턴 · 진행 중`;
+      else { sub.append(el('span', 'tag ' + g.ending, g.ending === 'victory' ? '성공' : '실패')); sub.firstChild.style.display = 'inline'; sub.append(` · ${g.genreName} · ${g.turns.length}턴`); }
+      open.append(sub);
+      open.onclick = () => openGame(g.id);
+      const del = el('button', 'del'); del.innerHTML = ICON.trash; del.setAttribute('aria-label', '모험 삭제');
+      del.onclick = () => { if (!confirm('"' + (g.title || g.genreName + ' 모험') + '"을(를) 삭제할까요?')) return; state.games = state.games.filter(x => x.id !== g.id); save(); renderHome(); };
+      row.append(open, del); sw.append(row);
+    });
+  }
+  const gs = $('genres'); gs.innerHTML = '';
+  GENRES.forEach(x => {
+    const b = el('button', 'genre' + (x.id === state.genre ? ' sel' : ''));
+    b.append(el('b', '', x.name), el('span', '', x.desc));
+    b.onclick = () => { state.genre = x.id; save(); renderHome(); };
+    gs.append(b);
+  });
+  $('premiseWrap').style.display = state.genre === 'custom' ? '' : 'none';
+  const ls = $('lengths'); ls.innerHTML = '';
+  LENGTHS.forEach(x => {
+    const b = el('button', x.n === state.length ? 'sel' : '', x.name);
+    b.onclick = () => { state.length = x.n; save(); renderHome(); };
+    ls.append(b);
+  });
+}
+function startGame() {
+  if (!state.key) { openSettings(); return; }
+  const genre = GENRES.find(x => x.id === state.genre) || GENRES[0];
+  const premise = $('premise').value.trim().slice(0, 500);
+  if (genre.id === 'custom' && !premise) { toast('어떤 이야기를 할지 적어주세요'); $('premise').focus(); return; }
+  const g = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    genreName: genre.id === 'custom' ? '나만의 이야기' : genre.name,
+    setting: genre.id === 'custom' ? premise : genre.setting,
+    hero: $('heroName').value.trim(), length: state.length,
+    title: '', ending: 'none', ts: Date.now(), turns: [],
+    pending: { action: '모험을 시작한다.', roll: 10 },
+  };
+  state.games.push(g);
+  openGame(g.id);
+}
+
+/* ---------- settings ---------- */
+function usable(m) {
+  return /gemini/.test(m.name) && (m.supportedGenerationMethods || []).includes('generateContent')
+    && !/image|tts|audio|live|embedding|robotics|computer-use|aqa|vision/.test(m.name);
+}
+function pickDefault(models) {
+  const names = models.map(m => m.name);
+  if (names.includes(DEFAULT_MODEL)) return DEFAULT_MODEL;
+  const flash = names.filter(n => /flash/.test(n) && !/lite|preview|exp/.test(n)).sort().pop();
+  return flash || names.filter(n => /flash/.test(n)).sort().pop() || names[0] || DEFAULT_MODEL;
+}
+function fillModels(selected) {
+  const sel = $('modelSelect'); sel.innerHTML = '';
+  const list = state.models.slice();
+  if (!list.some(m => m.name === selected)) list.unshift({ name: selected, displayName: selected.replace('models/', '') });
+  list.forEach(m => { const o = el('option', '', m.displayName || m.name.replace('models/', '')); o.value = m.name; sel.append(o); });
+  sel.value = selected;
+}
+let checkedKey = '';
+async function checkKey() {
+  const key = $('keyInput').value.trim(), st = $('keyStatus');
+  if (!key) { st.className = 'status'; st.textContent = ''; return false; }
+  st.className = 'status'; st.textContent = '키를 확인하는 중…';
+  try {
+    const res = await fetch(API + 'models?pageSize=1000', { headers: { 'x-goog-api-key': key } });
+    if (!res.ok) { const e = await apiError(res); st.className = 'status bad'; st.textContent = e.title + (e.detail ? ' — ' + e.detail : ''); return false; }
+    const models = ((await res.json()).models || []).filter(usable).map(m => ({ name: m.name, displayName: m.displayName }));
+    state.models = models;
+    const current = $('modelSelect').value;
+    fillModels(models.some(m => m.name === current) ? current : pickDefault(models));
+    checkedKey = key;
+    st.className = 'status ok'; st.textContent = '키가 확인되었습니다. 모델 ' + models.length + '개를 사용할 수 있습니다.';
+    return true;
+  } catch (e) {
+    st.className = 'status bad'; st.textContent = '연결하지 못했습니다. 인터넷 연결을 확인해 주세요.';
+    return false;
+  }
+}
+function openSettings() {
+  closeBag();
+  $('keyInput').value = state.key; $('keyInput').type = 'password'; $('keyShow').textContent = '보기';
+  $('keyStatus').textContent = ''; $('keyStatus').className = 'status';
+  fillModels(state.model);
+  $('settings').classList.add('on');
+  if (state.key) checkKey();
+}
+function closeSettings() { $('settings').classList.remove('on'); }
+async function saveSettings() {
+  const key = $('keyInput').value.trim(), btn = $('saveBtn');
+  if (!key) { $('keyStatus').className = 'status bad'; $('keyStatus').textContent = 'API 키를 입력해 주세요.'; return; }
+  if (key !== checkedKey) {
+    btn.disabled = true;
+    const ok = await checkKey();
+    btn.disabled = false;
+    if (!ok) return;
+  }
+  state.key = key; state.model = $('modelSelect').value || DEFAULT_MODEL;
+  save(); closeSettings(); toast('저장했습니다');
+  if ($('game').classList.contains('on')) {
+    if (lastError && lastError.needKey) { lastError = null; advance(); } else renderGame();
+  } else renderHome();
+}
+
+/* ---------- wiring ---------- */
+$('settingsBtn').onclick = openSettings;
+$('settingsClose').onclick = closeSettings;
+$('saveBtn').onclick = saveSettings;
+$('keyInput').onchange = checkKey;
+$('keyShow').onclick = () => { const k = $('keyInput'), s = k.type === 'password'; k.type = s ? 'text' : 'password'; $('keyShow').textContent = s ? '숨기기' : '보기'; };
+$('startBtn').onclick = startGame;
+$('gameBack').onclick = goHome;
+$('bagBtn').onclick = openBag;
+$('scrim').onclick = closeBag;
+
+// Called by the Android back button; returns true when the page handled it.
+window.onAndroidBack = () => {
+  if ($('settings').classList.contains('on')) { closeSettings(); return true; }
+  if ($('bag').classList.contains('on')) { closeBag(); return true; }
+  if ($('game').classList.contains('on')) { goHome(); return true; }
+  return false;
+};
+
+// Always open on the home screen; unfinished adventures are listed there.
+state.cur = null;
+renderHome();
+</script>
+</body>
+</html>

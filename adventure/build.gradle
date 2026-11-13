@@ -1,0 +1,40 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.gamsung.adventure'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.gamsung.adventure'
+        minSdk 26
+        // 34 keeps the classic (non edge-to-edge) window so the keyboard resizes the page.
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    signingConfigs {
+        // Fixed key kept in the repo so every build can be installed over the previous one.
+        shared {
+            storeFile rootProject.file('signing/gamsung.jks')
+            storePassword 'gamsung-chat'
+            keyAlias 'gamsung'
+            keyPassword 'gamsung-chat'
+        }
+    }
+
+    buildTypes {
+        debug { signingConfig signingConfigs.shared }
+        release {
+            signingConfig signingConfigs.shared
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

@@ -1,0 +1,4 @@
+<resources>
+    <color name="bg">#151A19</color>
+    <bool name="light_bars">false</bool>
+</resources>
