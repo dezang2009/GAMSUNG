@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>감성챗</title>
+<style>
+:root {
+  --bg: #FAF7F2; --surface: #FFFFFF; --surface2: #F1ECE4; --line: #E4DDD2;
+  --text: #2A2622; --muted: #857C71; --accent: #D9583B; --accent-text: #FFFFFF;
+  --user: #2A2622; --user-text: #FAF7F2; --danger: #B3261E; --code: #F4EFE7;
+  --shadow: 0 8px 30px rgba(40, 30, 20, .16);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1C1A18; --surface: #262320; --surface2: #302C28; --line: #3B3631;
+    --text: #EFE9E1; --muted: #A1978B; --accent: #F0795C; --accent-text: #1C1A18;
+    --user: #F0E9DF; --user-text: #1C1A18; --danger: #FF8A80; --code: #15130F;
+    --shadow: 0 8px 30px rgba(0, 0, 0, .5);
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 16px/1.6 -apple-system, "Noto Sans KR", "Apple SD Gothic Neo", Roboto, sans-serif;
+  display: flex; flex-direction: column; overflow: hidden; overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; }
+
+header {
+  display: flex; align-items: center; gap: 4px; padding: 6px 8px;
+  border-bottom: 1px solid var(--line); flex: none;
+}
+.icon-btn { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; flex: none; }
+.icon-btn:active { background: var(--surface2); }
+#title { flex: 1; min-width: 0; font-weight: 600; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
+
+main { flex: 1; overflow-y: auto; padding: 16px 16px 8px; scroll-behavior: auto; }
+.wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; min-height: 100%; }
+
+.empty { margin: auto 0; text-align: center; padding: 24px 0; }
+.empty h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -.02em; }
+.empty p { margin: 0 0 22px; color: var(--muted); }
+.chips { display: flex; flex-direction: column; gap: 10px; }
+.chip {
+  text-align: left; padding: 13px 16px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); font-size: 15px;
+}
+.chip:active { background: var(--surface2); }
+.cta { background: var(--accent); color: var(--accent-text); font-weight: 600; padding: 13px 22px; border-radius: 999px; }
+
+.msg { display: flex; flex-direction: column; }
+.msg.user { align-items: flex-end; }
+.msg.user .body {
+  background: var(--user); color: var(--user-text); padding: 10px 15px;
+  border-radius: 20px 20px 6px 20px; max-width: 86%; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.msg.model .body { overflow-wrap: anywhere; min-width: 0; max-width: 100%; }
+.msg.model .body > :first-child { margin-top: 0; }
+.msg.model .body > :last-child { margin-bottom: 0; }
+.body p { margin: 0 0 12px; }
+.body h1, .body h2, .body h3 { margin: 18px 0 8px; line-height: 1.35; }
+.body h1 { font-size: 20px; } .body h2 { font-size: 18px; } .body h3 { font-size: 16px; }
+.body ul, .body ol { margin: 0 0 12px; padding-left: 22px; }
+.body li { margin: 3px 0; }
+.body a { color: var(--accent); }
+.body code { background: var(--code); padding: 2px 5px; border-radius: 5px; font: 14px/1.5 ui-monospace, "Roboto Mono", monospace; }
+.body pre { background: var(--code); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; overflow-x: auto; margin: 0 0 12px; }
+.body pre code { background: none; padding: 0; white-space: pre; }
+.body blockquote { margin: 0 0 12px; padding-left: 12px; border-left: 3px solid var(--line); color: var(--muted); }
+.body hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
+.body table { border-collapse: collapse; margin: 0 0 12px; display: block; overflow-x: auto; font-size: 14px; }
+.body th, .body td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; white-space: nowrap; }
+.tools { display: flex; gap: 2px; margin: 4px 0 0 -8px; color: var(--muted); }
+.tools button { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 8px; font-size: 13px; }
+.tools button:active { background: var(--surface2); }
+.tools svg { width: 16px; height: 16px; }
+.dots { display: inline-flex; gap: 5px; padding: 8px 0; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite both; }
+.dots i:nth-child(2) { animation-delay: .2s; } .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+.error {
+  border: 1px solid var(--line); border-left: 3px solid var(--danger); background: var(--surface);
+  border-radius: 12px; padding: 12px 14px; font-size: 14.5px;
+}
+.error b { display: block; margin-bottom: 2px; }
+.error span { color: var(--muted); display: block; overflow-wrap: anywhere; }
+.error button { margin-top: 10px; color: var(--accent); font-weight: 600; }
+
+footer { flex: none; padding: 8px 12px 12px; }
+.composer {
+  max-width: 720px; margin: 0 auto; display: flex; align-items: flex-end; gap: 6px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 26px; padding: 5px 5px 5px 16px;
+}
+.composer:focus-within { border-color: var(--muted); }
+textarea, input, select {
+  font: inherit; color: var(--text); background: none; border: 0; outline: 0; width: 100%;
+}
+#input { flex: 1; resize: none; max-height: 140px; padding: 9px 0; line-height: 1.45; }
+::placeholder { color: var(--muted); }
+#send { width: 42px; height: 42px; border-radius: 50%; background: var(--accent); color: var(--accent-text); display: grid; place-items: center; flex: none; }
+#send:disabled { background: var(--surface2); color: var(--muted); }
+
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.4); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
+.scrim.on { opacity: 1; pointer-events: auto; }
+#drawer {
+  position: fixed; top: 0; bottom: 0; left: 0; width: min(84vw, 320px); background: var(--bg); z-index: 11;
+  transform: translateX(-102%); transition: transform .22s ease; display: flex; flex-direction: column;
+  box-shadow: var(--shadow);
+}
+#drawer.on { transform: none; }
+.drawer-head { padding: 14px 14px 10px; display: flex; align-items: center; justify-content: space-between; }
+.drawer-head strong { font-size: 20px; letter-spacing: -.02em; }
+.new-btn { margin: 0 14px 10px; padding: 11px 14px; border-radius: 12px; background: var(--accent); color: var(--accent-text); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.new-btn svg { width: 20px; height: 20px; }
+#chatList { flex: 1; overflow-y: auto; padding: 0 8px; }
+.chat-item { display: flex; align-items: center; border-radius: 10px; }
+.chat-item.cur { background: var(--surface2); }
+.chat-item .open { flex: 1; min-width: 0; text-align: left; padding: 11px 8px 11px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; }
+.chat-item .del { width: 40px; height: 40px; display: grid; place-items: center; color: var(--muted); flex: none; }
+.chat-item .del svg { width: 18px; height: 18px; }
+.none { color: var(--muted); font-size: 14px; padding: 10px; }
+.drawer-foot { border-top: 1px solid var(--line); padding: 8px; }
+.drawer-foot button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 10px; border-radius: 10px; }
+.drawer-foot button:active { background: var(--surface2); }
+.drawer-foot svg { width: 20px; height: 20px; }
+
+#settings {
+  position: fixed; inset: 0; background: var(--bg); z-index: 20; display: none; flex-direction: column;
+}
+#settings.on { display: flex; }
+.form { flex: 1; overflow-y: auto; padding: 18px 16px 30px; }
+.form .inner { max-width: 560px; margin: 0 auto; }
+.field { margin-bottom: 24px; }
+.field label { display: block; font-weight: 600; margin-bottom: 4px; }
+.field .hint { color: var(--muted); font-size: 13.5px; margin: 0 0 8px; }
+.field .hint a { color: var(--accent); }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; display: flex; align-items: center; gap: 8px; }
+.box:focus-within { border-color: var(--muted); }
+.box textarea { resize: none; min-height: 96px; }
+.box button { color: var(--accent); font-weight: 600; font-size: 14px; flex: none; }
+.status { font-size: 13.5px; margin-top: 8px; min-height: 20px; color: var(--muted); }
+.status.ok { color: #2E7D4F; } .status.bad { color: var(--danger); }
+@media (prefers-color-scheme: dark) { .status.ok { color: #7FD19E; } }
+.save { width: 100%; background: var(--accent); color: var(--accent-text); font-weight: 600; padding: 14px; border-radius: 14px; }
+.save:disabled { opacity: .5; }
+
+#toast {
+  position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: var(--user); color: var(--user-text);
+  padding: 9px 16px; border-radius: 999px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 30; white-space: nowrap;
+}
+#toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="icon-btn" id="menuBtn" aria-label="대화 목록"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+  <div id="title">새 대화</div>
+  <button class="icon-btn" id="newBtn" aria-label="새 대화"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+</header>
+
+<main id="main"><div class="wrap" id="messages"></div></main>
+
+<footer>
+  <div class="composer">
+    <textarea id="input" rows="1" placeholder="메시지를 입력하세요"></textarea>
+    <button id="send" aria-label="보내기" disabled></button>
+  </div>
+</footer>
+
+<div class="scrim" id="scrim"></div>
+<aside id="drawer">
+  <div class="drawer-head"><strong>감성챗</strong></div>
+  <button class="new-btn" id="drawerNew"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>새 대화</button>
+  <div id="chatList"></div>
+  <div class="drawer-foot">
+    <button id="settingsBtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.8 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.8-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3.1 14H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.8 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>설정</button>
+  </div>
+</aside>
+
+<section id="settings">
+  <header>
+    <button class="icon-btn" id="settingsClose" aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div id="title2" style="flex:1;font-weight:600;font-size:17px">설정</div>
+  </header>
+  <div class="form"><div class="inner">
+    <div class="field">
+      <label for="keyInput">Gemini API 키</label>
+      <p class="hint"><a href="https://aistudio.google.com/apikey">Google AI Studio</a>에서 무료로 발급받아 붙여넣으세요. 키는 이 기기에만 저장됩니다.</p>
+      <div class="box"><input id="keyInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="AIza..."><button id="keyShow">보기</button></div>
+      <div class="status" id="keyStatus"></div>
+    </div>
+    <div class="field">
+      <label for="modelSelect">모델</label>
+      <p class="hint">키를 확인하면 사용할 수 있는 모델 목록이 나타납니다. 무료 한도는 모델마다 다릅니다.</p>
+      <div class="box"><select id="modelSelect"></select></div>
+    </div>
+    <div class="field">
+      <label for="personaInput">AI 성격 (선택)</label>
+      <p class="hint">AI가 어떤 말투와 역할로 답할지 적어주세요.</p>
+      <div class="box"><textarea id="personaInput" placeholder="예: 다정한 친구처럼 반말로 짧게 대답해줘"></textarea></div>
+    </div>
+    <button class="save" id="saveBtn">저장</button>
+    <p class="hint" style="margin-top:18px">무료 등급에서는 보낸 내용이 Google의 서비스 개선에 사용될 수 있으니 민감한 개인정보는 입력하지 마세요.</p>
+  </div></div>
+</section>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+const API = 'https://generativelanguage.googleapis.com/v1beta/';
+const DEFAULT_MODEL = 'models/gemini-flash-latest';
+const STORE = 'gamsung-chat-v1';
+const $ = id => document.getElementById(id);
+const ICON = {
+  send: '<svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
+  stop: '<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" stroke="none"/></svg>',
+  copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
+  trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
+};
+
+let state = { key: '', model: DEFAULT_MODEL, persona: '', models: [], chats: [], cur: null };
+try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
+let busy = null;      // AbortController while a reply is streaming
+let lastError = null; // { chatId, title, detail, needKey }
+
+function save() {
+  try { localStorage.setItem(STORE, JSON.stringify(state)); }
+  catch (e) { toast('저장 공간이 부족합니다. 오래된 대화를 삭제해 주세요.'); }
+}
+const chat = () => state.chats.find(c => c.id === state.cur) || null;
+
+/* ---------- markdown ---------- */
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function inline(s) {
+  const codes = [];
+  s = esc(s).replace(/`([^`\n]+)`/g, (m, c) => { codes.push(c); return '\u0001' + (codes.length - 1) + '\u0001'; });
+  s = s.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2">$1</a>')
+       .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+       .replace(/(^|[^*\w])\*([^*\s][^*\n]*?)\*(?![*\w])/g, '$1<em>$2</em>')
+       .replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
+  return s.replace(/\u0001(\d+)\u0001/g, (m, i) => '<code>' + codes[i] + '</code>');
+}
+function md(src) {
+  const lines = src.replace(/\r/g, '').split('\n');
+  let out = '', i = 0, para = [];
+  const flush = () => { if (para.length) { out += '<p>' + para.map(inline).join('<br>') + '</p>'; para = []; } };
+  const listRe = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (/^\s*```/.test(line)) {
+      flush(); const buf = []; i++;
+      while (i < lines.length && !/^\s*```/.test(lines[i])) buf.push(lines[i++]);
+      i++; out += '<pre><code>' + esc(buf.join('\n')) + '</code></pre>'; continue;
+    }
+    if (!line.trim()) { flush(); i++; continue; }
+    let m;
+    if ((m = /^(#{1,6})\s+(.*)$/.exec(line))) { flush(); const h = Math.min(m[1].length, 3); out += `<h${h}>${inline(m[2])}</h${h}>`; i++; continue; }
+    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) { flush(); out += '<hr>'; i++; continue; }
+    if (/^\s*>/.test(line)) {
+      flush(); const buf = [];
+      while (i < lines.length && /^\s*>/.test(lines[i])) buf.push(lines[i++].replace(/^\s*>\s?/, ''));
+      out += '<blockquote>' + buf.map(inline).join('<br>') + '</blockquote>'; continue;
+    }
+    if (/^\s*\|.*\|\s*$/.test(line) && i + 1 < lines.length && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1])) {
+      flush();
+      const cells = l => l.trim().replace(/^\||\|$/g, '').split('|').map(c => inline(c.trim()));
+      let t = '<table><tr>' + cells(line).map(c => '<th>' + c + '</th>').join('') + '</tr>'; i += 2;
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) t += '<tr>' + cells(lines[i++]).map(c => '<td>' + c + '</td>').join('') + '</tr>';
+      out += t + '</table>'; continue;
+    }
+    if ((m = listRe.exec(line))) {
+      flush();
+      const stack = [];
+      while (i < lines.length && (m = listRe.exec(lines[i]))) {
+        const depth = m[1].length, tag = /\d/.test(m[2]) ? 'ol' : 'ul';
+        while (stack.length && stack[stack.length - 1].depth > depth) out += '</li></' + stack.pop().tag + '>';
+        if (!stack.length || stack[stack.length - 1].depth < depth) { out += '<' + tag + '>'; stack.push({ depth, tag }); }
+        else out += '</li>';
+        out += '<li>' + inline(m[3]);
+        i++;
+        while (i < lines.length && lines[i].trim() && !listRe.test(lines[i]) && /^\s{2,}/.test(lines[i])) out += '<br>' + inline(lines[i++].trim());
+      }
+      while (stack.length) out += '</li></' + stack.pop().tag + '>';
+      continue;
+    }
+    para.push(line); i++;
+  }
+  flush();
+  return out;
+}
+
+/* ---------- rendering ---------- */
+const SUGGEST = ['오늘 하루 어땠는지 들어줄래?', '저녁 메뉴 추천해줘', '요즘 잠을 잘 못 자는데 어떻게 하면 좋을까?'];
+function render() {
+  const c = chat(), box = $('messages');
+  $('title').textContent = c ? c.title : '새 대화';
+  box.innerHTML = '';
+  if (!c || !c.msgs.length) {
+    const e = document.createElement('div'); e.className = 'empty';
+    if (!state.key) {
+      e.innerHTML = '<h1>감성챗에 오신 걸 환영해요</h1><p>시작하려면 무료 Gemini API 키를 등록해 주세요.</p><button class="cta" id="ctaKey">API 키 등록하기</button>';
+      box.append(e); $('ctaKey').onclick = openSettings;
+    } else {
+      e.innerHTML = '<h1>무슨 이야기를 할까요?</h1><p>편하게 말을 걸어보세요.</p><div class="chips"></div>';
+      SUGGEST.forEach(s => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = s; b.onclick = () => send(s); e.lastChild.append(b); });
+      box.append(e);
+    }
+  } else {
+    c.msgs.forEach((m, idx) => box.append(msgEl(m, busy && idx === c.msgs.length - 1)));
+    if (lastError && lastError.chatId === c.id) box.append(errorEl());
+  }
+  updateSend();
+}
+function msgEl(m, streaming) {
+  const el = document.createElement('div'); el.className = 'msg ' + m.role;
+  const body = document.createElement('div'); body.className = 'body';
+  if (m.role === 'user') body.textContent = m.text;
+  else if (!m.text && streaming) body.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>';
+  else body.innerHTML = md(m.text);
+  el.append(body);
+  if (m.role === 'model' && m.text && !streaming) el.append(toolsEl(m));
+  return el;
+}
+function toolsEl(m) {
+  const t = document.createElement('div'); t.className = 'tools';
+  const b = document.createElement('button'); b.innerHTML = ICON.copy + '복사';
+  b.onclick = () => copy(m.text);
+  t.append(b); return t;
+}
+function errorEl() {
+  const el = document.createElement('div'); el.className = 'error';
+  const b = document.createElement('b'); b.textContent = lastError.title;
+  const s = document.createElement('span'); s.textContent = lastError.detail;
+  const btn = document.createElement('button');
+  if (lastError.needKey) { btn.textContent = '설정 열기'; btn.onclick = openSettings; }
+  else { btn.textContent = '다시 시도'; btn.onclick = () => generate(); }
+  el.append(b, s, btn); return el;
+}
+function renderList() {
+  const list = $('chatList'); list.innerHTML = '';
+  const chats = state.chats.filter(c => c.msgs.length).sort((a, b) => b.ts - a.ts);
+  if (!chats.length) { list.innerHTML = '<div class="none">아직 대화가 없습니다.</div>'; return; }
+  chats.forEach(c => {
+    const row = document.createElement('div'); row.className = 'chat-item' + (c.id === state.cur ? ' cur' : '');
+    const open = document.createElement('button'); open.className = 'open'; open.textContent = c.title;
+    open.onclick = () => { stopReply(); state.cur = c.id; lastError = null; save(); closeDrawer(); render(); toBottom(true); };
+    const del = document.createElement('button'); del.className = 'del'; del.innerHTML = ICON.trash; del.setAttribute('aria-label', '대화 삭제');
+    del.onclick = () => {
+      if (!confirm('"' + c.title + '" 대화를 삭제할까요?')) return;
+      if (c.id === state.cur) stopReply();
+      state.chats = state.chats.filter(x => x.id !== c.id);
+      if (state.cur === c.id) state.cur = null;
+      save(); renderList(); render();
+    };
+    row.append(open, del); list.append(row);
+  });
+}
+function updateSend() {
+  const btn = $('send');
+  btn.innerHTML = busy ? ICON.stop : ICON.send;
+  btn.setAttribute('aria-label', busy ? '중지' : '보내기');
+  btn.disabled = !busy && !$('input').value.trim();
+}
+const nearBottom = () => { const m = $('main'); return m.scrollHeight - m.scrollTop - m.clientHeight < 80; };
+function toBottom(force) { const m = $('main'); if (force || nearBottom()) m.scrollTop = m.scrollHeight; }
+let toastTimer;
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 2200); }
+function copy(text) {
+  try {
+    if (window.Android && Android.copy) Android.copy(text);
+    else navigator.clipboard.writeText(text);
+    toast('복사했습니다');
+  } catch (e) { toast('복사하지 못했습니다'); }
+}
+
+/* ---------- Gemini ---------- */
+function explain(status, apiMsg) {
+  const msg = apiMsg || '';
+  if (status === 429) return { title: '무료 사용 한도를 넘었습니다', detail: '잠시 후 다시 시도하거나, 설정에서 다른 모델을 골라보세요. 하루 한도는 다음 날 초기화됩니다.' };
+  if (status === 400 && /API key/i.test(msg) || status === 401 || status === 403) return { title: 'API 키를 확인해 주세요', detail: msg || '키가 올바르지 않거나 사용할 수 없습니다.', needKey: true };
+  if (status === 404) return { title: '선택한 모델을 사용할 수 없습니다', detail: '설정에서 다른 모델을 선택해 주세요.', needKey: true };
+  if (status >= 500) return { title: 'Gemini 서버가 혼잡합니다', detail: '잠시 후 다시 시도해 주세요.' };
+  if (!status) return { title: '연결하지 못했습니다', detail: '인터넷 연결을 확인하고 다시 시도해 주세요.' };
+  return { title: '응답을 받지 못했습니다', detail: msg || ('오류 코드 ' + status) };
+}
+async function apiError(res) {
+  let msg = '';
+  try { msg = (await res.json()).error.message; } catch (e) {}
+  return explain(res.status, msg);
+}
+function buildContents(msgs) {
+  const out = [];
+  msgs.forEach(m => {
+    if (!m.text) return;
+    const last = out[out.length - 1];
+    if (last && last.role === m.role) last.parts[0].text += '\n\n' + m.text;
+    else out.push({ role: m.role, parts: [{ text: m.text }] });
+  });
+  return out;
+}
+async function generate() {
+  const c = chat();
+  if (!c || busy) return;
+  if (!state.key) { openSettings(); return; }
+  lastError = null;
+  // drop an empty reply left over from a failed attempt
+  if (c.msgs.length && c.msgs[c.msgs.length - 1].role === 'model' && !c.msgs[c.msgs.length - 1].text) c.msgs.pop();
+  const body = { contents: buildContents(c.msgs) };
+  if (state.persona.trim()) body.systemInstruction = { parts: [{ text: state.persona.trim() }] };
+  const reply = { role: 'model', text: '' };
+  c.msgs.push(reply);
+  const ctl = busy = new AbortController();
+  render(); toBottom(true);
+  const bodyEl = $('messages').querySelector('.msg.model:last-of-type .body');
+  let blocked = '';
+  try {
+    const res = await fetch(API + state.model + ':streamGenerateContent?alt=sse', {
+      method: 'POST', signal: ctl.signal,
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': state.key },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw await apiError(res);
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    const handle = line => {
+      if (!line.startsWith('data:')) return;
+      let j; try { j = JSON.parse(line.slice(5)); } catch (e) { return; }
+      if (j.error) throw explain(j.error.code, j.error.message);
+      if (j.promptFeedback && j.promptFeedback.blockReason) blocked = j.promptFeedback.blockReason;
+      const cand = (j.candidates || [])[0];
+      if (!cand) return;
+      if (cand.finishReason && !/^(STOP|MAX_TOKENS)$/.test(cand.finishReason)) blocked = cand.finishReason;
+      const t = ((cand.content || {}).parts || []).filter(p => !p.thought && p.text).map(p => p.text).join('');
+      if (t) { reply.text += t; const stick = nearBottom(); bodyEl.innerHTML = md(reply.text); if (stick) toBottom(true); }
+    };
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      lines.forEach(l => handle(l.replace(/\r$/, '')));
+    }
+    if (buf) handle(buf);
+    if (!reply.text) throw blocked
+      ? { title: '답변이 차단되었습니다', detail: '안전 정책 때문에 답변을 만들지 못했습니다. 다르게 물어봐 주세요. (' + blocked + ')' }
+      : { title: '빈 응답을 받았습니다', detail: '다시 시도해 주세요.' };
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      const info = e.title ? e : explain(0);
+      lastError = Object.assign({ chatId: c.id }, info);
+    }
+  } finally {
+    if (busy === ctl) busy = null;
+    if (!reply.text) c.msgs = c.msgs.filter(m => m !== reply);
+    c.ts = Date.now();
+    save();
+    if (state.cur === c.id) { const stick = nearBottom(); render(); if (stick) toBottom(true); }
+  }
+}
+function send(text) {
+  text = (text || $('input').value).trim();
+  if (!text || busy) return;
+  if (!state.key) { openSettings(); return; }
+  let c = chat();
+  if (!c) {
+    c = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: '', ts: Date.now(), msgs: [] };
+    state.chats.push(c); state.cur = c.id;
+  }
+  if (!c.msgs.length) c.title = text.replace(/\s+/g, ' ').slice(0, 30);
+  c.msgs.push({ role: 'user', text });
+  $('input').value = ''; grow();
+  save();
+  generate();
+}
+function stopReply() { if (busy) { const b = busy; busy = null; b.abort(); } }
+function newChat() {
+  stopReply();
+  state.cur = null; lastError = null; save(); closeDrawer(); render();
+}
+
+/* ---------- settings ---------- */
+const modelLabel = m => (m.displayName || m.name.replace('models/', ''));
+function usable(m) {
+  const n = m.name;
+  return /gemini|gemma/.test(n) && (m.supportedGenerationMethods || []).includes('generateContent')
+    && !/image|tts|audio|live|embedding|robotics|computer-use|aqa|vision/.test(n);
+}
+function pickDefault(models) {
+  const names = models.map(m => m.name);
+  if (names.includes(DEFAULT_MODEL)) return DEFAULT_MODEL;
+  const flash = names.filter(n => /flash/.test(n) && !/lite|preview|exp/.test(n)).sort().pop();
+  return flash || names.filter(n => /flash/.test(n)).sort().pop() || names[0] || DEFAULT_MODEL;
+}
+function fillModels(selected) {
+  const sel = $('modelSelect'); sel.innerHTML = '';
+  const list = state.models.length ? state.models : [{ name: selected, displayName: selected.replace('models/', '') }];
+  if (!list.some(m => m.name === selected)) list.unshift({ name: selected, displayName: selected.replace('models/', '') });
+  list.forEach(m => { const o = document.createElement('option'); o.value = m.name; o.textContent = modelLabel(m); sel.append(o); });
+  sel.value = selected;
+}
+let checkedKey = '';
+async function checkKey() {
+  const key = $('keyInput').value.trim(), st = $('keyStatus');
+  if (!key) { st.className = 'status'; st.textContent = ''; return false; }
+  st.className = 'status'; st.textContent = '키를 확인하는 중…';
+  try {
+    const res = await fetch(API + 'models?pageSize=1000', { headers: { 'x-goog-api-key': key } });
+    if (!res.ok) { const e = await apiError(res); st.className = 'status bad'; st.textContent = e.title + (e.detail ? ' — ' + e.detail : ''); return false; }
+    const models = ((await res.json()).models || []).filter(usable).map(m => ({ name: m.name, displayName: m.displayName }));
+    state.models = models;
+    const current = $('modelSelect').value;
+    fillModels(models.some(m => m.name === current) ? current : pickDefault(models));
+    checkedKey = key;
+    st.className = 'status ok'; st.textContent = '키가 확인되었습니다. 모델 ' + models.length + '개를 사용할 수 있습니다.';
+    return true;
+  } catch (e) {
+    st.className = 'status bad'; st.textContent = '연결하지 못했습니다. 인터넷 연결을 확인해 주세요.';
+    return false;
+  }
+}
+function openSettings() {
+  closeDrawer();
+  $('keyInput').value = state.key; $('keyInput').type = 'password'; $('keyShow').textContent = '보기';
+  $('personaInput').value = state.persona;
+  $('keyStatus').textContent = ''; $('keyStatus').className = 'status';
+  fillModels(state.model);
+  $('settings').classList.add('on');
+  if (state.key) checkKey();
+}
+function closeSettings() { $('settings').classList.remove('on'); }
+async function saveSettings() {
+  const key = $('keyInput').value.trim(), btn = $('saveBtn');
+  if (!key) { $('keyStatus').className = 'status bad'; $('keyStatus').textContent = 'API 키를 입력해 주세요.'; return; }
+  if (key !== checkedKey) {
+    btn.disabled = true;
+    const ok = await checkKey();
+    btn.disabled = false;
+    if (!ok) return;
+  }
+  state.key = key; state.model = $('modelSelect').value || DEFAULT_MODEL; state.persona = $('personaInput').value;
+  if (lastError && lastError.needKey) lastError = null;
+  save(); closeSettings(); render(); toast('저장했습니다');
+}
+
+/* ---------- wiring ---------- */
+function openDrawer() { renderList(); $('drawer').classList.add('on'); $('scrim').classList.add('on'); $('input').blur(); }
+function closeDrawer() { $('drawer').classList.remove('on'); $('scrim').classList.remove('on'); }
+function grow() { const t = $('input'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; updateSend(); }
+
+$('menuBtn').onclick = openDrawer;
+$('scrim').onclick = closeDrawer;
+$('newBtn').onclick = newChat;
+$('drawerNew').onclick = newChat;
+$('settingsBtn').onclick = openSettings;
+$('settingsClose').onclick = closeSettings;
+$('saveBtn').onclick = saveSettings;
+$('keyInput').onchange = checkKey;
+$('keyShow').onclick = () => { const k = $('keyInput'), show = k.type === 'password'; k.type = show ? 'text' : 'password'; $('keyShow').textContent = show ? '숨기기' : '보기'; };
+$('input').oninput = grow;
+$('send').onclick = () => { if (busy) stopReply(); else send(); };
+window.addEventListener('resize', () => toBottom(false));
+
+// Called by the Android back button; returns true when the page handled it.
+window.onAndroidBack = () => {
+  if ($('settings').classList.contains('on')) { closeSettings(); return true; }
+  if ($('drawer').classList.contains('on')) { closeDrawer(); return true; }
+  return false;
+};
+
+// Never reopen a half-finished state: start on the most recent conversation.
+if (!chat()) state.cur = null;
+render(); toBottom(true);
+</script>
+</body>
+</html>
