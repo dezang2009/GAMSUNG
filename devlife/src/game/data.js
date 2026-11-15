@@ -44,9 +44,9 @@ export const BALANCE = {
   linesBase: 120, // 첫 앱에 필요한 코드 줄
   linesGrowth: 2.35, // 다음 앱은 이만큼 더 크다
   capBase: 400, // 첫 앱 최대 사용자
-  capGrowth: 3,
-  arpuBase: 0.004, // 사용자 1명이 1초에 내는 수익(원)
-  arpuGrowth: 1.25,
+  capGrowth: 2.4,
+  arpuBase: 0.02, // 사용자 1명이 1초에 내는 수익(원)
+  arpuGrowth: 1.2,
   growthRate: 0.012, // 사용자 증가 속도 (최대치까지 다가가는 비율/초)
   offlineCapSec: 8 * 3600, // 자리 비운 사이 최대 계산 시간
   offlineEfficiency: 0.75, // 자리 비운 동안은 75% 효율

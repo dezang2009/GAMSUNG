@@ -24,7 +24,7 @@ export const lines = (n) => `${shortNum(Math.floor(n))}줄`;
 export const people = (n) => `${shortNum(Math.floor(n))}명`;
 
 /** 초당 값: 작은 수는 소수 한 자리 */
-export const perSec = (n, unit) => `${n > 0 && n < 10 ? n.toFixed(1) : shortNum(n)}${unit}/초`;
+export const perSec = (n, unit) => `${n > 0 && n < 1 ? n.toFixed(2) : n > 0 && n < 10 ? n.toFixed(1) : shortNum(n)}${unit}/초`;
 
 export function duration(sec) {
   const s = Math.max(0, Math.floor(sec));
