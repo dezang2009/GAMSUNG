@@ -1,0 +1,66 @@
+/*
+ * DEVLIFE 디자인 토큰 (LIFEOS와 같은 체계)
+ * 정체성: 차분한 오프화이트 바탕, 조용한 화면 틀, 강조색 하나(대표색)를 드물게.
+ * 그라데이션·색 번짐·색 그림자 없음. 상자는 옅은 테두리와 아주 약한 중립 그림자.
+ * 수입=녹색, 지출=붉은색 유지.
+ */
+:root {
+  color-scheme: light;
+
+  --bg: #f6f7fb;
+  --bg-elev: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f2f4f8;
+  --surface-3: #eceff5;
+  --border: #edf0f5;
+  --border-strong: #dfe3eb;
+  --hairline: rgba(23, 26, 35, 0.06);
+  --text: #171a23;
+  --text-muted: #636a79;
+  --text-faint: #a2a8b5;
+
+  --accent: #4b5de6;
+  --accent-strong: #3d4dcc;
+  --accent-soft: #eef0fd;
+  --accent-border: #c5cbf7;
+  --on-accent: #ffffff;
+  --mint: #23a99e;
+  --mint-soft: #e5f6f3;
+  --amber: #c27a10;
+  --amber-soft: #fdf3e2;
+  --rose-soft: #fdecec;
+
+  /* 색은 단색 강조 하나. 이름은 예전 그대로 두고 값만 단색으로 (unslop) */
+  --grad: linear-gradient(var(--accent), var(--accent));
+  --grad-strong: linear-gradient(var(--accent-strong), var(--accent-strong));
+  --grad-soft: linear-gradient(var(--accent-soft), var(--accent-soft));
+  --wash: none;
+
+  /* 하위 호환 */
+  --teal: var(--mint);
+  --teal-soft: var(--mint-soft);
+
+  --income: #0f9e78;  /* 민트 계열 초록 */
+  --expense: #e04f68; /* 노을(코랄·로즈) */
+  --warning: #c27a10;
+  --danger: #d4372f;
+
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-lg: 18px;
+  --shadow: 0 16px 40px rgba(23, 30, 60, 0.12);
+  --shadow-soft: 0 1px 2px rgba(23, 30, 60, 0.03);
+
+  --font: 'Paperlogy', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', system-ui, sans-serif;
+
+  --touch: 44px; /* 최소 터치 영역 */
+  --gutter: 16px;
+  --app-bar-h: 56px;
+  --nav-h: 60px;
+  --nav-gap: 12px;
+  --max-w: 640px;
+
+  /* Android 앱은 Capacitor가 --safe-area-inset-* 를 넣어 주고, 브라우저는 env() 를 쓴다 */
+  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}

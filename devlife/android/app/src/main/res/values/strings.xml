@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DEVLIFE</string>
+    <string name="title_activity_main">DEVLIFE</string>
+    <string name="package_name">com.gamsung.devlife</string>
+    <string name="custom_url_scheme">com.gamsung.devlife</string>
+</resources>
