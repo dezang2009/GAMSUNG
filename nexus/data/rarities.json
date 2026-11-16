@@ -1,0 +1,9 @@
+{
+  "schema": "rarities",
+  "items": [
+    { "id": "rarity_1", "name": "희귀도 1", "tier": 1, "color": "#9aa4b8", "placeholder": true },
+    { "id": "rarity_2", "name": "희귀도 2", "tier": 2, "color": "#6fc3a8", "placeholder": true },
+    { "id": "rarity_3", "name": "희귀도 3", "tier": 3, "color": "#8f9bff", "placeholder": true },
+    { "id": "rarity_4", "name": "희귀도 4", "tier": 4, "color": "#f2c25b", "placeholder": true }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "schema": "species",
+  "note": "개체 종 정의는 Phase 2 에서 추가해요. 형식: id·name·rarity·element·role·base_stats·skills·evolution·traits·eco_abilities·art",
+  "items": []
+}

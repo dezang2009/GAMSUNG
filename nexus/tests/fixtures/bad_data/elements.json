@@ -1,0 +1,41 @@
+{
+ "schema": "elements",
+ "items": [
+  {
+   "id": "heat",
+   "name": "열",
+   "color": "#ef7a45"
+  },
+  {
+   "id": "bio",
+   "name": "생물",
+   "color": "green"
+  },
+  {
+   "id": "fluid",
+   "name": "유체",
+   "color": "#4b9cf5",
+   "extra": 1
+  },
+  {
+   "id": "mineral",
+   "name": "광물",
+   "color": "#c5a46a"
+  },
+  {
+   "id": "heat",
+   "name": "중복",
+   "color": "#123456"
+  }
+ ],
+ "affinity": {
+  "placeholder": true,
+  "note": "속성 상성 관계는 미정. 정해지면 matrix 에 { 공격 속성: { 방어 속성: 배율 } } 로 적어요. 비어 있으면 default 배율.",
+  "default": 1.0,
+  "matrix": {
+   "heat": {
+    "water": 2.0
+   }
+  }
+ }
+}

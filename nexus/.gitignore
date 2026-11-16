@@ -1,0 +1,6 @@
+.godot/
+/android/
+*.apk
+*.aab
+export_credentials.cfg
+*.keystore

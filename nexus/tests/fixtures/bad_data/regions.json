@@ -1,0 +1,94 @@
+{
+ "schema": "regions",
+ "note": "unlock: { any: [조건…] } 또는 { all: [조건…] }. 조건 type: start(처음부터) · region_cleared(다른 지역 개척). 한 개체·한 경로에 막히지 않게 any 로 대체 경로를 둬요.",
+ "items": [
+  {
+   "id": "region_01",
+   "planet": "planet_01",
+   "name": "지역 1",
+   "map": [
+    0.3,
+    0.42
+   ],
+   "unlock": {
+    "any": [
+     {
+      "type": "start"
+     }
+    ]
+   },
+   "placeholder": true
+  },
+  {
+   "id": "region_02",
+   "planet": "planet_99",
+   "name": "지역 2",
+   "map": [
+    0.62,
+    0.3
+   ],
+   "unlock": {
+    "any": [
+     {
+      "type": "region_cleared",
+      "region": "region_01"
+     }
+    ]
+   },
+   "placeholder": true
+  },
+  {
+   "id": "region_03",
+   "planet": "planet_01",
+   "name": "지역 3",
+   "map": [
+    0.7,
+    0.62
+   ],
+   "unlock": {
+    "any": [
+     {
+      "type": "teleport"
+     }
+    ]
+   },
+   "placeholder": true
+  },
+  {
+   "id": "region_04",
+   "planet": "planet_01",
+   "name": "지역 4",
+   "map": [
+    0.38,
+    0.72
+   ],
+   "unlock": {
+    "all": [
+     {
+      "type": "region_cleared",
+      "region": "region_05"
+     }
+    ]
+   },
+   "placeholder": true
+  },
+  {
+   "id": "region_05",
+   "planet": "planet_01",
+   "name": "지역 5",
+   "map": [
+    0.52,
+    0.52
+   ],
+   "unlock": {
+    "all": [
+     {
+      "type": "region_cleared",
+      "region": "region_04"
+     }
+    ]
+   },
+   "placeholder": true
+  }
+ ]
+}

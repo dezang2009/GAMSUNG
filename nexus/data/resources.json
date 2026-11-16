@@ -1,0 +1,8 @@
+{
+  "schema": "resources",
+  "items": [
+    { "id": "res_a", "name": "자원 A", "color": "#7fd1ff", "start": 0, "placeholder": true },
+    { "id": "res_b", "name": "자원 B", "color": "#b8e986", "start": 0, "placeholder": true },
+    { "id": "res_c", "name": "자원 C", "color": "#f5a3ff", "start": 0, "placeholder": true }
+  ]
+}
