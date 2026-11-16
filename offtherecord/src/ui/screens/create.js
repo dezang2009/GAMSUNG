@@ -112,7 +112,7 @@ export function createScreen(ui) {
 
   return h('div', { class: 'screen', 'data-screen': 'create' },
     h('header', { class: 'title-card' },
-      h('h1', {}, 'OFF THE', h('br'), 'RECORD'),
+      h('h1', {}, 'OFF THE', h('br'), h('span', {}, 'RECORD')),
       h('p', { class: 'slogan' }, '당신이 살아가는 동안, 세상도 살아간다.'),
       h('p', {}, '한 사람의 하루하루를 직접 살아 보는 텍스트 인생 시뮬레이션이에요. 먼저 어떤 사람으로 시작할지 정해 주세요.')),
     formEl);

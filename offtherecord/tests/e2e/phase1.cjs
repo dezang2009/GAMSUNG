@@ -160,7 +160,8 @@ const won = (t) => Number(String(t).replace(/[^0-9-]/g, ''));
     }
     await p.click('.nav__item[data-tab=today]');
     const navBox = await p.locator('.nav').boundingBox();
-    check(9, '하단 메뉴가 화면 아래에 고정', navBox && Math.round(navBox.y + navBox.height) === 740, JSON.stringify(navBox));
+    const gap = 740 - (navBox.y + navBox.height);
+    check(9, '하단 메뉴가 화면 아래에 떠 있음 (여백 12px, 화면 안)', navBox && gap >= 0 && gap <= 24 && navBox.x >= 0 && navBox.x + navBox.width <= 360, JSON.stringify(navBox));
 
     /* 새 인생 (기록 지우기) */
     await p.click('.nav__item[data-tab=journal]');

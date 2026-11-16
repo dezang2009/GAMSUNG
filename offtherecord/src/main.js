@@ -1,8 +1,4 @@
-import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
-import '@fontsource/gowun-batang/korean-400.css';
-import '@fontsource/gowun-batang/korean-700.css';
-import '@fontsource/gowun-batang/latin-400.css';
-import '@fontsource/gowun-batang/latin-700.css';
+import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/app.css';
 import { createEngine } from './engine/GameEngine.js';

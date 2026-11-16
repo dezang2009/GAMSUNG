@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">OFF THE RECORD</string>
+    <string name="title_activity_main">OFF THE RECORD</string>
+    <string name="package_name">com.gamsung.offtherecord</string>
+    <string name="custom_url_scheme">com.gamsung.offtherecord</string>
+</resources>

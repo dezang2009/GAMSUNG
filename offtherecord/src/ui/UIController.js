@@ -44,7 +44,7 @@ export function createUI(root, engine) {
     const t = ui.settings.theme;
     const dark = t === 'dark' || (t === 'auto' && media.matches);
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#121311' : '#f1eee7');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0f1115' : '#f6f7fb');
   };
   media.addEventListener?.('change', applyTheme);
   ui.setTheme = (t) => {
@@ -203,6 +203,19 @@ export function createUI(root, engine) {
     if (reason === 'start') ui.toast(`${engine.state.character.name}의 기록이 시작됐어요`, '활동을 고르면 그만큼 시간이 흘러요. 밤 8시부터 잠자리에 들 수 있어요.');
   });
   engine.on('error', ({ message }) => ui.toast(message, '저장 공간을 확인해 주세요', true));
+
+  /* 안드로이드: 뒤로 가기 = 시트 닫기 → 오늘 화면 → 앱 종료, 백그라운드로 갈 때 저장 마무리 */
+  import('@capacitor/app')
+    .then(({ App }) => {
+      App.addListener('backButton', async () => {
+        if (closeTop) return closeTop();
+        if (engine.hasGame() && ui.tab !== 'today') return go('today');
+        await engine.flush();
+        App.exitApp();
+      });
+      App.addListener('pause', () => engine.flush());
+    })
+    .catch(() => {});
 
   return ui;
 }

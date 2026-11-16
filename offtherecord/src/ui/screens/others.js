@@ -73,7 +73,7 @@ export function moneyScreen(ui) {
         h('span', { class: 'figure__sub num' }, `오늘 들어온 돈 ${Economy.won(today.income)} · 나간 돈 ${Economy.won(today.expense)}`)),
       e.cash < 0 ? h('p', { class: 'muted', style: { margin: 0, color: 'var(--danger)' } }, '잔액이 마이너스예요. 매일 밤 스트레스가 쌓여요.') : null),
     section('h-chart', '최근 7일', null,
-      h('div', { class: 'sheet sheet--pad' }, moneyChart(days), h('div', { class: 'chart-legend', style: { marginTop: '8px' } }, h('span', {}, h('i', { class: 'dot', style: { '--c': 'var(--good)' } }), '수입'), h('span', {}, h('i', { class: 'dot', style: { '--c': 'var(--warn)' } }), '지출'), h('span', {}, h('i', { class: 'dot', style: { '--c': 'var(--ink)' } }), '잔액')))),
+      h('div', { class: 'sheet sheet--pad' }, moneyChart(days), h('div', { class: 'chart-legend', style: { marginTop: '8px' } }, h('span', {}, h('i', { class: 'dot', style: { '--c': 'var(--good)' } }), '수입'), h('span', {}, h('i', { class: 'dot', style: { '--c': 'var(--warn)' } }), '지출'), h('span', {}, h('i', { class: 'dot', style: { '--c': 'var(--accent)' } }), '잔액')))),
     section('h-living', '하루 생활비', '매일 밤 자정에 빠져나가요', h('div', { class: 'sheet rows', 'data-testid': 'living' },
       living.items.map((it) => row(it.label, Economy.won(it.daily), `한 달 ${Economy.won(it.monthly)}`)),
       row('합계', Economy.won(living.total)))),
@@ -104,7 +104,7 @@ export function journalScreen(ui) {
         const d = Time.dateInfo(s.time, p.day);
         return { label: `${d.month}/${d.date}`, a: p.mood, b: p.stress };
       })) : h('p', { class: 'empty' }, '하루를 마치면 그래프가 그려져요.'),
-      h('div', { class: 'chart-legend', style: { marginTop: '8px' } }, h('span', {}, h('i', { class: 'dot', style: { '--c': 'var(--ink)' } }), '기분'), h('span', {}, h('i', { class: 'dot', style: { '--c': 'var(--warn)' } }), '스트레스')))),
+      h('div', { class: 'chart-legend', style: { marginTop: '8px' } }, h('span', {}, h('i', { class: 'dot', style: { '--c': 'var(--accent)' } }), '기분'), h('span', {}, h('i', { class: 'dot', style: { '--c': 'var(--warn)' } }), '스트레스')))),
     section('h-days', '지난 날들', reports.length ? `${reports.length}일` : null, h('div', { class: 'sheet', 'data-testid': 'reports' },
       reports.length
         ? reports.map((r) => {
