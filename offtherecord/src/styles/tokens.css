@@ -1,0 +1,83 @@
+/*
+ * OFF THE RECORD — 디자인 토큰
+ * 방향: ‘한 사람의 사적인 기록장’. 따뜻한 종이 바탕, 먹색 글씨, 깊은 초록 하나를 강조색으로.
+ * 날짜·제목은 명조(고운바탕), 정보는 Pretendard. 숫자는 고정폭.
+ */
+:root {
+  --paper: #f1eee7;
+  --sheet: #faf8f3;
+  --sheet-2: #f4f1ea;
+  --ink: #1c1d1f;
+  --ink-2: #3f403f;
+  --muted: #66645e;
+  --faint: #8d8a82;
+  --line: #ddd8cc;
+  --line-strong: #c9c2b3;
+
+  --accent: #2c5a4d;
+  --accent-ink: #f6f3ec;
+  --accent-soft: #dfe8e2;
+  --good: #2e6a50;
+  --warn: #a5522d;
+  --warn-soft: #f3e2d7;
+  --danger: #9c3a2e;
+
+  /* 활동 분류 색 (타임라인·점) — 채도 낮게 */
+  --c-sleep: #4c5a78;
+  --c-meal: #b5893c;
+  --c-work: #2f3237;
+  --c-growth: #2c5a4d;
+  --c-rest: #7f9c8d;
+  --c-hobby: #7b5b80;
+  --c-social: #b0613f;
+  --c-life: #8b8578;
+  --c-commute: #a7a196;
+
+  --serif: 'Gowun Batang', 'Noto Serif KR', serif;
+  --sans: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif;
+
+  --r: 14px;
+  --r-sm: 9px;
+  --gutter: 16px;
+  --max-w: 560px;
+  --nav-h: 64px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow: 0 1px 2px rgba(40, 34, 20, 0.05), 0 8px 24px -12px rgba(40, 34, 20, 0.18);
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --paper: #121311;
+  --sheet: #1a1b19;
+  --sheet-2: #20221f;
+  --ink: #ebe8e1;
+  --ink-2: #cfccc4;
+  --muted: #a3a097;
+  --faint: #7f7c74;
+  --line: #2d2f2b;
+  --line-strong: #3b3e39;
+
+  --accent: #86b8a6;
+  --accent-ink: #10201a;
+  --accent-soft: #22322c;
+  --good: #8cc4a8;
+  --warn: #e0946d;
+  --warn-soft: #3a2a21;
+  --danger: #e38677;
+
+  --c-sleep: #8796b8;
+  --c-meal: #d4aa5e;
+  --c-work: #d2d3d0;
+  --c-growth: #86b8a6;
+  --c-rest: #6f8d7f;
+  --c-hobby: #b495b9;
+  --c-social: #d88a68;
+  --c-life: #9e978a;
+  --c-commute: #5f5c55;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -14px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
