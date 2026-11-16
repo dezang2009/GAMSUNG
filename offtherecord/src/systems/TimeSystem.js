@@ -26,6 +26,17 @@ export function dateInfo(time, day = time.day) {
   const wd = dt.getUTCDay();
   return { year: dt.getUTCFullYear(), month: dt.getUTCMonth() + 1, date: dt.getUTCDate(), weekday: WEEKDAYS[wd], weekdayIndex: wd, isWeekend: wd === 0 || wd === 6 };
 }
+/** 'YYYY-MM' (월별 결산 열쇠) */
+export function monthKey(time, day = time.day) {
+  const d = dateInfo(time, day);
+  return `${d.year}-${String(d.month).padStart(2, '0')}`;
+}
+/** 이번 달에 남은 날 수 (오늘 포함) */
+export function daysLeftInMonth(time, day = time.day) {
+  const d = dateOf(time, day);
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  return last - d.getUTCDate() + 1;
+}
 export const isWeekday = (time, day = time.day) => !dateInfo(time, day).isWeekend;
 
 /** 14:05 형식 */

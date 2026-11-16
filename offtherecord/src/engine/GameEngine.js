@@ -2,20 +2,24 @@
  * GameEngine — 시스템들을 이어 주는 곳.
  * 화면(UIController)은 이 엔진의 명령(start · perform · sleep …)만 부르고, 'change' 이벤트를 듣고 다시 그려요.
  * 각 시스템은 자기 상태 조각만 다뤄요:
- *   character ← CharacterSystem · time ← TimeSystem · life ← LifeSystem · economy ← EconomySystem
- *   활동 계획 ← ActivitySystem · 저장 ← SaveSystem
+ *   character ← CharacterSystem(+CareerSystem) · time ← TimeSystem · life ← LifeSystem
+ *   economy ← EconomySystem · journal ← JournalSystem · 활동 계획 ← ActivitySystem · 추천 ← RecommendSystem · 저장 ← SaveSystem
  */
 import * as Character from '../systems/CharacterSystem.js';
+import * as Career from '../systems/CareerSystem.js';
 import * as Time from '../systems/TimeSystem.js';
 import * as Life from '../systems/LifeSystem.js';
 import * as Economy from '../systems/EconomySystem.js';
 import * as Activity from '../systems/ActivitySystem.js';
-import { SAVE_VERSION } from '../systems/SaveSystem.js';
-import { BACKGROUNDS, JOBS, byId } from '../data/world.js';
+import * as Journal from '../systems/JournalSystem.js';
+import { recommend } from '../systems/RecommendSystem.js';
+import { SAVE_VERSION, exportText, importText } from '../systems/SaveSystem.js';
+import { BACKGROUNDS, STATS, byId } from '../data/world.js';
 
 export const WAKE_OPTIONS = [5, 6, 7, 8, 9, 10, 11].map((h) => h * 60);
 export const SLEEP_FROM = 20 * 60;
 const REPORTS_MAX = 120;
+const STAT_NAME = Object.fromEntries(STATS.map((x) => [x.id, x.name]));
 
 /** 아주 작은 이벤트 버스 */
 function emitter() {
@@ -32,7 +36,7 @@ function emitter() {
   };
 }
 
-const freshToday = () => ({ blocks: [], counts: {}, gains: {}, notes: [], workMinutes: 0, worked: false });
+const freshToday = () => ({ blocks: [], counts: {}, gains: {}, gainLog: [], notes: [], workMinutes: 0, worked: false });
 
 /** 새 게임 상태 (캐릭터 입력 검사 포함) */
 export function newState(input, now = Date.now()) {
@@ -41,7 +45,7 @@ export function newState(input, now = Date.now()) {
   const time = Time.create();
   const life = Life.create(bg.life);
   life.energy = Math.min(life.energy, Life.maxEnergy(character.stats));
-  return {
+  const state = {
     version: SAVE_VERSION,
     meta: { createdAt: now, updatedAt: now },
     character,
@@ -49,22 +53,104 @@ export function newState(input, now = Date.now()) {
     life,
     economy: Economy.create(bg.cash, input.region),
     today: freshToday(),
-    history: { reports: [], series: [snapshot({ time, life, economy: { cash: bg.cash } })] },
+    journal: Journal.create(),
+    history: { reports: [], series: [] },
   };
+  state.history.series.push(snapshot(state));
+  const job = Career.currentJob(character);
+  Journal.add(state.journal, { day: 1, minute: time.minute, type: 'life', title: `${character.name}의 기록이 시작됐어요`, text: `${bg.name} · ${job ? job.title : '무직'}` });
+  return state;
 }
 
-const snapshot = (s) => ({ day: s.time.day, cash: s.economy.cash, mood: s.life.mood, stress: s.life.stress, energy: s.life.energy, fatigue: s.life.fatigue, hunger: s.life.hunger });
+const snapshot = (s) => ({ day: s.time.day, cash: s.economy.cash, mood: s.life.mood, stress: s.life.stress, energy: s.life.energy, fatigue: s.life.fatigue, hunger: s.life.hunger, stats: { ...s.character.stats } });
+const tx = (s, extra) => ({ day: s.time.day, month: Time.monthKey(s.time), ...extra });
+
+/** 능력치 변화 기록 (성장·하락 모두, 출처와 함께) */
+function noteGain(s, stat, amount, source) {
+  if (!amount) return;
+  s.today.gains[stat] = round2((s.today.gains[stat] ?? 0) + amount);
+  s.today.gainLog.push({ stat, amount, source, minute: s.time.minute });
+}
+
+/**
+ * 활동 한 번을 상태에 적용해요 (검사는 끝났다고 봐요). 진짜 상태와 미리보기용 복사본 모두에 써요.
+ *  돈 → 시간 흐름(그동안 배고픔·피로) → 활동 효과 → 성장 → 수입 → 기록
+ */
+function applyActivity(s, act, opts) {
+  const eff = Life.efficiency(s.life);
+  const p = Activity.plan(s, act, opts, eff.value);
+  const startMinute = s.time.minute;
+  const st = s.character.stats;
+  const lifeBefore = { ...s.life };
+
+  if (p.cost) Economy.spend(s.economy, tx(s, { minute: startMinute, category: p.category, label: p.name, amount: p.cost }));
+  for (const c of p.extraCosts) Economy.charge(s.economy, tx(s, { minute: startMinute, ...c }));
+
+  Time.advance(s.time, p.minutes, (m) => Life.passAwake(s.life, m, st, p.load));
+  Life.apply(s.life, p.effects, st);
+
+  const gains = {};
+  for (const [stat, base] of Object.entries(p.grow)) {
+    const before = st[stat];
+    const g = Character.grow(s.character, stat, base, eff.value);
+    if (!g) continue;
+    gains[stat] = g;
+    noteGain(s, stat, g, p.name);
+    if (Math.floor(before / 10) < Math.floor(st[stat] / 10)) Journal.add(s.journal, { day: s.time.day, minute: s.time.minute, type: 'growth', title: `${STAT_NAME[stat]}이(가) ${Math.floor(st[stat] / 10) * 10}을 넘었어요`, text: `${p.name}을(를) 하다가` });
+  }
+  if (p.income) Economy.earn(s.economy, tx(s, { minute: s.time.minute, category: 'work', label: p.incomeLabel, amount: p.income }));
+
+  s.today.counts[act.id] = (s.today.counts[act.id] ?? 0) + 1;
+  s.today.blocks.push(...p.blocks);
+  if (act.id === 'work') {
+    s.today.worked = true;
+    s.today.workMinutes += p.minutes;
+    if (p.late) {
+      noteGain(s, 'diligence', Character.decline(s.character, 'diligence', 0.3), '지각');
+      s.today.notes.push('지각');
+      Journal.add(s.journal, { day: s.time.day, minute: startMinute, type: 'work', title: '지각했어요', text: `${Time.clock(startMinute)}에 집을 나섰어요` });
+    }
+  }
+  const lifeDiff = {};
+  for (const k of Life.KEYS) {
+    const d = Math.round((s.life[k] - lifeBefore[k]) * 10) / 10;
+    if (d) lifeDiff[k] = d;
+  }
+  return { id: act.id, name: p.name, category: p.category, minutes: p.minutes, start: startMinute, end: s.time.minute, cost: p.cost + p.extraCosts.reduce((a, c) => a + c.amount, 0), income: p.income, life: lifeDiff, lifeBefore, lifeAfter: { ...s.life }, gains, efficiency: eff.value, notes: p.notes, collapse: Life.collapsed(s.life) };
+}
+
+/** 미리보기용 가벼운 복사본 (기록 목록은 비워서) */
+const lightClone = (s) => ({
+  character: structuredClone(s.character),
+  time: { ...s.time },
+  life: { ...s.life },
+  economy: { ...s.economy, fixed: { ...s.economy.fixed }, ledger: [], days: [], months: {} },
+  today: structuredClone(s.today),
+  journal: Journal.create(),
+});
 
 export function createEngine({ saveSystem, now = () => Date.now() } = {}) {
   const bus = emitter();
   let state = null;
   let saving = Promise.resolve();
+  let saveError = null;
 
   const persist = () => {
     if (!saveSystem || !state) return saving;
     state.meta.updatedAt = now();
     const copy = structuredClone(state);
-    saving = saving.then(() => saveSystem.save(copy)).catch((e) => bus.emit('error', { message: '저장하지 못했어요', detail: String(e) }));
+    saving = saving
+      .then(() => saveSystem.save(copy))
+      .then(() => {
+        if (saveError) {
+          saveError = null;
+          bus.emit('save', { ok: true });
+        }
+      })
+      .catch((e) => {
+        saveError = String(e?.message ?? e);
+        bus.emit('save', { ok: false, message: saveError });
+      });
     return saving;
   };
   const changed = (reason, extra) => {
@@ -78,8 +164,13 @@ export function createEngine({ saveSystem, now = () => Date.now() } = {}) {
       return state;
     },
     hasGame: () => !!state,
+    get saveError() {
+      return saveError;
+    },
+    /** 저장 다시 시도 */
+    retrySave: () => persist(),
 
-    /** 저장된 게임 불러오기 */
+    /** 저장된 게임 불러오기 (예전 버전이면 SaveSystem 이 올려 줘요) */
     async load() {
       if (!saveSystem) return { empty: true };
       const r = await saveSystem.load();
@@ -105,60 +196,36 @@ export function createEngine({ saveSystem, now = () => Date.now() } = {}) {
       bus.emit('change', { reason: 'abandon' });
     },
 
-    /** 지금 할 수 있는 활동들 + 막힌 이유 + 예상 변화 */
+    /**
+     * 지금 할 수 있는 활동들 + 막힌 이유 + 예상 결과
+     * preview: 실제로 했을 때와 같은 계산을 복사본에 돌린 결과 (시간·돈·상태 변화·성장·쓰러짐 위험)
+     */
     activities(opts = {}) {
-      const eff = Life.efficiency(state.life).value;
       return Activity.all(state).map((act) => {
         const o = opts[act.id] ?? {};
         const blocked = Activity.check(state, act, o);
         const minutes = Activity.duration(state, act, o);
-        return { act, blocked, minutes, preview: blocked && act.id === 'work' && act.job.type === 'office' ? null : Activity.plan(state, act, o, eff) };
+        let preview = null;
+        if (!blocked) preview = applyActivity(lightClone(state), act, o);
+        else if (!(act.id === 'work' && act.job.type === 'office')) {
+          const p = Activity.plan(state, act, o, Life.efficiency(state.life).value);
+          preview = { cost: p.cost + p.extraCosts.reduce((a, c) => a + c.amount, 0), income: p.income, life: {}, gains: {} };
+        }
+        return { act, blocked, minutes, preview };
       });
     },
 
-    /**
-     * 활동하기. 결과 { ok, reason?, summary }
-     *  1) 검사 → 2) 시간 흐름(그동안 배고픔·피로) → 3) 활동 효과 → 4) 성장 → 5) 돈 → 6) 기록 → 7) 쓰러짐 확인
-     */
+    /** 추천 활동 (상태·돈·일정 기반, 최대 3개) */
+    recommend(entries = engine.activities()) {
+      return recommend(state, entries);
+    },
+
+    /** 활동하기. 결과 { ok, reason?, summary, collapsed? } */
     async perform(id, opts = {}) {
       const act = Activity.find(state, id);
       const reason = Activity.check(state, act, opts);
       if (reason) return { ok: false, reason };
-      const eff = Life.efficiency(state.life);
-      const p = Activity.plan(state, act, opts, eff.value);
-      const startMinute = state.time.minute;
-      const day = state.time.day;
-      const st = state.character.stats;
-
-      // 돈 먼저 (검사에서 잔액 확인함)
-      if (p.cost) Economy.spend(state.economy, { day, minute: startMinute, category: p.category, label: p.name, amount: p.cost });
-      for (const c of p.extraCosts) Economy.charge(state.economy, { day, minute: startMinute, ...c });
-
-      Time.advance(state.time, p.minutes, (m) => Life.passAwake(state.life, m, st, p.load));
-      const lifeDiff = Life.apply(state.life, p.effects, st);
-
-      const gains = {};
-      for (const [stat, base] of Object.entries(p.grow)) {
-        const g = Character.grow(state.character, stat, base, eff.value);
-        if (g) {
-          gains[stat] = g;
-          state.today.gains[stat] = round2((state.today.gains[stat] ?? 0) + g);
-        }
-      }
-      if (p.income) Economy.earn(state.economy, { day, minute: state.time.minute, category: 'work', label: p.incomeLabel, amount: p.income });
-
-      state.today.counts[id] = (state.today.counts[id] ?? 0) + 1;
-      state.today.blocks.push(...p.blocks);
-      if (id === 'work') {
-        state.today.worked = true;
-        state.today.workMinutes += p.minutes;
-        if (p.late) {
-          Character.decline(state.character, 'diligence', 0.3);
-          state.today.notes.push('지각');
-        }
-      }
-      const summary = { id, name: p.name, minutes: p.minutes, start: startMinute, end: state.time.minute, cost: p.cost + p.extraCosts.reduce((a, c) => a + c.amount, 0), income: p.income, life: lifeDiff, gains, efficiency: eff.value, notes: p.notes };
-
+      const summary = applyActivity(state, act, opts);
       let collapsed = null;
       if (Life.collapsed(state.life)) collapsed = engine.sleep(10 * 60, { collapsed: true, silent: true });
       await changed('perform', { summary });
@@ -188,32 +255,36 @@ export function createEngine({ saveSystem, now = () => Date.now() } = {}) {
       if (!collapsed && !engine.canSleep().ok) return null;
       const day = state.time.day;
       const st = state.character.stats;
-      const job = JOBS[state.character.job];
-      const notes = [...state.today.notes];
+      const job = Career.currentJob(state.character);
+      const notes = state.today.notes;
+      const at = state.time.minute;
 
       // 평일에 출근하지 않았으면 결근
       if (job?.type === 'office' && Time.isWeekday(state.time) && !state.today.worked) {
         Life.apply(state.life, { stress: 8 }, st);
-        Character.decline(state.character, 'diligence', 0.8);
+        noteGain(state, 'diligence', Character.decline(state.character, 'diligence', 0.8), '결근');
         notes.push('결근');
+        Journal.add(state.journal, { day, minute: at, type: 'work', title: '출근하지 않았어요 (결근)', text: '성실성이 떨어지고 스트레스가 쌓였어요' });
       }
       if (collapsed) {
         Life.apply(state.life, { mood: -10, stress: 8 }, st);
         notes.push('지쳐 쓰러짐');
+        Journal.add(state.journal, { day, minute: at, type: 'health', title: '지쳐서 쓰러졌어요', text: '다음 날 10시에 깼어요' });
       }
-      const { living, summary: money } = Economy.settleDay(state.economy, day);
+      const wasDebt = Economy.inDebt(state.economy);
+      const { living, summary: money } = Economy.settleDay(state.economy, day, Time.monthKey(state.time));
       if (Economy.inDebt(state.economy)) {
         Life.apply(state.life, { stress: 5 }, st);
         notes.push('잔액 부족');
+        if (!wasDebt) Journal.add(state.journal, { day, minute: 1440, type: 'money', title: '잔액이 마이너스가 됐어요', text: `밀린 생활비 ${Economy.won(-state.economy.cash)}` });
       }
 
       const timeBy = {};
       for (const b of state.today.blocks) timeBy[b.category] = (timeBy[b.category] ?? 0) + (b.end - b.start);
-      const sleepStart = state.time.minute;
       const sleptMinutes = Time.nextDay(state.time, wakeMinute);
       const sl = Life.sleep(state.life, sleptMinutes, st);
 
-      const report = { day, sleepStart, wake: wakeMinute, sleptHours: sl.hours, sleepQuality: sl.quality, timeBy, income: money.income, expense: money.expense, living: living?.amount ?? 0, cashEnd: state.economy.cash, gains: { ...state.today.gains }, notes, blocks: state.today.blocks, lifeAfter: { ...state.life } };
+      const report = { day, sleepStart: at, wake: wakeMinute, sleptHours: sl.hours, sleepQuality: sl.quality, timeBy, income: money.income, expense: money.expense, living: living?.amount ?? 0, cashEnd: state.economy.cash, gains: { ...state.today.gains }, gainLog: state.today.gainLog, notes: [...notes], blocks: state.today.blocks, lifeAfter: { ...state.life } };
       state.history.reports.push(report);
       if (state.history.reports.length > REPORTS_MAX) state.history.reports.shift();
       state.history.series.push(snapshot(state));
@@ -223,11 +294,11 @@ export function createEngine({ saveSystem, now = () => Date.now() } = {}) {
       return report;
     },
 
-    /** 오늘의 일정: 해야 할 일(근무·식사 때) + 한 일 */
+    /** 오늘의 일정: 해야 할 일(근무·식사 때) */
     schedule() {
       const items = [];
       const { minute } = state.time;
-      const job = JOBS[state.character.job];
+      const job = Career.currentJob(state.character);
       const act = Activity.workActivity(state);
       if (job?.type === 'office' && Time.isWeekday(state.time)) {
         const leave = job.start - act.commute;
@@ -248,6 +319,18 @@ export function createEngine({ saveSystem, now = () => Date.now() } = {}) {
       }
       items.sort((a, b) => a.start - b.start);
       return items;
+    },
+
+    /** 저장 데이터 내보내기 (글자) */
+    exportText: () => exportText(state, now()),
+
+    /** 저장 데이터 가져오기: 검사 통과 시 지금 기록을 바꿔요. { ok } | { error } */
+    async importText(text) {
+      const r = importText(text);
+      if (r.error) return { error: r.error };
+      state = r.data;
+      await changed('load');
+      return { ok: true };
     },
 
     /** 저장이 끝날 때까지 기다리기 (테스트·앱 종료 직전) */

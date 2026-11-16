@@ -7,16 +7,17 @@
  *    SAVE_VERSION 을 올리고 MIGRATIONS[이전 버전] 에 기본값을 채우는 함수를 더해요.
  *  - IndexedDB 를 못 쓰는 환경이면 localStorage 로 대신 저장해요.
  */
-export const SAVE_VERSION = 1;
+import { MIGRATIONS } from './migrations.js';
+
+export const SAVE_VERSION = 2;
 export const DB_NAME = 'off-the-record';
 const STORE = 'saves';
 const SETTINGS_KEY = 'otr:settings';
 const LS_PREFIX = 'otr:save:';
+export const EXPORT_APP = 'off-the-record';
 
-/** 버전 n → n+1 로 올리는 함수들 */
-export const MIGRATIONS = {
-  // 1: (data) => ({ ...data, relations: { people: [] } }),  ← 예시 (PHASE 2 이후)
-};
+/** 버전 n → n+1 로 올리는 함수들 (migrations.js) */
+export { MIGRATIONS };
 
 export function migrate(data, fromVersion) {
   let v = fromVersion;
@@ -33,7 +34,7 @@ export function migrate(data, fromVersion) {
 
 /** 꼭 있어야 하는 칸이 있는지 (깨진 저장 걸러내기) */
 export function isValid(d) {
-  return !!(d && d.character?.name && d.character?.stats && d.time && Number.isFinite(d.time.day) && Number.isFinite(d.time.minute) && d.life && d.economy && Number.isFinite(d.economy.cash) && d.today && d.history);
+  return !!(d && d.character?.name && d.character?.stats && d.character?.career && d.time && Number.isFinite(d.time.day) && Number.isFinite(d.time.minute) && d.life && d.economy && Number.isFinite(d.economy.cash) && d.economy.months && d.today && d.history && d.journal);
 }
 
 let dbPromise = null;
@@ -96,7 +97,7 @@ export function createSaveSystem({ idb = globalThis.indexedDB } = {}) {
         });
       } else {
         const store = ls();
-        if (!store) return false;
+        if (!store) throw new Error('이 기기에서 저장 공간을 쓸 수 없어요');
         const prev = store.getItem(LS_PREFIX + slot);
         if (prev) store.setItem(LS_PREFIX + slot + '-prev', prev);
         store.setItem(LS_PREFIX + slot, JSON.stringify(record));
@@ -138,6 +139,32 @@ export function createSaveSystem({ idb = globalThis.indexedDB } = {}) {
       ls()?.removeItem(LS_PREFIX + slot + '-prev');
     },
   };
+}
+
+/**
+ * 내보내기: 다른 기기·재설치에 옮길 수 있는 글자 묶음 (JSON).
+ * { app, version, exportedAt, data }
+ */
+export function exportText(data, now = Date.now()) {
+  return JSON.stringify({ app: EXPORT_APP, version: SAVE_VERSION, exportedAt: now, data });
+}
+
+/** 가져오기: 검사·버전 올리기까지 마친 데이터 또는 { error } */
+export function importText(text) {
+  let obj;
+  try {
+    obj = JSON.parse(String(text).trim());
+  } catch {
+    return { error: '저장 데이터 형식이 아니에요. 내보낸 글자를 빠짐없이 붙여 넣어 주세요.' };
+  }
+  if (obj?.app !== EXPORT_APP || !obj.data) return { error: 'OFF THE RECORD 에서 내보낸 데이터가 아니에요.' };
+  try {
+    const d = migrate(obj.data, obj.version ?? 1);
+    if (!isValid(d)) return { error: '데이터 일부가 빠져 있어 불러올 수 없어요.' };
+    return { data: d };
+  } catch (e) {
+    return { error: String(e.message ?? e) };
+  }
 }
 
 /** 설정 (화면 모드 등 가벼운 값) */

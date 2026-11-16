@@ -51,7 +51,7 @@ const won = (t) => Number(String(t).replace(/[^0-9-]/g, ''));
     await p.click('[data-testid=start]');
     await p.waitForSelector('[data-screen=today]');
     check(1, '캐릭터 생성 → 메인 화면', (await text('[data-testid=who]')) === '정다온');
-    check(1, '나이 25세 (기본 24 + 1)', (await text('.masthead__who')).includes('25세'));
+    check(1, '나이 25세 (기본 24 + 1)', (await text('.hero__who')).includes('25세'));
     const cash0 = won(await text('[data-testid=cash]'));
     check(1, '배경에 따른 시작 자금 2,500,000원', cash0 === 2500000, String(cash0));
     await p.click('.nav__item[data-tab=me]');
@@ -68,10 +68,10 @@ const won = (t) => Number(String(t).replace(/[^0-9-]/g, ''));
         g.onsuccess = () => res(g.result ? { v: g.result.version, name: g.result.data.character.name } : null);
       };
     }));
-    check(2, '캐릭터가 IndexedDB 에 버전과 함께 저장', rec?.name === '정다온' && rec?.v === 1, JSON.stringify(rec));
+    check(2, '캐릭터가 IndexedDB 에 버전과 함께 저장', rec?.name === '정다온' && rec?.v === 2, JSON.stringify(rec));
 
     /* 3·4. 24시간과 시간 소모 */
-    check(3, '첫날 07:00 시작, 남은 시간 17시간', (await clock()) === '07:00' && (await text('.masthead__meta')).includes('17시간'));
+    check(3, '첫날 07:00 시작, 남은 시간 17시간', (await clock()) === '07:00' && (await text('[data-testid=left]')) === '17시간');
     await doAct('growth', 'reading');
     check(4, '독서 2시간 → 09:00', (await clock()) === '09:00', await clock());
     await doAct('meal', 'convenience_meal');

@@ -120,3 +120,35 @@ export function moodChart(points) {
   });
   return svgEl;
 }
+
+/**
+ * 한 줄 그래프 (능력치 등). points: [{ label, v }]. 값이 변한 폭에 맞춰 위아래를 잡고, 점마다 값을 적어요.
+ */
+export function lineChart(points, { label = '그래프', digits = 1 } = {}) {
+  const W = 320;
+  const Hh = 140;
+  const pad = { l: 14, r: 14, t: 22, b: 24 };
+  const iw = W - pad.l - pad.r;
+  const ih = Hh - pad.t - pad.b;
+  const vs = points.map((p) => p.v);
+  let lo = Math.min(...vs);
+  let hi = Math.max(...vs);
+  if (hi - lo < 1) (lo -= 0.5), (hi += 0.5);
+  const x = (i) => pad.l + (points.length === 1 ? iw / 2 : (iw * i) / (points.length - 1));
+  const y = (v) => pad.t + ih - ((v - lo) / (hi - lo)) * ih;
+  const svgEl = s('svg', { class: 'chart', viewBox: `0 0 ${W} ${Hh}`, role: 'img', 'aria-label': label });
+  svgEl.append(s('line', { class: 'grid', x1: pad.l, x2: W - pad.r, y1: pad.t + ih, y2: pad.t + ih }));
+  svgEl.append(s('polyline', { class: 'line', points: points.map((p, i) => `${x(i)},${y(p.v)}`).join(' ') }));
+  points.forEach((p, i) => {
+    svgEl.append(s('circle', { class: 'pt', cx: x(i), cy: y(p.v), r: 3 }));
+    svgEl.append(s('text', { class: 'val', x: x(i), y: y(p.v) - 8, 'text-anchor': 'middle' }, p.v.toFixed(digits)));
+    svgEl.append(s('text', { x: x(i), y: Hh - 6, 'text-anchor': 'middle' }, p.label));
+  });
+  return svgEl;
+}
+
+/** 비중 막대 (가로 한 줄). parts: [{ label, amount, share, color }] */
+export function shareBar(parts) {
+  return h('div', { class: 'sharebar', role: 'img', 'aria-label': parts.map((p) => `${p.label} ${Math.round(p.share * 100)}%`).join(', ') },
+    parts.map((p) => h('i', { style: { width: `${Math.max(p.share * 100, 0.8)}%`, '--c': p.color } })));
+}

@@ -2,7 +2,8 @@
  * CharacterSystem — 캐릭터 생성 · 능력치 성장 · 나이.
  * 상태 조각: state.character
  */
-import { STATS, STAT_IDS, REGIONS, EDUCATIONS, GENDERS, BACKGROUNDS, JOBS, byId } from '../data/world.js';
+import { STATS, STAT_IDS, REGIONS, EDUCATIONS, GENDERS, BACKGROUNDS, byId } from '../data/world.js';
+import * as Career from './CareerSystem.js';
 
 export const AGE_MIN = 19;
 export const AGE_MAX = 45;
@@ -13,7 +14,7 @@ export function validate(input) {
   const errors = {};
   const name = String(input?.name ?? '').trim();
   if (!name) errors.name = '이름을 입력해 주세요';
-  else if ([...name].length > NAME_MAX) errors.name = `이름은 ${NAME_MAX}자까지예요`;
+  else if (name.length > NAME_MAX) errors.name = `이름은 ${NAME_MAX}자까지예요`; // 입력창 maxlength 와 같은 기준(문자열 길이)
   const age = Number(input?.age);
   if (!Number.isInteger(age) || age < AGE_MIN || age > AGE_MAX) errors.age = `나이는 ${AGE_MIN}~${AGE_MAX}세 사이로 정해 주세요`;
   if (!byId(GENDERS, input?.gender)) errors.gender = '성별을 골라 주세요';
@@ -40,7 +41,7 @@ export function create(input) {
     region: input.region,
     education: input.education,
     background: input.background,
-    job: bg.job, // JOBS 의 id
+    career: Career.create(bg.job, 1), // 배경은 처음 일자리만 정해요. 이후 변경은 CareerSystem
     stats,
   };
 }
@@ -50,7 +51,8 @@ const clampStat = (n) => Math.max(0, Math.min(100, n));
 /** 게임 날짜 기준 나이 (게임 시작일이 생일 다음 날이라고 보고 365일마다 한 살) */
 export const ageOn = (character, day) => character.age + Math.floor((day - 1) / 365);
 
-export const job = (character) => JOBS[character.job] ?? null;
+/** 지금 일자리 (CareerSystem 으로 넘김) */
+export const job = (character) => Career.currentJob(character);
 
 /**
  * 능력치 성장: 기본량 × 컨디션 효율 × 수준 보정(높을수록 더디게) × 배움 보정(지능)

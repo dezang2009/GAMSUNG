@@ -10,8 +10,8 @@
   --sheet-2: #f2f4f8;       /* 카드 속 옅은 칸 */
   --ink: #171a23;
   --ink-2: #3a4050;
-  --muted: #636a79;
-  --faint: #a2a8b5;
+  --muted: #5b6272;
+  --faint: #7d8494;        /* 작은 글씨에도 쓰므로 4:1 이상 */
   --line: #edf0f5;
   --line-strong: #dfe3eb;
 
@@ -59,7 +59,7 @@
   --ink: #eceef3;
   --ink-2: #c9cdd6;
   --muted: #9aa1b0;
-  --faint: #6b7282;
+  --faint: #8c93a2;
   --line: #242833;
   --line-strong: #2f3440;
 

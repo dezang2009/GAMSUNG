@@ -24,8 +24,8 @@ describe('CharacterSystem', () => {
     const a = Character.create(input());
     const b = Character.create(input({ background: 'veteran', age: 30 }));
     expect(a.stats.intelligence).toBe(58 + 5);
-    expect(a.job).toBe('tutor');
-    expect(b.job).toBe('office');
+    expect(a.career.current.jobId).toBe('tutor');
+    expect(b.career.current.jobId).toBe('office');
     expect(b.stats.expertise).toBeGreaterThan(a.stats.expertise);
   });
   it('성장은 높을수록 더디고, 효율이 곱해져요', () => {

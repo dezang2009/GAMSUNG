@@ -1,0 +1,252 @@
+{
+ "slot": "main",
+ "version": 1,
+ "savedAt": 1763280000000,
+ "data": {
+  "version": 1,
+  "meta": {
+   "createdAt": 1763280000000,
+   "updatedAt": 1763280000000
+  },
+  "character": {
+   "name": "옛저장",
+   "age": 30,
+   "gender": "male",
+   "region": "gyeonggi",
+   "education": "university",
+   "background": "veteran",
+   "job": "office",
+   "stats": {
+    "intelligence": 59.43,
+    "sociability": 52,
+    "fitness": 44,
+    "creativity": 40.1,
+    "diligence": 61.91,
+    "expertise": 64.64
+   }
+  },
+  "time": {
+   "day": 2,
+   "minute": 1150,
+   "startDate": "2026-03-02"
+  },
+  "life": {
+   "energy": 57.5,
+   "fatigue": 39.6,
+   "stress": 85.3,
+   "mood": 55.1,
+   "hunger": 5.3
+  },
+  "economy": {
+   "cash": 9264810,
+   "fixed": {
+    "rent": 480000,
+    "utilities": 110000,
+    "phone": 55000,
+    "transport": 90000
+   },
+   "ledger": [
+    {
+     "id": 1,
+     "day": 1,
+     "minute": 420,
+     "kind": "expense",
+     "category": "meal",
+     "label": "회사 점심",
+     "amount": 9000
+    },
+    {
+     "id": 2,
+     "day": 1,
+     "minute": 1150,
+     "kind": "income",
+     "category": "work",
+     "label": "중견기업 마케팅팀 대리 급여 (하루치)",
+     "amount": 161905
+    },
+    {
+     "id": 3,
+     "day": 1,
+     "minute": 1150,
+     "kind": "expense",
+     "category": "meal",
+     "label": "밖에서 사 먹기",
+     "amount": 12000
+    },
+    {
+     "id": 4,
+     "day": 1,
+     "minute": 1440,
+     "kind": "expense",
+     "category": "living",
+     "label": "하루 생활비 (월세·공과금·통신·교통)",
+     "amount": 24500
+    },
+    {
+     "id": 5,
+     "day": 2,
+     "minute": 420,
+     "kind": "expense",
+     "category": "meal",
+     "label": "집밥 해 먹기",
+     "amount": 4500
+    },
+    {
+     "id": 6,
+     "day": 2,
+     "minute": 480,
+     "kind": "expense",
+     "category": "meal",
+     "label": "회사 점심",
+     "amount": 9000
+    },
+    {
+     "id": 7,
+     "day": 2,
+     "minute": 1150,
+     "kind": "income",
+     "category": "work",
+     "label": "중견기업 마케팅팀 대리 급여 (하루치)",
+     "amount": 161905
+    }
+   ],
+   "days": [
+    {
+     "day": 1,
+     "income": 161905,
+     "expense": 45500,
+     "cashEnd": 9116405
+    }
+   ],
+   "seq": 7
+  },
+  "today": {
+   "blocks": [
+    {
+     "start": 420,
+     "end": 480,
+     "category": "meal",
+     "label": "집밥 해 먹기"
+    },
+    {
+     "start": 480,
+     "end": 550,
+     "category": "commute",
+     "label": "출근길"
+    },
+    {
+     "start": 550,
+     "end": 1080,
+     "category": "work",
+     "label": "근무 (지각)"
+    },
+    {
+     "start": 1080,
+     "end": 1150,
+     "category": "commute",
+     "label": "퇴근길"
+    }
+   ],
+   "counts": {
+    "home_meal": 1,
+    "work": 1
+   },
+   "gains": {
+    "diligence": 0.05,
+    "expertise": 0.32
+   },
+   "notes": [
+    "지각"
+   ],
+   "workMinutes": 670,
+   "worked": true
+  },
+  "history": {
+   "reports": [
+    {
+     "day": 1,
+     "sleepStart": 1330,
+     "wake": 420,
+     "sleptHours": 8.8,
+     "sleepQuality": "good",
+     "timeBy": {
+      "commute": 140,
+      "work": 590,
+      "meal": 60,
+      "growth": 120
+     },
+     "income": 161905,
+     "expense": 45500,
+     "living": 24500,
+     "cashEnd": 9116405,
+     "gains": {
+      "expertise": 0.32,
+      "diligence": 0.16,
+      "intelligence": 0.43,
+      "creativity": 0.1
+     },
+     "notes": [],
+     "blocks": [
+      {
+       "start": 420,
+       "end": 490,
+       "category": "commute",
+       "label": "출근길"
+      },
+      {
+       "start": 490,
+       "end": 1080,
+       "category": "work",
+       "label": "근무"
+      },
+      {
+       "start": 1080,
+       "end": 1150,
+       "category": "commute",
+       "label": "퇴근길"
+      },
+      {
+       "start": 1150,
+       "end": 1210,
+       "category": "meal",
+       "label": "밖에서 사 먹기"
+      },
+      {
+       "start": 1210,
+       "end": 1330,
+       "category": "growth",
+       "label": "독서"
+      }
+     ],
+     "lifeAfter": {
+      "energy": 83,
+      "fatigue": 0,
+      "stress": 58.3,
+      "mood": 56.4,
+      "hunger": 22.3
+     }
+    }
+   ],
+   "series": [
+    {
+     "day": 1,
+     "cash": 9000000,
+     "mood": 50,
+     "stress": 52,
+     "energy": 70,
+     "fatigue": 40,
+     "hunger": 30
+    },
+    {
+     "day": 2,
+     "cash": 9116405,
+     "mood": 56.4,
+     "stress": 58.3,
+     "energy": 83,
+     "fatigue": 0,
+     "hunger": 22.3
+    }
+   ]
+  }
+ }
+}

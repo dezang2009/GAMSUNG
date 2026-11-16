@@ -22,7 +22,7 @@ export function createScreen(ui) {
   };
 
   // 이름
-  const nameInput = h('input', { class: 'input', id: 'name', name: 'name', maxlength: NAME_MAX + 4, autocomplete: 'off', placeholder: '예: 한서윤', 'aria-labelledby': 'lbl-name', oninput: (e) => ((form.name = e.target.value), refresh()) });
+  const nameInput = h('input', { class: 'input', id: 'name', name: 'name', maxlength: NAME_MAX, autocomplete: 'off', placeholder: '예: 한서윤', 'aria-labelledby': 'lbl-name', oninput: (e) => ((form.name = e.target.value), refresh()) });
 
   // 나이
   const ageOut = h('output', { class: 'num', 'aria-live': 'polite' });

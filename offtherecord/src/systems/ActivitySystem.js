@@ -6,13 +6,14 @@ import { ACTIVITIES, CATEGORIES, activityById } from '../data/activities.js';
 import { JOBS, REGIONS, byId } from '../data/world.js';
 import * as Time from './TimeSystem.js';
 import * as Economy from './EconomySystem.js';
+import * as Career from './CareerSystem.js';
 
 const H = 60;
 export const LUNCH_COST = 9000;
 
 /** 일자리에 따라 만들어지는 ‘일’ 활동 */
 export function workActivity(state) {
-  const job = JOBS[state.character.job];
+  const job = Career.currentJob(state.character);
   if (!job) return null;
   const st = state.character.stats;
   if (job.type === 'office') {

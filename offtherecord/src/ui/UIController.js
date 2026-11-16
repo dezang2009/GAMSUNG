@@ -3,10 +3,9 @@
  * 게임 상태는 엔진만 바꾸고, 여기서는 엔진의 'change' 를 듣고 다시 그려요.
  */
 import { h, icon } from './dom.js';
-import { deltas } from './components.js';
 import { createScreen } from './screens/create.js';
 import { todayScreen } from './screens/today.js';
-import { meScreen, moneyScreen, journalScreen } from './screens/others.js';
+import { meScreen, moneyScreen, journalScreen, dayDetail } from './screens/others.js';
 import { WAKE_OPTIONS } from '../engine/GameEngine.js';
 import { STATS } from '../data/world.js';
 import * as Time from '../systems/TimeSystem.js';
@@ -36,7 +35,9 @@ export function createUI(root, engine) {
   const navItems = TABS.map((t) => h('button', { type: 'button', class: 'nav__item', dataset: { tab: t.id }, onclick: () => go(t.id) }, icon(t.icon), t.name));
   const nav = h('nav', { class: 'nav', 'aria-label': '메뉴' }, h('div', { class: 'nav__inner' }, navItems));
   const toasts = h('div', { class: 'toasts', 'aria-live': 'polite' });
-  root.replaceChildren(main, nav, toasts);
+  const sleepbar = h('div', { class: 'sleepbar', hidden: true, 'data-testid': 'sleepbar' });
+  const saveBanner = h('div', { class: 'save-banner', role: 'alert', hidden: true, 'data-testid': 'save-banner' });
+  root.replaceChildren(saveBanner, main, sleepbar, nav, toasts);
 
   /* 화면 모드 */
   const media = matchMedia('(prefers-color-scheme: dark)');
@@ -102,12 +103,14 @@ export function createUI(root, engine) {
     try {
       const r = await engine.perform(id, opts);
       if (!r.ok) return ui.toast('할 수 없어요', r.reason, true);
-      const sm = r.summary;
-      const parts = deltas(sm.life, sm.gains, STAT_NAME).map((d) => d.text);
-      if (sm.income) parts.unshift(`+${Economy.won(sm.income)}`);
-      if (sm.cost) parts.unshift(`-${Economy.won(sm.cost)}`);
-      if (r.collapsed) return showMorning(r.collapsed, true);
-      ui.toast(`${sm.name} · ${Time.clock(sm.start)}–${Time.clock(sm.end)}${sm.notes.length ? ` (${sm.notes.join(', ')})` : ''}`, parts.join(' · '));
+      if (r.collapsed) {
+        ui.lastResult = null;
+        return showMorning(r.collapsed, true);
+      }
+      // 결과는 오늘 화면의 ‘방금 한 일’ 카드로 보여 줘요
+      ui.lastResult = { ...r.summary, day: engine.state.time.day };
+      render();
+      main.querySelector('[data-testid=result]')?.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     } finally {
       busy = false;
     }
@@ -160,12 +163,61 @@ export function createUI(root, engine) {
     });
   }
 
+  /* 날짜별 상세 */
+  ui.openDay = (day) =>
+    ui.panel((p, close) => {
+      const s = engine.state;
+      const d = Time.dateInfo(s.time, day);
+      p.setAttribute('aria-label', `${d.month}월 ${d.date}일 기록`);
+      p.append(
+        h('div', { class: 'panel__head' }, h('h2', { class: 'panel__title' }, `${d.month}월 ${d.date}일 ${d.weekday}요일${day === s.time.day ? ' (오늘)' : ''}`), h('button', { type: 'button', class: 'icon-btn', 'aria-label': '닫기', 'data-autofocus': true, onclick: () => close(null) }, icon('close', 20))),
+        dayDetail(s, day),
+      );
+    });
+
+  /* 저장 데이터 내보내기·가져오기 */
+  ui.openExport = () =>
+    ui.panel((p, close) => {
+      const text = engine.exportText();
+      const area = h('textarea', { class: 'input textarea', readonly: true, rows: 5, 'aria-label': '내보낸 저장 데이터', 'data-testid': 'export-text' }, text);
+      const status = h('p', { class: 'note', 'aria-live': 'polite' }, `${Math.ceil(text.length / 1024)}KB · 이 글자 전체가 저장 데이터예요. 메모 앱 등에 붙여 넣어 보관하세요.`);
+      const copy = async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          status.textContent = '복사했어요. 안전한 곳에 붙여 넣어 보관하세요.';
+        } catch {
+          area.focus();
+          area.select();
+          status.textContent = '자동 복사가 막혀 있어요. 글자를 길게 눌러 전체 선택 후 복사해 주세요.';
+        }
+      };
+      p.setAttribute('aria-label', '저장 데이터 내보내기');
+      p.append(h('h2', { class: 'panel__title' }, '저장 데이터 내보내기'), area, status, h('div', { class: 'panel__actions' }, h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => close(null) }, '닫기'), h('button', { type: 'button', class: 'btn btn--ink', 'data-autofocus': true, 'data-testid': 'export-copy', onclick: copy }, '복사하기')));
+    });
+
+  ui.openImport = () =>
+    ui.panel((p, close) => {
+      const area = h('textarea', { class: 'input textarea', rows: 5, placeholder: '내보낸 글자를 여기에 붙여 넣어 주세요', 'aria-label': '가져올 저장 데이터', 'data-testid': 'import-text' });
+      const status = h('p', { class: 'note note--warn', 'aria-live': 'polite', 'data-testid': 'import-status' }, '가져오면 지금 기록은 가져온 기록으로 바뀌어요.');
+      const go = async () => {
+        if (!area.value.trim()) return (status.textContent = '붙여 넣은 글자가 없어요.');
+        const r = await engine.importText(area.value);
+        if (r.error) return (status.textContent = r.error);
+        close(true);
+        ui.toast('기록을 가져왔어요', `${engine.state.character.name} · ${engine.state.time.day}일째`);
+      };
+      p.setAttribute('aria-label', '저장 데이터 가져오기');
+      p.append(h('h2', { class: 'panel__title' }, '저장 데이터 가져오기'), area, status, h('div', { class: 'panel__actions' }, h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => close(null) }, '취소'), h('button', { type: 'button', class: 'btn btn--danger', 'data-testid': 'import-go', onclick: go }, '가져오기')));
+      setTimeout(() => area.focus(), 50);
+    });
+
   ui.confirmAbandon = async () => {
     const ok = await ui.confirm('새 인생을 시작할까요?', `${engine.state.character.name}의 기록이 모두 지워지고 캐릭터를 새로 만들어요. 되돌릴 수 없어요.`, '기록 지우기');
     if (ok) await engine.abandon();
   };
 
   /* 화면 */
+  ui.go = (id) => go(id);
   function go(id) {
     if (id === ui.tab) return scrollTo({ top: 0, behavior: 'smooth' });
     ui.tab = id;
@@ -177,11 +229,23 @@ export function createUI(root, engine) {
     applyTheme();
     if (!engine.hasGame()) {
       nav.hidden = true;
+      sleepbar.hidden = true;
       main.replaceChildren(createScreen(ui));
       return;
     }
     nav.hidden = false;
     const tab = TABS.find((t) => t.id === ui.tab) ?? TABS[0];
+    // 하루 마무리 막대: 오늘 화면에서 잠자리에 들 수 있을 때
+    const can = engine.canSleep();
+    sleepbar.hidden = !(tab.id === 'today' && can.ok);
+    main.classList.toggle('has-sleepbar', !sleepbar.hidden);
+    if (!sleepbar.hidden) {
+      const s = engine.state;
+      const nothing = !engine.activities(ui.hoursSel).some((a) => !a.blocked);
+      sleepbar.replaceChildren(
+        h('div', { class: 'sleepbar__text' }, h('b', {}, nothing ? '오늘은 더 할 수 있는 일이 없어요' : '하루를 마무리할 수 있어요'), h('span', { class: 'num' }, `자정에 생활비 -${Economy.won(Economy.dailyCost(s.economy).total)}`)),
+        h('button', { type: 'button', class: 'btn btn--ink', 'data-testid': 'sleep-btn', onclick: () => ui.openSleep() }, icon('moon', 18), '잠자리에 들기'));
+    }
     const y = scrollY;
     main.replaceChildren(tab.view(ui));
     scrollTo({ top: y });
@@ -197,12 +261,21 @@ export function createUI(root, engine) {
     if (reason === 'start' || reason === 'abandon' || reason === 'load') {
       ui.tab = 'today';
       ui.hoursSel = {};
+      ui.lastResult = null;
       scrollTo({ top: 0 });
     }
     render();
     if (reason === 'start') ui.toast(`${engine.state.character.name}의 기록이 시작됐어요`, '활동을 고르면 그만큼 시간이 흘러요. 밤 8시부터 잠자리에 들 수 있어요.');
   });
-  engine.on('error', ({ message }) => ui.toast(message, '저장 공간을 확인해 주세요', true));
+  /* 저장 실패 안내: 화면 위에 남아 있는 막대 + 다시 시도 */
+  engine.on('save', ({ ok, message }) => {
+    saveBanner.hidden = ok;
+    if (!ok) {
+      saveBanner.replaceChildren(
+        h('div', {}, h('b', {}, '저장하지 못했어요'), h('span', {}, `${message}. 지금 앱을 닫으면 마지막 저장 이후 진행이 사라질 수 있어요. 저장 공간을 확보한 뒤 다시 시도해 주세요.`)),
+        h('button', { type: 'button', class: 'btn btn--small', 'data-testid': 'save-retry', onclick: async (e) => { e.currentTarget.classList.add('is-busy'); await engine.retrySave(); } }, '다시 시도'));
+    } else ui.toast('저장했어요', '진행 상황이 안전하게 저장됐어요');
+  });
 
   /* 안드로이드: 뒤로 가기 = 시트 닫기 → 오늘 화면 → 앱 종료, 백그라운드로 갈 때 저장 마무리 */
   import('@capacitor/app')
