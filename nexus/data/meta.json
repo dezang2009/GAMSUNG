@@ -1,5 +1,22 @@
 {
-  "schema": "meta",
-  "content_version": 1,
-  "notes": "NEXUS 콘텐츠 설정. 확정된 것: 기본 속성 4종(열·생물·유체·광물). placeholder:true 항목은 이름·수치가 미정인 임시 데이터예요."
+ "schema": "meta",
+ "content_version": 1,
+ "notes": "NEXUS 콘텐츠 설정. 확정된 것: 기본 속성 4종(열·생물·유체·광물). placeholder:true 항목은 이름·수치가 미정인 임시 데이터예요. 시작 개체(starting_creatures)도 임시.",
+ "starting_creatures": [
+  "sp_01",
+  "sp_02",
+  "sp_03"
+ ],
+ "research": {
+  "placeholder": true,
+  "note": "종별 연구 데이터. levels: 단계별 필요 점수 (1단계 기본 정보, 2단계 능력치, 3단계 생태 능력·진화). 목격 +1, 중복 확보 +3, 확보 +5",
+  "levels": [
+   1,
+   3,
+   6
+  ],
+  "sighting": 1,
+  "duplicate": 3,
+  "owned": 5
+ }
 }

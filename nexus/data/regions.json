@@ -1,11 +1,258 @@
 {
-  "schema": "regions",
-  "note": "unlock: { any: [조건…] } 또는 { all: [조건…] }. 조건 type: start(처음부터) · region_cleared(다른 지역 개척). 한 개체·한 경로에 막히지 않게 any 로 대체 경로를 둬요.",
-  "items": [
-    { "id": "region_01", "planet": "planet_01", "name": "지역 1", "map": [0.30, 0.42], "unlock": { "any": [{ "type": "start" }] }, "placeholder": true },
-    { "id": "region_02", "planet": "planet_01", "name": "지역 2", "map": [0.62, 0.30], "unlock": { "any": [{ "type": "region_cleared", "region": "region_01" }] }, "placeholder": true },
-    { "id": "region_03", "planet": "planet_01", "name": "지역 3", "map": [0.70, 0.62], "unlock": { "any": [{ "type": "region_cleared", "region": "region_01" }] }, "placeholder": true },
-    { "id": "region_04", "planet": "planet_01", "name": "지역 4", "map": [0.38, 0.72], "unlock": { "any": [{ "type": "region_cleared", "region": "region_02" }, { "type": "region_cleared", "region": "region_03" }] }, "placeholder": true },
-    { "id": "region_05", "planet": "planet_01", "name": "지역 5", "map": [0.52, 0.52], "unlock": { "all": [{ "type": "region_cleared", "region": "region_04" }] }, "placeholder": true }
-  ]
+ "schema": "regions",
+ "note": "unlock: { any: [조건…] } 또는 { all: [조건…] }. 조건 type: start(처음부터) · region_cleared(다른 지역 개척). 한 개체·한 경로에 막히지 않게 any 로 대체 경로를 둬요. surveys: 조사 가능 횟수. encounters: 조사로 만나는 개체 — method wild(목격→도감) · egg(알→확보), from_survey: 몇 번째 조사부터 (깊이 조사해야 드러나는 서식지).",
+ "items": [
+  {
+   "id": "region_01",
+   "planet": "planet_01",
+   "name": "지역 1",
+   "map": [
+    0.3,
+    0.42
+   ],
+   "unlock": {
+    "any": [
+     {
+      "type": "start"
+     }
+    ]
+   },
+   "placeholder": true,
+   "surveys": 3,
+   "encounters": [
+    {
+     "species": "sp_01",
+     "method": "wild",
+     "weight": 3,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_02",
+     "method": "wild",
+     "weight": 3,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_13",
+     "method": "wild",
+     "weight": 2,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_03",
+     "method": "egg",
+     "weight": 1,
+     "from_survey": 2
+    },
+    {
+     "species": "sp_05",
+     "method": "wild",
+     "weight": 1,
+     "from_survey": 3
+    }
+   ]
+  },
+  {
+   "id": "region_02",
+   "planet": "planet_01",
+   "name": "지역 2",
+   "map": [
+    0.62,
+    0.3
+   ],
+   "unlock": {
+    "any": [
+     {
+      "type": "region_cleared",
+      "region": "region_01"
+     }
+    ]
+   },
+   "placeholder": true,
+   "surveys": 3,
+   "encounters": [
+    {
+     "species": "sp_04",
+     "method": "wild",
+     "weight": 3,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_06",
+     "method": "wild",
+     "weight": 2,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_14",
+     "method": "wild",
+     "weight": 3,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_07",
+     "method": "egg",
+     "weight": 1,
+     "from_survey": 3
+    },
+    {
+     "species": "sp_09",
+     "method": "wild",
+     "weight": 1,
+     "from_survey": 2
+    }
+   ]
+  },
+  {
+   "id": "region_03",
+   "planet": "planet_01",
+   "name": "지역 3",
+   "map": [
+    0.7,
+    0.62
+   ],
+   "unlock": {
+    "any": [
+     {
+      "type": "region_cleared",
+      "region": "region_01"
+     }
+    ]
+   },
+   "placeholder": true,
+   "surveys": 3,
+   "encounters": [
+    {
+     "species": "sp_03",
+     "method": "wild",
+     "weight": 3,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_08",
+     "method": "wild",
+     "weight": 2,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_13",
+     "method": "wild",
+     "weight": 2,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_11",
+     "method": "wild",
+     "weight": 1,
+     "from_survey": 2
+    },
+    {
+     "species": "sp_10",
+     "method": "egg",
+     "weight": 1,
+     "from_survey": 3
+    }
+   ]
+  },
+  {
+   "id": "region_04",
+   "planet": "planet_01",
+   "name": "지역 4",
+   "map": [
+    0.38,
+    0.72
+   ],
+   "unlock": {
+    "any": [
+     {
+      "type": "region_cleared",
+      "region": "region_02"
+     },
+     {
+      "type": "region_cleared",
+      "region": "region_03"
+     }
+    ]
+   },
+   "placeholder": true,
+   "surveys": 4,
+   "encounters": [
+    {
+     "species": "sp_05",
+     "method": "wild",
+     "weight": 2,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_12",
+     "method": "wild",
+     "weight": 1,
+     "from_survey": 2
+    },
+    {
+     "species": "sp_14",
+     "method": "wild",
+     "weight": 2,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_06",
+     "method": "egg",
+     "weight": 1,
+     "from_survey": 3
+    },
+    {
+     "species": "sp_15",
+     "method": "wild",
+     "weight": 1,
+     "from_survey": 4
+    }
+   ]
+  },
+  {
+   "id": "region_05",
+   "planet": "planet_01",
+   "name": "지역 5",
+   "map": [
+    0.52,
+    0.52
+   ],
+   "unlock": {
+    "all": [
+     {
+      "type": "region_cleared",
+      "region": "region_04"
+     }
+    ]
+   },
+   "placeholder": true,
+   "surveys": 4,
+   "encounters": [
+    {
+     "species": "sp_09",
+     "method": "wild",
+     "weight": 2,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_11",
+     "method": "wild",
+     "weight": 2,
+     "from_survey": 1
+    },
+    {
+     "species": "sp_12",
+     "method": "wild",
+     "weight": 2,
+     "from_survey": 2
+    },
+    {
+     "species": "sp_15",
+     "method": "egg",
+     "weight": 1,
+     "from_survey": 4
+    }
+   ]
+  }
+ ]
 }

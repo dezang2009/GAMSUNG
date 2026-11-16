@@ -6,11 +6,21 @@ extends Node
 ##  - 설정(화면 모드 등)은 따로 settings.cfg.
 
 const APP := "nexus"
-const VERSION := 1
+const VERSION := 2
 const DEFAULT_DIR := "user://saves"
 
 ## 버전 n → n+1 변환 함수 (Callable). 저장 구조를 바꾸면 VERSION 을 올리고 여기에 더해요.
-var MIGRATIONS := {}
+##  1 → 2 (Phase 2): 종별 연구 데이터 · 조사 기록 · 씨앗 추가
+var MIGRATIONS := {1: _v1_to_v2}
+
+
+static func _v1_to_v2(d: Dictionary) -> Dictionary:
+	var out := d.duplicate(true)
+	if typeof(out.get("collection")) == TYPE_DICTIONARY:
+		out.collection["research"] = out.collection.get("research", {})
+	out["exploration"] = out.get("exploration", {"surveys": {}})
+	out["seed"] = out.get("seed", hash(out.get("meta", {}).get("created_at", 0)))
+	return out
 
 var dir := DEFAULT_DIR
 var last_saved_at := 0
@@ -113,7 +123,7 @@ func parse_text(text: String) -> Dictionary:
 
 ## 꼭 있어야 하는 칸 확인 (빈 문자열이면 정상)
 func validate(d: Dictionary) -> String:
-	for k in ["meta", "resources", "collection", "planets", "research", "log"]:
+	for k in ["meta", "resources", "collection", "planets", "research", "log", "exploration", "seed"]:
 		if not d.has(k):
 			return "'%s' 칸이 없어요" % k
 	if typeof(d.resources) != TYPE_DICTIONARY or typeof(d.planets) != TYPE_DICTIONARY:

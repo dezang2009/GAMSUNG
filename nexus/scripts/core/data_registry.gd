@@ -4,7 +4,7 @@ extends Node
 ## 시작할 때 형식을 검사해서 errors 에 모아요. 오류가 있으면 화면이 게임 대신 오류 목록을 보여 줘요.
 
 const DEFAULT_DIR := "res://data/"
-const TABLES := ["elements", "rarities", "roles", "resources", "planets", "regions", "species"]
+const TABLES := ["elements", "rarities", "roles", "resources", "planets", "regions", "stats", "traits", "eco_abilities", "species"]
 
 var dir := DEFAULT_DIR
 var meta: Dictionary = {}
@@ -57,11 +57,39 @@ func load_all(from_dir: String) -> int:
 	for r in lists.regions:
 		if typeof(r) == TYPE_DICTIONARY and typeof(r.get("unlock")) == TYPE_DICTIONARY:
 			errors.append_array(DataSchema.check_unlock(r.get("id", "?"), r.unlock, index))
+	for sp in lists.species:
+		if typeof(sp) == TYPE_DICTIONARY:
+			errors.append_array(DataSchema.check_species(sp, index))
+	for r in lists.regions:
+		if typeof(r) == TYPE_DICTIONARY:
+			errors.append_array(DataSchema.check_encounters(r, index))
+	for s in meta.get("starting_creatures", []):
+		if not index.species.has(s):
+			errors.append("meta.json: 시작 개체 '%s' 가 species.json 에 없어요" % s)
+	_check_research()
 	if errors.is_empty():
+		for sid in DataSchema.unobtainable_species(lists.species, lists.regions, meta.get("starting_creatures", [])):
+			errors.append("species.json '%s': 얻을 수 있는 경로가 없어요 (시작 개체·조사·진화 어디에도 없음)" % sid)
 		for rid in DataSchema.unreachable_regions(lists.regions):
 			errors.append("regions.json '%s': 어떤 경로로도 열 수 없어요 (막다른 길)" % rid)
 	_check_affinity()
 	return errors.size()
+
+
+func _check_research() -> void:
+	var r = meta.get("research", {})
+	if typeof(r) != TYPE_DICTIONARY or typeof(r.get("levels")) != TYPE_ARRAY or r.levels.is_empty():
+		errors.append("meta.json: research.levels 목록이 필요해요")
+		return
+	var prev := 0.0
+	for x in r.levels:
+		if typeof(x) != TYPE_FLOAT or x <= prev:
+			errors.append("meta.json: research.levels 는 커지는 양수여야 해요")
+			return
+		prev = x
+	for k in ["sighting", "duplicate", "owned"]:
+		if typeof(r.get(k)) != TYPE_FLOAT or r[k] < 0:
+			errors.append("meta.json: research.%s 는 0 이상 숫자여야 해요" % k)
 
 
 func _check_affinity() -> void:
@@ -114,6 +142,11 @@ func has_item(table: String, id: String) -> bool:
 ## 속성 상성 배율 (정해지지 않았으면 default)
 func affinity_multiplier(attack: String, defend: String) -> float:
 	return float(affinity.get("matrix", {}).get(attack, {}).get(defend, affinity.get("default", 1.0)))
+
+
+## 연구 설정 (meta.research)
+func research_config() -> Dictionary:
+	return meta.get("research", {"levels": [1, 3, 6], "sighting": 1, "duplicate": 3, "owned": 5})
 
 
 ## 행성의 지역들 (파일 순서)

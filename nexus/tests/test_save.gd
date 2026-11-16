@@ -5,6 +5,7 @@ var t
 var Save: Node
 var Game: Node
 const DIR := "user://test_saves"
+var _orig
 
 
 func before_each() -> void:
@@ -12,10 +13,11 @@ func before_each() -> void:
 	Game = t.root.get_node("Game")
 	Save.dir = DIR
 	_wipe()
-	Save.MIGRATIONS = {}
+	_orig = Save.MIGRATIONS
 
 
 func after_each() -> void:
+	Save.MIGRATIONS = _orig
 	_wipe()
 	Save.dir = Save.DEFAULT_DIR
 	Game.state = {}
@@ -88,7 +90,7 @@ func test_versions() -> void:
 	Game.new_game()
 	var old: Dictionary = Game.state.duplicate(true)
 	old.erase("log")
-	Save.MIGRATIONS = {0: func(d): d["log"] = []; return d}
+	Save.MIGRATIONS = {0: func(d): d["log"] = []; return d, 1: Save.MIGRATIONS[1]}
 	var r: Dictionary = Save.parse_text(JSON.stringify({"app": "nexus", "version": 0, "data": old}))
 	t.ok(r.has("data") and r.data.has("log"), "이전 버전은 변환 함수로 올려요")
 

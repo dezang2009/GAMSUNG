@@ -11,6 +11,7 @@ const TABS := [
 ]
 
 var tab := "base"
+var ui := {}                # 화면 상태 (거르기·정렬 등, 저장 안 함)
 var stacks := {}            # 탭 id → [{ screen, args, title }]
 var _sheet: Control = null
 var _sheet_cb: Callable
@@ -411,6 +412,7 @@ func toast(text: String, warn := false) -> void:
 func _on_state_changed(reason: String) -> void:
 	if reason in ["new_game", "load", "import", "reset"]:
 		tab = "base"
+		ui = {}
 		for t in TABS:
 			stacks[t.id] = [{"screen": t.id, "args": {}, "title": t.name}]
 		_rebuild()

@@ -5,7 +5,9 @@ extends Node
 ## state 구조 (저장 파일의 data):
 ##   meta:       { created_at, updated_at, play_seconds, content_version }
 ##   resources:  { 자원 id: 양 }
-##   collection: { owned: [개체 인스턴스], seen: { 종 id: 처음 본 시각 }, party: [인스턴스 uid ×5, 빈칸은 ""] , next_uid }
+##   collection: { owned: [개체 인스턴스], seen: { 종 id: 처음 본 시각 }, research: { 종 id: 연구 데이터 }, party: [uid ×5, 빈칸 ""], next_uid }
+##   exploration: { surveys: { 지역 id: 조사 횟수 } }
+##   seed:       조사 결과를 정하는 씨앗 (새 게임마다 하나)
 ##   planets:    { 행성 id: { cleared: { 지역 id: true }, env: {}, facilities: [], placed: {} } }
 ##   current_planet
 ##   research:   { done: {}, active: null }
@@ -50,13 +52,22 @@ func new_game() -> void:
 	state = {
 		"meta": {"created_at": now, "updated_at": now, "play_seconds": 0, "content_version": int(Data.meta.get("content_version", 1))},
 		"resources": res,
-		"collection": {"owned": [], "seen": {}, "party": ["", "", "", "", ""], "next_uid": 1},
+		"collection": {"owned": [], "seen": {}, "research": {}, "party": ["", "", "", "", ""], "next_uid": 1},
+		"exploration": {"surveys": {}},
+		"seed": randi(),
 		"planets": planets,
 		"current_planet": first,
 		"research": {"done": {}, "active": null},
 		"log": [],
 	}
 	add_log("base", "탐사 기지를 열었어요. 첫 행성 탐사를 시작해요.")
+	# 시작 개체 (설정 파일 meta.starting_creatures)
+	var names: Array[String] = []
+	for sid in Data.meta.get("starting_creatures", []):
+		if CollectionSystem.acquire(state, sid, "start", "", now).kind == "new":
+			names.append(Data.get_item("species", sid).name)
+	if not names.is_empty():
+		add_log("creature", "함께 출발한 개체: %s" % ", ".join(names))
 	_changed("new_game", true)
 
 
@@ -125,6 +136,30 @@ func planet_progress(planet_id: String = "") -> float:
 	if regions.is_empty():
 		return 0.0
 	return float(planet_state(pid).get("cleared", {}).size()) / regions.size()
+
+
+# ── 탐사 ──
+## 지역 조사. { results } 또는 { error }
+func survey_region(region_id: String) -> Dictionary:
+	var r := Data.get_item("regions", region_id)
+	if r.is_empty():
+		return {"error": "알 수 없는 지역이에요"}
+	var why := ExplorationSystem.blocked_reason(state, r, is_region_unlocked(r))
+	if why != "":
+		return {"error": why}
+	var now := int(Time.get_unix_time_from_system())
+	var results := ExplorationSystem.survey(state, r, now)
+	var n := ExplorationSystem.done(state, region_id)
+	var parts: Array[String] = []
+	for x in results:
+		var nm: String = Data.get_item("species", x.species).name
+		if x.type == "egg":
+			parts.append("%s 알 확보" % nm if x.acquire.kind == "new" else "%s 알 (중복 → 연구 데이터)" % nm)
+		elif x.new:
+			parts.append("%s 첫 목격" % nm)
+	add_log("explore", "%s %d차 조사%s" % [r.name, n, (" — " + ", ".join(parts)) if not parts.is_empty() else ""])
+	_changed("survey", true)
+	return {"results": results, "survey": n}
 
 
 # ── 기록·저장 ──

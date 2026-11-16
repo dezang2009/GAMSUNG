@@ -20,7 +20,7 @@ func test_new_game_from_data() -> void:
 	t.eq(Game.state.current_planet, "planet_01", "첫 행성")
 	t.eq(Game.state.resources.keys(), ["res_a", "res_b", "res_c"], "자원은 설정 파일 그대로")
 	t.eq(Game.state.collection.party, ["", "", "", "", ""], "편성 5칸")
-	t.eq(Game.state.log.size(), 1, "시작 기록")
+	t.eq(Game.state.log.size(), 2, "시작 기록 (기지 + 시작 개체)")
 	t.eq(int(Game.state.meta.content_version), int(Data.meta.content_version), "콘텐츠 버전 기록")
 
 

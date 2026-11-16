@@ -129,3 +129,45 @@ func test_touch_targets() -> void:
 			if b.is_visible_in_tree() and (b.size.y < 87.5 or b.size.x < 87.5):
 				small.append("%s %dx%d" % [b.name, b.size.x, b.size.y])
 		t.ok(small.is_empty(), "탭 '%s' 버튼 모두 88px(44dp) 이상: %s" % [id, small])
+
+
+func test_phase2_collection_flow() -> void:
+	Game.new_game()
+	Game.state.seed = 4242
+	await t.process_frame
+	await t.process_frame
+	await _press("Nav_creatures")
+	t.eq(_find("OwnedGrid").get_child_count(), 3, "보유 개체 3 (시작 개체)")
+	await _press("Filter_heat")
+	t.eq(_find("OwnedGrid").get_child_count(), 1, "열 속성 거르기")
+	await _press("Filter_all")
+	await _press("Owned_c1")
+	t.ok(_find("Page_creature") != null and _find("StatsCard") != null, "개체 상세")
+	await _press("OpenSpecies")
+	t.ok(_find("Page_species") != null and _find("ResearchCard") != null, "도감 상세 (연구)")
+	t.ok(main.back(), "뒤로")
+	t.ok(main.back(), "뒤로")
+	await t.process_frame
+	await _press("DexCard")
+	t.eq(_find("DexGrid").get_child_count(), 20, "도감 20칸")
+	t.ok(_find("Dex_sp_04") is PanelContainer, "모르는 개체는 누를 수 없는 칸")
+
+
+func test_phase2_survey_flow() -> void:
+	Game.new_game()
+	await t.process_frame
+	await t.process_frame
+	await _press("Nav_explore")
+	await _press("Region_region_01")
+	t.ok(_find("SurveyCard") != null, "조사 카드")
+	await _press("SurveyButton")
+	t.ok(_find("SurveyResult") != null, "조사 결과 창")
+	t.eq(ExplorationSystem.done(Game.state, "region_01"), 1, "1차 조사 기록")
+	await _press("SurveyOk")
+	t.ok(_find("SurveyResult") == null, "결과 창 닫힘")
+	for i in 2:
+		await _press("SurveyButton")
+		await _press("SurveyOk")
+	var b := _find("SurveyButton") as Button
+	t.ok(b.disabled and b.text.contains("모두 마쳤어요"), "조사 끝나면 버튼 잠김 + 이유")
+	t.ok(Game.state.collection.seen.size() > 3, "조사로 도감이 늘어남")

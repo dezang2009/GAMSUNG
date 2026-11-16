@@ -10,9 +10,15 @@ const SCHEMAS := {
 	"roles": {"id": "id", "name": "string", "placeholder": "bool?"},
 	"resources": {"id": "id", "name": "string", "color": "color", "start": "int", "placeholder": "bool?"},
 	"planets": {"id": "id", "name": "string", "order": "int", "palette": "array", "placeholder": "bool?"},
-	"regions": {"id": "id", "planet": "ref:planets", "name": "string", "map": "vec2", "unlock": "dict", "placeholder": "bool?"},
-	"species": {"id": "id", "name": "string", "rarity": "ref:rarities", "element": "ref:elements", "role": "ref:roles", "base_stats": "dict", "skills": "array?", "evolution": "dict?", "traits": "array?", "eco_abilities": "array?", "art": "string?", "placeholder": "bool?"},
+	"regions": {"id": "id", "planet": "ref:planets", "name": "string", "map": "vec2", "unlock": "dict", "surveys": "int?", "encounters": "array?", "placeholder": "bool?"},
+	"stats": {"id": "id", "name": "string", "placeholder": "bool?"},
+	"traits": {"id": "id", "name": "string", "desc": "string", "placeholder": "bool?"},
+	"eco_abilities": {"id": "id", "name": "string", "element": "ref:elements", "desc": "string", "placeholder": "bool?"},
+	"species": {"id": "id", "name": "string", "rarity": "ref:rarities", "element": "ref:elements", "role": "ref:roles", "base_stats": "dict", "skills": "array", "evolution": "dict", "traits": "array<ref:traits>", "eco_abilities": "array<ref:eco_abilities>", "art": "path?", "placeholder": "bool?"},
 }
+
+## 조사로 만나는 방법
+const ENCOUNTER_METHODS := ["wild", "egg"]
 
 ## 지역 해금 조건 종류와 필요한 칸
 const UNLOCK_TYPES := {
@@ -21,6 +27,11 @@ const UNLOCK_TYPES := {
 }
 
 static var _ID := RegEx.create_from_string("^[a-z][a-z0-9_]*$")
+
+
+## JSON 의 숫자(float)와 코드의 정수(int)를 모두 숫자로 봐요
+static func is_num(v) -> bool:
+	return typeof(v) == TYPE_FLOAT or typeof(v) == TYPE_INT
 static var _COLOR := RegEx.create_from_string("^#[0-9a-fA-F]{6}$")
 
 
@@ -58,22 +69,26 @@ static func _check_value(v, kind: String, tables: Dictionary) -> String:
 		"string":
 			return "" if typeof(v) == TYPE_STRING and v.strip_edges() != "" else "는 비어 있지 않은 글자여야 해요"
 		"int":
-			return "" if typeof(v) == TYPE_FLOAT and v == floor(v) else "는 정수여야 해요"
+			return "" if is_num(v) and v == floor(v) else "는 정수여야 해요"
 		"number":
-			return "" if typeof(v) == TYPE_FLOAT else "는 숫자여야 해요"
+			return "" if is_num(v) else "는 숫자여야 해요"
 		"bool":
 			return "" if typeof(v) == TYPE_BOOL else "는 true/false 여야 해요"
 		"color":
 			return "" if typeof(v) == TYPE_STRING and _COLOR.search(v) else "는 #rrggbb 색이어야 해요"
 		"array":
 			return "" if typeof(v) == TYPE_ARRAY else "는 목록이어야 해요"
+		"path":
+			if typeof(v) != TYPE_STRING:
+				return "는 글자여야 해요"
+			return "" if v == "" or (v.begins_with("res://") and ResourceLoader.exists(v)) else "의 그림 파일 '%s' 이 없어요" % v
 		"dict":
 			return "" if typeof(v) == TYPE_DICTIONARY else "는 객체여야 해요"
 		"vec2":
 			if typeof(v) != TYPE_ARRAY or v.size() != 2:
 				return "는 [x, y] 여야 해요"
 			for n in v:
-				if typeof(n) != TYPE_FLOAT or n < 0.0 or n > 1.0:
+				if not is_num(n) or n < 0.0 or n > 1.0:
 					return "의 값은 0~1 사이 숫자여야 해요"
 			return ""
 	if kind.begins_with("ref:"):
@@ -153,3 +168,85 @@ static func is_unlocked(unlock: Dictionary, cleared: Dictionary) -> bool:
 		if ok:
 			hits += 1
 	return hits > 0 if mode == "any" else hits == unlock[mode].size()
+
+
+## 개체 종 상세 검사: 능력치 열쇠 · 진화 (단계는 1씩 올라가고, 대상이 있어야 해요)
+static func check_species(sp: Dictionary, tables: Dictionary) -> Array[String]:
+	var errs: Array[String] = []
+	var where := "species.json '%s'" % sp.get("id", "?")
+	var bs = sp.get("base_stats", {})
+	if typeof(bs) == TYPE_DICTIONARY and tables.has("stats"):
+		for k in tables.stats:
+			if not bs.has(k):
+				errs.append("%s: base_stats 에 '%s' 가 없어요" % [where, k])
+		for k in bs:
+			if not tables.stats.has(k):
+				errs.append("%s: base_stats 의 '%s' 는 stats.json 에 없는 능력치예요" % [where, k])
+			elif not is_num(bs[k]) or bs[k] <= 0 or bs[k] != floor(bs[k]):
+				errs.append("%s: base_stats.%s 는 양의 정수여야 해요" % [where, k])
+	var ev = sp.get("evolution", {})
+	if typeof(ev) != TYPE_DICTIONARY:
+		return errs
+	if typeof(ev.get("line")) != TYPE_STRING or not is_num(ev.get("stage")) or ev.stage < 1:
+		errs.append("%s: evolution 에 line(글자)·stage(1 이상)가 필요해요" % where)
+		return errs
+	if typeof(ev.get("next", [])) != TYPE_ARRAY:
+		errs.append("%s: evolution.next 는 목록이어야 해요" % where)
+		return errs
+	for n in ev.get("next", []):
+		var to = n.get("to") if typeof(n) == TYPE_DICTIONARY else null
+		if typeof(to) != TYPE_STRING or not tables.species.has(to):
+			errs.append("%s: 진화 대상 '%s' 가 없어요" % [where, to])
+			continue
+		var tgt: Dictionary = tables.species[to]
+		if int(tgt.get("evolution", {}).get("stage", 0)) != int(ev.stage) + 1:
+			errs.append("%s: 진화 대상 '%s' 의 단계가 %d 이어야 해요" % [where, to, int(ev.stage) + 1])
+	return errs
+
+
+## 지역의 조사 만남 표 검사
+static func check_encounters(region: Dictionary, tables: Dictionary) -> Array[String]:
+	var errs: Array[String] = []
+	var where := "regions.json '%s'" % region.get("id", "?")
+	var n := int(region.get("surveys", 0))
+	for e in region.get("encounters", []):
+		if typeof(e) != TYPE_DICTIONARY:
+			errs.append("%s: encounters 항목이 객체가 아니에요" % where)
+			continue
+		if not tables.species.has(e.get("species", "")):
+			errs.append("%s: 만남 개체 '%s' 가 없어요" % [where, e.get("species")])
+		if not (e.get("method") in ENCOUNTER_METHODS):
+			errs.append("%s: 만남 방법 '%s' 를 알 수 없어요 (%s)" % [where, e.get("method"), ", ".join(ENCOUNTER_METHODS)])
+		if not is_num(e.get("weight")) or e.weight <= 0:
+			errs.append("%s: 만남 weight 는 양수여야 해요" % where)
+		var f = e.get("from_survey")
+		if not is_num(f) or f < 1 or f > n:
+			errs.append("%s: from_survey 는 1~%d 사이여야 해요" % [where, n])
+	if region.has("encounters") and n < 1:
+		errs.append("%s: encounters 가 있으면 surveys 가 1 이상이어야 해요" % where)
+	return errs
+
+
+## 어떤 방법으로도 얻을 수 없는 개체 (시작 개체 · 조사 만남 · 얻을 수 있는 개체의 진화)
+static func unobtainable_species(species: Array, regions: Array, starters: Array) -> Array[String]:
+	var ok := {}
+	for s in starters:
+		ok[s] = true
+	for r in regions:
+		for e in r.get("encounters", []):
+			ok[e.species] = true
+	var changed := true
+	while changed:
+		changed = false
+		for sp in species:
+			if not ok.has(sp.id):
+				continue
+			for n in sp.get("evolution", {}).get("next", []):
+				if not ok.has(n.to):
+					ok[n.to] = true
+					changed = true
+	var out: Array[String] = []
+	for sp in species:
+		if not ok.has(sp.id):
+			out.append(sp.id)
+	return out

@@ -1,0 +1,34 @@
+{
+ "schema": "eco_abilities",
+ "note": "행성에 영향을 주는 생태 능력 (임시). 효과는 행성 개척 단계에서 정해요.",
+ "items": [
+  {
+   "id": "eco_a",
+   "name": "생태 능력 A",
+   "element": "heat",
+   "desc": "효과 미정",
+   "placeholder": true
+  },
+  {
+   "id": "eco_b",
+   "name": "생태 능력 B",
+   "element": "bio",
+   "desc": "효과 미정",
+   "placeholder": true
+  },
+  {
+   "id": "eco_c",
+   "name": "생태 능력 C",
+   "element": "fluid",
+   "desc": "효과 미정",
+   "placeholder": true
+  },
+  {
+   "id": "eco_d",
+   "name": "생태 능력 D",
+   "element": "mineral",
+   "desc": "효과 미정",
+   "placeholder": true
+  }
+ ]
+}
