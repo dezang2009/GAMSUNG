@@ -1,0 +1,26 @@
+{
+ "schema": "stages",
+ "note": "전투 콘텐츠. 지금은 훈련 전투(보상 없음)만 있어요. 일반 스테이지·보스는 다음 단계에서 같은 표에 더해요.",
+ "items": [
+  {
+   "id": "training_01",
+   "name": "훈련 전투",
+   "type": "training",
+   "enemies": [
+    {
+     "species": "sp_13",
+     "level": 1
+    },
+    {
+     "species": "sp_14",
+     "level": 1
+    },
+    {
+     "species": "sp_02",
+     "level": 1
+    }
+   ],
+   "placeholder": true
+  }
+ ]
+}

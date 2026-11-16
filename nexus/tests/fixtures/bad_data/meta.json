@@ -1,5 +1,0 @@
-{
-  "schema": "meta",
-  "content_version": 1,
-  "notes": "NEXUS 콘텐츠 설정. 확정된 것: 기본 속성 4종(열·생물·유체·광물). placeholder:true 항목은 이름·수치가 미정인 임시 데이터예요."
-}

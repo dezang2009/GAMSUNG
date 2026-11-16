@@ -1,9 +1,0 @@
-{
-  "schema": "roles",
-  "items": [
-    { "id": "role_a", "name": "역할 A", "placeholder": true },
-    { "id": "role_b", "name": "역할 B", "placeholder": true },
-    { "id": "role_c", "name": "역할 C", "placeholder": true },
-    { "id": "role_d", "name": "역할 D", "placeholder": true }
-  ]
-}

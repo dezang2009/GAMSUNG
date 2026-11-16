@@ -1,0 +1,32 @@
+{
+ "schema": "balance",
+ "placeholder": true,
+ "note": "전투 밸런스 수치 (임시). 데미지 = 공격 × 배율 × 100 ÷ (100 + 방어 × defense_weight) × (1 ± variance) × 상성",
+ "party": {
+  "active": 3,
+  "reserve": 2
+ },
+ "damage": {
+  "basic_power": 1.0,
+  "defense_weight": 4.0,
+  "variance": 0.08,
+  "minimum": 1
+ },
+ "heal": {
+  "stat": "atk"
+ },
+ "energy": {
+  "max": 100,
+  "start": 20,
+  "basic_attack": 25,
+  "skill_use": 0,
+  "hit_taken": 8,
+  "round_start": 5
+ },
+ "rounds": {
+  "max": 30
+ },
+ "ai": {
+  "heal_below": 0.5
+ }
+}

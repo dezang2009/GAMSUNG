@@ -1,6 +1,0 @@
-{
-  "schema": "planets",
-  "items": [
-    { "id": "planet_01", "name": "첫 번째 행성", "order": 1, "palette": ["#2b3a55", "#3f6f8f", "#c9a66b"], "placeholder": true }
-  ]
-}
