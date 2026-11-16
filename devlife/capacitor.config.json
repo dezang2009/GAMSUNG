@@ -1,7 +1,0 @@
-{
-  "appId": "com.gamsung.devlife",
-  "appName": "DEVLIFE",
-  "webDir": "dist",
-  "android": { "allowMixedContent": false, "captureInput": false, "webContentsDebuggingEnabled": false },
-  "server": { "androidScheme": "https" }
-}

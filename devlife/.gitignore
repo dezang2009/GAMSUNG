@@ -1,7 +1,0 @@
-node_modules/
-dist/
-test-results/
-android/keystore/*.keystore
-android/keystore/*.properties
-*.apk
-*.aab
