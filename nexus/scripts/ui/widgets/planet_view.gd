@@ -92,8 +92,14 @@ func _gui_input(event: InputEvent) -> void:
 		pos = event.position
 	if pos == Vector2.INF:
 		return
+	# 손가락으로 누르기 쉽게 넉넉한 범위(64)에서 가장 가까운 지역
+	var best := ""
+	var best_d := 64.0
 	for reg in regions:
-		if region_pos(reg).distance_to(pos) <= 44:
-			region_pressed.emit(reg.id)
-			accept_event()
-			return
+		var d := region_pos(reg).distance_to(pos)
+		if d <= best_d:
+			best_d = d
+			best = reg.id
+	if best != "":
+		region_pressed.emit(best)
+		accept_event()

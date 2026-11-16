@@ -17,7 +17,7 @@ var _sheet: Control = null
 var _sheet_cb: Callable
 var _layer_content: Control
 var _layer_over: Control
-var _scroll: ScrollContainer
+var _scroll: TouchScroll
 var _nav_buttons := {}
 var _topbar: Control
 var _safe_top := 0.0
@@ -77,7 +77,7 @@ func _build_shell() -> void:
 	add_child(_full(col))
 	_topbar = _build_topbar()
 	col.add_child(_topbar)
-	_scroll = ScrollContainer.new()
+	_scroll = TouchScroll.new()
 	_scroll.name = "Scroll"
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -350,6 +350,8 @@ func open_sheet(build: Callable, cb := Callable()) -> void:
 	dim.add_child(panel)
 	layer.add_child(dim)
 	_sheet = dim
+	if _scroll != null and is_instance_valid(_scroll):
+		_scroll.enabled = false
 	_sheet_cb = cb
 	build.call(box, close_sheet)
 
@@ -359,6 +361,8 @@ func close_sheet(value) -> void:
 		return
 	_sheet.queue_free()
 	_sheet = null
+	if _scroll != null and is_instance_valid(_scroll):
+		_scroll.enabled = true
 	var cb := _sheet_cb
 	_sheet_cb = Callable()
 	if cb.is_valid():

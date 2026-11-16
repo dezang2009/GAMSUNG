@@ -213,7 +213,7 @@ static func planet(main) -> Control:
 	view.name = "PlanetView"
 	view.custom_minimum_size = Vector2(0, 620)
 	view.setup(p, regions, states)
-	view.region_pressed.connect(func(id): main.push("region", {"id": id}, Data.get_item("regions", id).name))
+	view.region_pressed.connect(func(id): region_popup(main, id))
 	v.add_child(view)
 	var legend = UI.hbox(24)
 	for pair in [["열림", c.accent], ["개척 완료", c.teal], ["잠김", c.faint]]:
@@ -239,15 +239,6 @@ static func planet(main) -> Control:
 
 static func _region_row(main, r: Dictionary, st: String) -> Control:
 	var c = _c()
-	var b = Button.new()
-	b.name = "Region_" + r.id
-	b.theme_type_variation = "Flat"
-	b.custom_minimum_size = Vector2(0, 120)
-	b.pressed.connect(func(): main.push("region", {"id": r.id}, r.name))
-	var card = PanelContainer.new()
-	card.theme_type_variation = "Card"
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var icon_name: String = {"locked": "lock", "open": "explore", "cleared": "check"}[st]
 	var icon_col: Color = {"locked": c.faint, "open": c.accent, "cleared": c.teal}[st]
 	var sub: String = {"locked": unlock_text(r), "open": "탐사할 수 있어요", "cleared": "개척을 마쳤어요"}[st]
@@ -255,20 +246,59 @@ static func _region_row(main, r: Dictionary, st: String) -> Control:
 		sub += " · 조사 %d/%d" % [ExplorationSystem.done(Game.state, r.id), int(r.surveys)]
 	var texts = UI.vbox(4, [UI.title(r.name, UI.L), UI.label(sub, UI.S, c.muted)])
 	texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	texts.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for ch in texts.get_children():
-		ch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var row = UI.hbox(22, [IconView.make(icon_name, 48, icon_col), texts])
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if r.get("placeholder", false):
 		var ph = UI.placeholder_chip()
 		ph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(ph)
 	row.add_child(IconView.make("chevron", 36, c.faint))
-	card.add_child(row)
-	b.add_child(card)
-	b.custom_minimum_size.y = 140
-	return b
+	return _tap_card("Region_" + r.id, func(): main.push("region", {"id": r.id}, r.name), row, "Card", 120)
+
+
+## 지도에서 지역을 누르면 뜨는 정보 창
+static func region_popup(main, region_id: String) -> void:
+	var r = Data.get_item("regions", region_id)
+	if r.is_empty():
+		return
+	var c = _c()
+	var st = _region_state(r)
+	main.open_sheet(func(box: VBoxContainer, close: Callable):
+		box.name = "RegionPopup"
+		var head = UI.hbox(12, [UI.title(r.name, UI.XL, false)])
+		head.add_child(UI.spacer())
+		head.add_child(UI.chip({"locked": "잠김", "open": "열림", "cleared": "개척 완료"}[st], {"locked": c.faint, "open": c.accent, "cleared": c.teal}[st]))
+		if r.get("placeholder", false):
+			head.add_child(UI.placeholder_chip())
+		box.add_child(head)
+		if st == "locked":
+			box.add_child(UI.label("여는 조건: " + unlock_text(r), UI.M, c.muted))
+		var total = int(r.get("surveys", 0))
+		var done = ExplorationSystem.done(Game.state, r.id)
+		if total > 0:
+			box.add_child(UI.hbox(12, [UI.label("조사", UI.S, c.muted, "", false), UI.bar(float(done) / total, c.teal, 12), UI.label("%d / %d" % [done, total], UI.S, c.text, "Strong", false)]))
+			box.get_child(box.get_child_count() - 1).get_child(1).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			box.get_child(box.get_child_count() - 1).get_child(1).size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		# 드러난 개체 (모르면 ?)
+		var arts = UI.hbox(10)
+		var shown = 0
+		for e in r.get("encounters", []):
+			if int(e.from_survey) > maxi(done, 1):
+				continue
+			arts.add_child(CreatureArt.make(e.species, CollectionSystem.status(Game.state, e.species), 96))
+			shown += 1
+		if shown > 0:
+			box.add_child(UI.label("이곳에서 만나는 개체", UI.S, c.muted))
+			box.add_child(arts)
+		var row = UI.hbox(16)
+		var detail = UI.button("자세히 보기", func(): close.call(null); main.push("region", {"id": r.id}, r.name), "Ghost", "PopupDetail")
+		detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(detail)
+		var why = ExplorationSystem.blocked_reason(Game.state, r, Game.is_region_unlocked(r))
+		if why == "":
+			var go = UI.button("조사하기 (%d차)" % (done + 1), func(): close.call(null); _do_survey(main, r.id), "", "PopupSurvey")
+			go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(go)
+		box.add_child(row))
 
 
 static func region(main, args: Dictionary) -> Control:
@@ -393,24 +423,16 @@ static func _rarity_chip(sp: Dictionary) -> Control:
 	return UI.chip(r.get("name", "?"), Color(r.get("color", "#888888")))
 
 
-## 누를 수 있는 카드 (Flat 버튼 + 카드 모양)
-static func _tap_card(name: String, on_press: Callable, content: Control, variation := "Card", min_h := 0) -> Button:
-	var b = Button.new()
-	b.name = name
-	b.theme_type_variation = "Flat"
-	b.focus_mode = Control.FOCUS_ALL
-	b.pressed.connect(on_press)
-	var card = PanelContainer.new()
+## 누를 수 있는 카드: 내용 높이만큼 늘어나요 (TapCard)
+static func _tap_card(name: String, on_press: Callable, content: Control, variation := "Card", min_h := 0) -> TapCard:
+	var card := TapCard.new()
+	card.name = name
 	card.theme_type_variation = variation
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	card.pressed.connect(on_press)
 	_ignore_mouse(content)
 	card.add_child(content)
-	b.add_child(card)
-	b.custom_minimum_size = Vector2(UI.TOUCH, maxf(min_h, UI.TOUCH))
-	card.minimum_size_changed.connect(func(): b.custom_minimum_size.y = maxf(card.get_combined_minimum_size().y, maxf(min_h, UI.TOUCH)))
-	b.custom_minimum_size.y = maxf(card.get_combined_minimum_size().y, maxf(min_h, UI.TOUCH))
-	return b
+	card.custom_minimum_size = Vector2(UI.TOUCH, maxf(min_h, UI.TOUCH))
+	return card
 
 
 static func _ignore_mouse(n: Node) -> void:

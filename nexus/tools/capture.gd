@@ -55,6 +55,16 @@ func _run() -> void:
 	main.close_sheet(null)
 	main.go("planet")
 	await _shot("8-planet")
+	var scroll = main.find_child("Scroll", true, false)
+	scroll.scroll_vertical = 100000
+	await _shot("8b-planet-regions")
+	scroll.scroll_vertical = 0
+	main.find_child("PlanetView", true, false).region_pressed.emit("region_02")
+	await _shot("8c-map-popup")
+	main.close_sheet(null)
+	main.find_child("PlanetView", true, false).region_pressed.emit("region_05")
+	await _shot("8d-map-popup-locked")
+	main.close_sheet(null)
 	main.go("creatures")
 	main.go("creatures")
 	main.push("species", {"id": "sp_04"}, "개체 04")

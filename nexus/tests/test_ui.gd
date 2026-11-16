@@ -33,8 +33,8 @@ func _find(name: String) -> Node:
 
 
 func _press(name: String) -> void:
-	var b = _find(name) as BaseButton
-	t.ok(b != null, "버튼 '%s' 있음" % name)
+	var b = _find(name)
+	t.ok(b != null and b.has_signal("pressed"), "버튼 '%s' 있음" % name)
 	if b:
 		b.pressed.emit()
 	await t.process_frame
@@ -125,7 +125,7 @@ func test_touch_targets() -> void:
 	for id in ["base", "planet", "explore", "creatures", "research"]:
 		await _press("Nav_" + id)
 		var small = []
-		for b in main.find_children("*", "BaseButton", true, false):
+		for b in main.find_children("*", "BaseButton", true, false) + main.find_children("*", "TapCard", true, false):
 			if b.is_visible_in_tree() and (b.size.y < 87.5 or b.size.x < 87.5):
 				small.append("%s %dx%d" % [b.name, b.size.x, b.size.y])
 		t.ok(small.is_empty(), "탭 '%s' 버튼 모두 88px(44dp) 이상: %s" % [id, small])
@@ -171,3 +171,99 @@ func test_phase2_survey_flow() -> void:
 	var b := _find("SurveyButton") as Button
 	t.ok(b.disabled and b.text.contains("모두 마쳤어요"), "조사 끝나면 버튼 잠김 + 이유")
 	t.ok(Game.state.collection.seen.size() > 3, "조사로 도감이 늘어남")
+
+
+func _wait(n := 4) -> void:
+	for i in n:
+		await t.process_frame
+
+
+func test_region_cards_do_not_overlap() -> void:
+	Game.new_game()
+	await _wait()
+	await _press("Nav_planet")
+	await _wait()
+	var list = _find("RegionList")
+	var prev_bottom := -1.0
+	var ok := true
+	var info := []
+	for card in list.get_children():
+		var r: Rect2 = card.get_global_rect()
+		var inner: Control = card.get_child(0)
+		info.append("%s y=%d h=%d 내용h=%d" % [card.name, r.position.y, r.size.y, inner.get_combined_minimum_size().y])
+		if r.position.y < prev_bottom - 0.5 or r.size.y + 0.5 < inner.get_combined_minimum_size().y:
+			ok = false
+		prev_bottom = r.end.y
+	t.ok(ok, "지역 카드가 겹치지 않고 내용만큼 커져요: %s" % [info])
+
+
+func test_map_tap_opens_popup() -> void:
+	Game.new_game()
+	await _wait()
+	await _press("Nav_planet")
+	var view = _find("PlanetView")
+	view.region_pressed.emit("region_04")
+	await _wait()
+	var pop = _find("RegionPopup")
+	t.ok(pop != null, "지도에서 지역을 누르면 정보 창")
+	t.ok(main.depth() == 1, "화면 이동 없이 창만")
+	t.ok(_find("PopupSurvey") == null, "잠긴 지역은 조사 버튼 없음")
+	main.close_sheet(null)
+	await _wait()
+	view.region_pressed.emit("region_01")
+	await _wait()
+	await _press("PopupDetail")
+	t.ok(_find("Page_region") != null, "자세히 보기 → 지역 상세")
+	t.ok(_find("RegionPopup") == null, "창은 닫혀요")
+
+
+func _touch(pos: Vector2, pressed: bool) -> void:
+	var e := InputEventScreenTouch.new()
+	e.position = pos
+	e.pressed = pressed
+	Input.parse_input_event(e)
+
+
+func _drag(pos: Vector2, rel: Vector2) -> void:
+	var e := InputEventScreenDrag.new()
+	e.position = pos
+	e.relative = rel
+	Input.parse_input_event(e)
+
+
+func test_real_touch_scroll_and_tap() -> void:
+	# 휴대폰처럼 창 크기 = 화면 크기 (헤드리스 기본 창은 64px 이라 좌표가 늘어나요)
+	var old_size: Vector2i = t.root.size
+	t.root.size = Vector2i(720, 1280)
+	Game.new_game()
+	await _wait()
+	await _press("Nav_explore")
+	await _wait()
+	var scroll = _find("Scroll")
+	var card = _find("Region_region_01")
+	var p: Vector2 = card.get_global_rect().get_center()
+	# 카드 위에서 시작해 위로 끌기 → 스크롤만, 화면 이동 없음
+	_touch(p, true)
+	await _wait(2)
+	var q := p
+	for i in 8:
+		q += Vector2(0, -40)
+		_drag(q, Vector2(0, -40))
+		await _wait(1)
+	_touch(q, false)
+	await _wait(2)
+	t.ok(scroll.scroll_vertical > 0 or scroll.get_v_scroll_bar().max_value <= scroll.size.y + 1, "카드 위에서 끌어도 스크롤 (내용이 짧으면 끝까지만)")
+	t.eq(main.depth(), 1, "끌기는 카드를 누르지 않아요")
+	await _wait(40)
+	scroll.scroll_vertical = 0
+	await _wait(2)
+	# 살짝 흔들린 탭 → 카드가 눌려 이동
+	p = _find("Region_region_01").get_global_rect().get_center()
+	_touch(p, true)
+	await _wait(1)
+	_drag(p + Vector2(0, 5), Vector2(0, 5))
+	await _wait(1)
+	_touch(p + Vector2(0, 5), false)
+	await _wait(3)
+	t.ok(_find("Page_region") != null, "5px 흔들린 탭도 카드를 눌러요")
+	t.root.size = old_size
