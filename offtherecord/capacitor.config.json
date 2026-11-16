@@ -1,7 +1,0 @@
-{
-  "appId": "com.gamsung.offtherecord",
-  "appName": "OFF THE RECORD",
-  "webDir": "dist",
-  "android": { "allowMixedContent": false, "captureInput": false, "webContentsDebuggingEnabled": false },
-  "server": { "androidScheme": "https" }
-}
