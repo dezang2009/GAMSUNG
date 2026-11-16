@@ -107,7 +107,7 @@ export class App {
     if (!Game.has() || !this.main) return;
     this.renderTop();
     const top = this.stacks[this.tab].at(-1)!;
-    const page = h('div', { class: 'page', 'data-screen': top.screen });
+    const page = h('div', { class: keepScroll ? 'page' : 'page enter', 'data-screen': top.screen });
     if (this.stacks[this.tab].length > 1) page.append(h('div', { class: 'subhead' }, h('button', { class: 'icon-btn', 'aria-label': '뒤로', 'data-testid': 'back', onclick: () => this.back() }, icon('back')), h('h1', null, top.title)));
     const build = screens[top.screen];
     page.append(build ? build(this, top.args) : h('p', { class: 'empty' }, `알 수 없는 화면: ${top.screen}`));

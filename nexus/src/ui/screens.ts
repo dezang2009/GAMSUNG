@@ -302,21 +302,35 @@ const species: Screen = (app, args) => {
   );
 };
 
+const CTABS = [['info', '정보'], ['skills', '스킬'], ['evo', '진화']] as const;
 const creature: Screen = (app, args) => {
   const c = C.creature(S(), args.uid);
   if (!c) return h('p', { class: 'empty' }, '개체를 찾을 수 없어요');
   const sp = C.speciesOf(c);
+  const el = Data.get('elements', sp.element)!;
   const where = c.region ? Data.get('regions', c.region)?.name : '';
-  return h('div', { style: { display: 'grid', gap: '14px' } },
-    h('div', { style: { display: 'grid', justifyItems: 'center' } }, creatureArt(c.species, 'owned', 190, true)),
-    h('div', { class: 'chips' }, elChip(sp), rarityChip(sp), chip(Data.get('roles', sp.role)!.name), sp.placeholder ? tempChip() : null),
-    h('section', { class: 'card' }, h('div', { class: 'row' }, h('span', { class: 'big', style: { fontSize: '28px' } }, `Lv ${c.level}`), h('span', { class: 'small muted' }, `경험치 ${c.exp}`)), bar(0), h('span', { class: 'small faint' }, '레벨과 경험치는 육성 단계(B3)에서 오르기 시작해요.')),
-    h('section', { class: 'card' }, h('span', { class: 'label' }, '능력치'), statRows(C.statsOf(c))),
-    h('section', { class: 'card' }, h('span', { class: 'label' }, '스킬'), skillList(sp)),
-    h('section', { class: 'card' }, h('span', { class: 'label' }, '고유 특성'), sp.traits.map((id: string) => h('div', null, `${Data.get('traits', id)!.name} — ${Data.get('traits', id)!.desc}`)), h('span', { class: 'label' }, '생태 능력 (행성에 주는 영향)'), sp.eco_abilities.map((id: string) => h('div', null, `${Data.get('eco_abilities', id)!.name} — ${Data.get('eco_abilities', id)!.desc}`))),
-    h('section', { class: 'card' }, h('span', { class: 'label' }, '진화 경로'), evolutionView(c.species)),
-    h('section', { class: 'card' }, h('span', { class: 'label' }, '얻은 방법'), h('span', null, `${METHOD_TEXT[c.method] ?? c.method}${where ? ' · ' + where : ''} · ${new Date(c.obtained_at).toLocaleDateString('ko-KR')}`)),
-    h('button', { class: 'btn ghost block', 'data-testid': 'open-species', onclick: () => app.push('species', { id: c.species }, sp.name) }, `도감에서 보기 (연구 ${C.researchLevel(S(), c.species)}단계)`),
+  const stats = C.statsOf(c);
+  if (app.ui.cuid !== c.uid) Object.assign(app.ui, { cuid: c.uid, ctab: 'info' });
+  const tab = app.ui.ctab;
+  const body =
+    tab === 'skills'
+      ? h('section', { class: 'card' }, skillList(sp))
+      : tab === 'evo'
+        ? h('section', { class: 'card' }, evolutionView(c.species))
+        : h('div', { style: { display: 'grid', gap: '12px' } },
+            h('section', { class: 'card' }, h('div', { class: 'row' }, h('b', { class: 'grow' }, `Lv ${c.level}`), h('span', { class: 'small muted' }, `경험치 ${c.exp}`)), bar(0), h('span', { class: 'small faint' }, '레벨과 경험치는 육성 단계(B3)에서 오르기 시작해요.')),
+            h('section', { class: 'card' }, h('span', { class: 'label' }, '고유 특성'), sp.traits.map((id: string) => h('div', null, `${Data.get('traits', id)!.name} — ${Data.get('traits', id)!.desc}`)), h('span', { class: 'label' }, '생태 능력 (행성에 주는 영향)'), sp.eco_abilities.map((id: string) => h('div', null, `${Data.get('eco_abilities', id)!.name} — ${Data.get('eco_abilities', id)!.desc}`))),
+            h('section', { class: 'card' }, h('span', { class: 'label' }, '얻은 방법'), h('span', null, `${METHOD_TEXT[c.method] ?? c.method}${where ? ' · ' + where : ''} · ${new Date(c.obtained_at).toLocaleDateString('ko-KR')}`)),
+            h('button', { class: 'btn ghost block', 'data-testid': 'open-species', onclick: () => app.push('species', { id: c.species }, sp.name) }, `도감에서 보기 (연구 ${C.researchLevel(S(), c.species)}단계)`));
+  return h('div', { style: { display: 'grid', gap: '12px' } },
+    h('div', { class: 'hero', style: { '--el': el.color } },
+      h('div', { class: 'hero-art' }, creatureArt(c.species, 'owned', 190, true)),
+      h('div', { class: 'hero-meta' },
+        h('div', { class: 'hero-name' }, h('b', null, C.displayName(c)), h('span', { class: 'num' }, `Lv ${c.level}`)),
+        h('div', { class: 'chips' }, elChip(sp), rarityChip(sp), chip(Data.get('roles', sp.role)!.name), sp.placeholder ? tempChip() : null))),
+    h('div', { class: 'stat-tiles', 'data-testid': 'stats' }, Data.all('stats').map((st) => h('div', null, h('span', null, st.name), h('b', { class: 'num' }, stats[st.id] ?? 0)))),
+    h('div', { class: 'tabs', role: 'tablist' }, CTABS.map(([id, name]) => h('button', { role: 'tab', 'aria-selected': String(tab === id), class: tab === id ? 'on' : '', 'data-testid': `ctab-${id}`, onclick: () => ((app.ui.ctab = id), app.render(true)) }, name))),
+    body,
   );
 };
 

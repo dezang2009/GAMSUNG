@@ -81,6 +81,8 @@ const check = (name, ok, extra = '') => {
     // 자동 · 2배속 → 결과
     await p.tap(T('auto'));
     await p.tap(T('speed'));
+    const cut = await p.waitForSelector('.cutin', { timeout: 30000 }).then(() => true, () => false);
+    check('궁극기 연출 표시', cut);
     await p.waitForSelector(T('result'), { timeout: 60000 });
     const res = await p.textContent(T('result'));
     check('자동 전투로 결과까지', /승리|패배/.test(res), res);
@@ -109,7 +111,11 @@ const check = (name, ok, extra = '') => {
     check('도감 20칸', (await p.locator(`${T('dex')} > *`).count()) === 20);
     await p.tap(T('back'));
     await p.tap(T('owned-c1'));
-    check('개체 상세 (스킬 표시)', (await p.textContent('[data-screen=creature]')).includes('스킬 A'));
+    check('개체 상세: 능력치 4칸', (await p.locator(`${T('stats')} > *`).count()) === 4);
+    await p.tap(T('ctab-skills'));
+    check('개체 상세: 스킬 탭', (await p.textContent('[data-screen=creature]')).includes('스킬 A'));
+    await p.tap(T('ctab-evo'));
+    check('개체 상세: 진화 탭', (await p.textContent('[data-screen=creature]')).includes('단계'));
 
     // 밝게
     await p.tap(T('settings'));

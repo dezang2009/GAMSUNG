@@ -23,6 +23,7 @@ export function openBattle(app: App, stageId: string, initial: Bt.BattleState, o
   let lastText = '전투 시작!';
   let floats: { id: string; text: string; heal?: boolean }[] = [];
   let acting = '';
+  let cutin: { actor: string; name: string } | null = null; // 궁극기 연출
   let alive = true;
   const stage = Data.get('stages', stageId)!;
 
@@ -35,30 +36,42 @@ export function openBattle(app: App, stageId: string, initial: Bt.BattleState, o
   const delay = () => BASE_DELAY / (Game.settings.speed || 1);
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-  function unitCard(u: Bt.Unit, size: 'big' | 'small') {
+  /** 공통: 눌러서 대상 고르기 · 행동 중 · 맞음 · 쓰러짐 상태 */
+  function unitShell(u: Bt.Unit, cls: string, ...children: any[]) {
     const cur = Bt.current(b);
     const isTarget = !!pending && targetable(u);
-    const down = u.hp <= 0;
-    const buff = u.buffs.reduce((a, x) => a + (x.stat === 'atk' || x.stat === 'def' ? 1 : 0), 0);
-    const debuff = u.buffs.some((x) => x.amount < 0);
-    const meta = [
-      h('span', { class: 'uname' }, u.name),
-      h('div', { class: 'bar', style: { '--c': u.side === 'ally' ? 'var(--good)' : 'var(--danger)' } }, h('i', { style: { width: `${(u.hp / u.maxHp) * 100}%` } })),
-      h('div', { class: 'bar en', style: { '--c': u.energy >= Data.balance.energy.max ? 'var(--warn)' : 'var(--accent)' } }, h('i', { style: { width: `${(u.energy / Data.balance.energy.max) * 100}%` } })),
-      h('span', { class: 'hpnum num' }, `${u.hp} / ${u.maxHp}`),
-    ];
-    const card = h('div', {
-      class: `unit ${size === 'small' ? 'small' : ''} ${(acting ? acting === u.id : cur?.id === u.id) ? 'acting' : ''} ${isTarget ? 'target' : ''} ${down ? 'down' : ''}`,
+    const isActing = acting ? acting === u.id : !finished && cur?.id === u.id;
+    const hit = floats.some((f) => f.id === u.id && !f.heal);
+    return h('div', {
+      class: `unit ${cls} ${isActing ? 'acting' : ''} ${isTarget ? 'target' : ''} ${u.hp <= 0 ? 'down' : ''} ${hit ? 'hit' : ''}`,
       'data-testid': `unit-${u.id}`,
       role: isTarget ? 'button' : null,
       'aria-label': `${u.name} 체력 ${u.hp}/${u.maxHp}`,
       onclick: isTarget ? () => pickTarget(u) : null,
-    },
-      creatureArt(u.species, 'owned', size === 'small' ? 40 : 64),
-      size === 'small' ? h('div', { class: 'meta' }, meta) : meta,
-      debuff ? h('span', { class: 'buff debuff' }, '약화') : buff ? h('span', { class: 'buff' }, '강화') : null,
-      floats.filter((f) => f.id === u.id).map((f) => h('span', { class: `float ${f.heal ? 'heal' : ''}` }, f.text)));
-    return card;
+    }, ...children, buffBadge(u), floats.filter((f) => f.id === u.id).map((f) => h('span', { class: `float ${f.heal ? 'heal' : ''}` }, f.text)));
+  }
+  function buffBadge(u: Bt.Unit) {
+    if (u.buffs.some((x) => x.amount < 0)) return h('span', { class: 'buff debuff' }, '약화');
+    if (u.buffs.length) return h('span', { class: 'buff' }, '강화');
+    return null;
+  }
+  const hpBar = (u: Bt.Unit) => h('div', { class: 'bar hp', style: { '--c': u.side === 'ally' ? 'var(--good)' : 'var(--danger)' } }, h('i', { style: { width: `${(u.hp / u.maxHp) * 100}%` } }));
+  const full = (u: Bt.Unit) => u.energy >= Data.balance.energy.max;
+  const enBar = (u: Bt.Unit) => h('div', { class: `bar en ${full(u) ? 'full' : ''}` }, h('i', { style: { width: `${(u.energy / Data.balance.energy.max) * 100}%` } }));
+
+  /** 적: 카드 없이 전장에 크게 서 있어요 */
+  function foe(u: Bt.Unit, n: number) {
+    const size = n <= 1 ? 140 : n === 2 ? 112 : 92;
+    return unitShell(u, 'foe', h('div', { class: 'stand' }, creatureArt(u.species, 'owned', size)), h('span', { class: 'uname' }, u.name), hpBar(u), h('span', { class: 'hpnum num' }, `${u.hp} / ${u.maxHp}`));
+  }
+  /** 아군 출전: 세로 초상 카드 (궁극기 준비되면 게이지가 빛나요) */
+  function portrait(u: Bt.Unit) {
+    const el = Data.get('elements', Data.get('species', u.species)?.element ?? '')?.color ?? '#888';
+    return unitShell(u, `portrait ${full(u) && u.hp > 0 ? 'ready' : ''}`, h('div', { class: 'pic', style: { '--el': el } }, creatureArt(u.species, 'owned', 64)), h('span', { class: 'uname' }, u.name), hpBar(u), enBar(u), h('span', { class: 'hpnum num' }, `${u.hp} / ${u.maxHp}`));
+  }
+  /** 대기: 작은 줄 */
+  function mini(u: Bt.Unit) {
+    return unitShell(u, 'mini', creatureArt(u.species, 'owned', 32), h('div', { class: 'meta' }, h('span', { class: 'uname' }, u.name), hpBar(u)));
   }
 
   function targetable(u: Bt.Unit): boolean {
@@ -113,15 +126,25 @@ export function openBattle(app: App, stageId: string, initial: Bt.BattleState, o
     const ult = skills.find((s) => s.kind === 'ultimate');
     const btn = (label: string, sub: string, a: Bt.Action, testid: string, variant = '') => {
       const why = Bt.canUse(b, actor, a);
-      return h('button', { class: `btn ${variant}`, disabled: !!why, 'data-testid': testid, title: why || null, onclick: () => choose(a) }, label, h('small', null, why || sub));
+      return h('button', { class: `cmd ${variant}`, disabled: !!why, 'data-testid': testid, title: why || null, onclick: () => choose(a) }, h('b', null, label), h('small', null, why ? shortWhy(why) : sub));
     };
     return h('div', { class: 'b-actions', 'data-testid': 'actions' },
-      h('div', { class: 'small muted', style: { textAlign: 'center' } }, `${actor.name}의 차례`),
-      h('div', { class: 'grid2' },
-        btn('기본 공격', `에너지 +${Data.balance.energy.basic_attack}`, { type: 'basic' }, 'act-basic', 'ghost'),
-        sk ? btn(sk.name, `에너지 ${sk.cost} · 대기 ${sk.cooldown}`, { type: 'skill', skill: sk.id }, 'act-skill') : h('span'),
-        ult ? btn(ult.name, '궁극기 · 에너지 가득', { type: 'ultimate', skill: ult.id }, 'act-ultimate') : h('span'),
-        btn('교체', `대기 ${Bt.livingReserve(b).length}`, { type: 'swap' }, 'act-swap', 'ghost')));
+      h('div', { class: 'turn-of' }, h('b', null, actor.name), ' 의 차례'),
+      h('div', { class: 'cmds' },
+        btn('공격', `에너지 +${Data.balance.energy.basic_attack}`, { type: 'basic' }, 'act-basic'),
+        sk ? btn(sk.name, `에너지 ${sk.cost}`, { type: 'skill', skill: sk.id }, 'act-skill') : h('span'),
+        ult ? btn(ult.name, '궁극기', { type: 'ultimate', skill: ult.id }, 'act-ultimate', 'ult') : h('span'),
+        btn('교체', `대기 ${Bt.livingReserve(b).length}`, { type: 'swap' }, 'act-swap', 'quiet')));
+  }
+
+  /** 버튼 아래 작은 글: 칸이 좁아서 짧게 (전체 이유는 title) */
+  function shortWhy(why: string): string {
+    const u = Bt.current(b)!;
+    if (why.includes('가득')) return `에너지 ${u.energy}/${Data.balance.energy.max}`;
+    const cd = why.match(/^(\d+)라운드 뒤/);
+    if (cd) return `${cd[1]}라운드 대기`;
+    if (why.includes('대기 개체')) return '대기 없음';
+    return why;
   }
 
   function render() {
@@ -138,13 +161,20 @@ export function openBattle(app: App, stageId: string, initial: Bt.BattleState, o
         h('button', { class: `toggle ${Game.settings.speed === 2 ? 'on' : ''}`, 'data-testid': 'speed', onclick: () => (Game.setSettings({ speed: Game.settings.speed === 2 ? 1 : 2 }), render()) }, `${Game.settings.speed}배속`),
         h('button', { class: 'toggle', 'data-testid': 'quit', onclick: () => requestQuit() }, finished ? '닫기' : '나가기')),
       h('div', { class: 'b-field' },
-        h('div', { class: 'b-row enemies', style: { '--n': enemies.length } }, enemies.map((u) => unitCard(u, 'big'))),
+        h('div', { class: 'b-stage', style: { '--n': enemies.length } }, enemies.map((u) => foe(u, enemies.length))),
         h('div', { class: 'order', 'aria-label': '이번 라운드 행동 순서' }, order),
-        h('div', { class: 'b-log', 'data-testid': 'log', 'aria-live': 'polite' }, logNodes(lastText)),
-        h('div', { class: 'b-row allies' }, b.active.map((id) => unitCard(b.units[id], 'big'))),
-        h('div', { class: 'b-row reserve' }, b.reserve.map((id) => unitCard(b.units[id], 'small')), ...Array.from({ length: Math.max(0, Data.balance.party.reserve - b.reserve.length) }, () => h('div', { class: 'unit small down' }, h('span', { class: 'uname' }, '대기 없음'))))),
-      finished ? resultPanel() : actionsPanel(),
+        h('div', { class: 'b-log', 'data-testid': 'log', 'aria-live': 'polite' }, logNodes(lastText))),
+      h('div', { class: 'b-dock' },
+        h('div', { class: 'b-row allies' }, b.active.map((id) => portrait(b.units[id]))),
+        h('div', { class: 'b-row reserve' }, h('span', { class: 'rlabel' }, '대기'), b.reserve.map((id) => mini(b.units[id])), ...Array.from({ length: Math.max(0, Data.balance.party.reserve - b.reserve.length) }, () => h('div', { class: 'unit mini empty' }, h('span', { class: 'uname' }, '비어 있음')))),
+        finished ? resultPanel() : actionsPanel()),
+      ...(cutin ? [cutinNode(cutin)] : []),
     );
+  }
+
+  function cutinNode(c: { actor: string; name: string }) {
+    const u = b.units[c.actor];
+    return h('div', { class: `cutin ${u.side}`, 'aria-hidden': 'true' }, h('div', { class: 'band' }, creatureArt(u.species, 'owned', 110), h('div', null, h('small', null, `${u.name} · 궁극기`), h('b', null, c.name))));
   }
 
   function resultPanel() {
@@ -185,6 +215,12 @@ export function openBattle(app: App, stageId: string, initial: Bt.BattleState, o
   async function play(events: Bt.Event[]) {
     const act = events.find((e) => e.t === 'act') as any;
     acting = act?.actor ?? '';
+    if (act?.action === 'ultimate') {
+      cutin = { actor: act.actor, name: act.name };
+      render();
+      await sleep(delay() * 1.5);
+      cutin = null;
+    }
     floats = events.flatMap((e) => (e.t === 'damage' ? [{ id: e.target, text: `-${e.amount}` }] : e.t === 'heal' ? [{ id: e.target, text: `+${e.amount}`, heal: true }] : []));
     const texts = events.map(eventText).filter(Boolean);
     lastText = texts.slice(0, 3).join(' · ');

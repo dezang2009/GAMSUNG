@@ -47,7 +47,8 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .icon-btn:active { background: var(--card2); }
 .icon-btn svg { width: 24px; height: 24px; }
 
-.page { display: grid; gap: 20px; padding-top: 4px; animation: rise .32s var(--ease); }
+.page { display: grid; gap: 20px; padding-top: 4px; }
+.page.enter { animation: rise .32s var(--ease); }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
 .subhead { display: flex; align-items: center; gap: 6px; margin: 0 0 -4px -10px; }
 .subhead h1 { margin: 0; font-size: 22px; letter-spacing: -0.02em; }
@@ -146,33 +147,54 @@ textarea.input { width: 100%; min-height: 120px; padding: 12px; border-radius: 1
 .slot .tag { font-size: 10.5px; font-weight: 700; color: var(--accent); }
 .slot.reserve .tag { color: var(--muted); }
 
-/* ── 전투 ── */
-.battle { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: grid; grid-template-rows: auto 1fr auto; max-width: var(--max-w); margin: 0 auto; padding: calc(var(--safe-top) + 8px) 12px calc(var(--safe-bottom) + 10px); gap: 8px; }
+/* 개체 상세: 큰 그림 + 능력치 칸 + 탭 */
+.hero { position: relative; display: grid; justify-items: center; gap: 6px; padding: 18px 16px 16px; border-radius: 24px; overflow: hidden; background: radial-gradient(90% 70% at 50% 32%, color-mix(in srgb, var(--el) 30%, var(--card)) 0%, var(--card) 72%); border: 1px solid var(--line); }
+.hero-art .art { filter: drop-shadow(0 12px 18px rgba(0,0,0,.35)); }
+.hero-meta { display: grid; justify-items: center; gap: 8px; }
+.hero-name { display: flex; align-items: baseline; gap: 10px; }
+.hero-name b { font-size: 24px; letter-spacing: -0.02em; }
+.hero-name span { font-size: 15px; font-weight: 700; color: var(--muted); }
+.stat-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.stat-tiles > div { display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); }
+.stat-tiles span { font-size: 12px; color: var(--muted); }
+.stat-tiles b { font-size: 19px; }
+.tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: var(--card2); }
+.tabs button { min-height: 44px; border: 0; border-radius: 10px; background: none; font-weight: 700; color: var(--muted); cursor: pointer; }
+.tabs button.on { background: var(--card-hi); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+
+/* ── 전투: 위 전장(적) · 가운데 순서·기록 · 아래 받침(아군 초상·대기·명령) ── */
+.battle { position: fixed; inset: 0; z-index: 50; background: radial-gradient(120% 60% at 50% 18%, color-mix(in srgb, var(--danger) 9%, var(--bg2)) 0%, var(--bg) 70%); display: grid; grid-template-rows: auto 1fr auto; max-width: var(--max-w); margin: 0 auto; padding: calc(var(--safe-top) + 8px) 12px calc(var(--safe-bottom) + 10px); gap: 6px; overflow: hidden; }
+:root[data-theme='light'] .battle { background: radial-gradient(120% 60% at 50% 18%, color-mix(in srgb, var(--danger) 7%, var(--bg)) 0%, var(--bg2) 70%); }
 .b-top { display: flex; align-items: center; gap: 8px; }
 .b-top .round { font-weight: 700; font-size: 16px; margin-right: auto; }
-.toggle { min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); font-weight: 700; font-size: 13px; cursor: pointer; }
+.toggle { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: color-mix(in srgb, var(--card) 85%, transparent); font-weight: 700; font-size: 13px; cursor: pointer; }
 .toggle.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-.b-field { display: grid; grid-template-rows: auto auto 1fr auto auto; gap: 8px; min-height: 0; }
-.b-row { display: grid; gap: 8px; }
-.b-row.enemies { grid-template-columns: repeat(var(--n), 1fr); }
-.b-row.allies { grid-template-columns: repeat(3, 1fr); }
-.b-row.reserve { grid-template-columns: repeat(2, 1fr); }
-.unit { position: relative; display: grid; justify-items: center; gap: 3px; padding: 8px 6px 9px; border-radius: 16px; background: var(--card); border: 2px solid transparent; transition: border-color .2s, opacity .3s, transform .2s; }
+.b-field { display: grid; grid-template-rows: 1fr auto auto; gap: 8px; min-height: 0; }
+
+.unit { position: relative; display: grid; justify-items: center; gap: 3px; transition: opacity .3s, transform .2s var(--ease), border-color .2s; }
 .unit .uname { font-size: 12px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.unit .bar { width: 100%; height: 7px; }
-.unit .en { height: 4px; }
+.unit .bar { width: 100%; }
+.unit .bar.hp { height: 7px; }
+.unit .bar.en { height: 4px; --c: var(--accent); }
+.unit .bar.en.full { --c: var(--warn); box-shadow: 0 0 8px color-mix(in srgb, var(--warn) 70%, transparent); }
 .unit .hpnum { font-size: 11px; color: var(--muted); }
-.unit.acting { border-color: var(--accent); transform: translateY(-2px); }
-.unit.target { border-color: var(--warn); cursor: pointer; animation: pulse 1s infinite; }
-@keyframes pulse { 50% { border-color: transparent; } }
-.unit.down { opacity: .3; filter: grayscale(1); }
-.unit.small { flex-direction: row; padding: 6px; display: flex; gap: 8px; justify-content: flex-start; }
-.unit.small .meta { display: grid; gap: 3px; flex: 1; min-width: 0; }
-.unit .buff { position: absolute; top: 6px; right: 6px; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
-.unit .buff.debuff { background: color-mix(in srgb, var(--danger) 20%, transparent); color: var(--danger); }
-.float { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); font-weight: 800; font-size: 18px; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.6); pointer-events: none; animation: floatup .9s var(--ease) forwards; }
-.float.heal { color: var(--good); }
-@keyframes floatup { to { transform: translate(-50%, -34px); opacity: 0; } }
+.unit.down { opacity: .28; filter: grayscale(1); }
+.unit.target { cursor: pointer; }
+.unit.hit { animation: hit .32s; }
+@keyframes hit { 20% { transform: translateX(-5px); filter: brightness(1.8); } 45% { transform: translateX(4px); } 70% { transform: translateX(-2px); } }
+
+/* 적: 전장 위에 크게, 발밑 그림자 */
+.b-stage { display: grid; grid-template-columns: repeat(var(--n), 1fr); align-items: center; gap: 6px; padding-top: 8px; min-height: 0; }
+.foe { padding: 4px 2px; }
+.foe .stand { position: relative; display: grid; place-items: center; }
+.foe .stand::after { content: ''; position: absolute; bottom: 2px; width: 70%; height: 12px; border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.45), transparent); z-index: -1; }
+.foe .uname { font-size: 13px; }
+.foe .bar.hp { height: 8px; max-width: 120px; }
+.foe.acting .stand { animation: lunge .5s var(--ease); }
+@keyframes lunge { 40% { transform: translateY(10px) scale(1.06); } }
+.foe.target .stand::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 3px solid var(--warn); animation: pulse 1s infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+
 .order { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
 .order::-webkit-scrollbar { display: none; }
 .order span { flex: none; padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 700; background: var(--card2); color: var(--muted); }
@@ -180,13 +202,64 @@ textarea.input { width: 100%; min-height: 120px; padding: 12px; border-radius: 1
 .order span.enemy { color: var(--danger); }
 .order span.now { background: var(--accent); color: var(--accent-ink); }
 .order span.done { opacity: .35; }
-.b-log { align-self: center; text-align: center; min-height: 44px; font-size: 14px; color: var(--muted); padding: 0 8px; }
+.b-log { text-align: center; min-height: 22px; font-size: 13.5px; color: var(--muted); padding: 0 8px; }
 .b-log b { color: var(--text); }
-.b-actions { display: grid; gap: 8px; }
-.b-actions .grid2 .btn { min-height: 56px; flex-direction: column; gap: 0; }
-.b-prompt { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 0 6px; font-weight: 700; }
-.result { display: grid; gap: 14px; text-align: center; }
-.result .big { font-size: 46px; }
+
+/* 아래 받침 */
+.b-dock { display: grid; gap: 8px; padding: 10px; margin: 0 -12px calc(-10px - var(--safe-bottom)); padding-bottom: calc(10px + var(--safe-bottom)); background: var(--card); border-top: 1px solid var(--line); border-radius: 22px 22px 0 0; box-shadow: 0 -10px 30px rgba(0,0,0,.25); }
+.b-row { display: grid; gap: 8px; }
+.b-row.allies { grid-template-columns: repeat(3, 1fr); }
+.portrait { padding: 0 0 8px; border-radius: 16px; background: var(--card2); border: 2px solid transparent; overflow: hidden; }
+.portrait .pic { width: 100%; display: grid; place-items: center; padding: 6px 0 2px; background: linear-gradient(180deg, color-mix(in srgb, var(--el) 26%, transparent), transparent); }
+.portrait .uname, .portrait .bar, .portrait .hpnum { width: calc(100% - 16px); text-align: center; }
+.portrait.acting { border-color: var(--accent); transform: translateY(-6px); box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 30%, transparent); }
+.portrait.ready:not(.down) { border-color: color-mix(in srgb, var(--warn) 55%, transparent); }
+.portrait.ready.acting { border-color: var(--warn); }
+.portrait.target { border-color: var(--warn); animation: pulseb 1s infinite; }
+@keyframes pulseb { 50% { border-color: transparent; } }
+.b-row.reserve { grid-template-columns: auto 1fr 1fr; align-items: center; }
+.rlabel { font-size: 11px; font-weight: 700; color: var(--faint); padding: 0 2px; }
+.mini { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 8px 4px 4px; border-radius: 12px; background: var(--card2); border: 2px solid transparent; }
+.mini .meta { display: grid; gap: 3px; flex: 1; min-width: 0; justify-items: start; }
+.mini .bar.hp { height: 5px; }
+.mini.empty { justify-content: center; border: 1px dashed var(--line); background: none; color: var(--faint); }
+.mini.target { border-color: var(--warn); animation: pulseb 1s infinite; }
+.unit .buff { position: absolute; top: 4px; right: 4px; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
+.unit .buff.debuff { background: color-mix(in srgb, var(--danger) 20%, transparent); color: var(--danger); }
+.float { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); font-weight: 800; font-size: 28px; color: #fff; -webkit-text-stroke: 1px rgba(0,0,0,.35); text-shadow: 0 3px 10px rgba(0,0,0,.6); pointer-events: none; z-index: 2; animation: floatup .9s var(--ease) forwards; }
+.portrait .float, .mini .float { font-size: 22px; }
+.float.heal { color: var(--good); }
+@keyframes floatup { 0% { transform: translate(-50%, 6px) scale(.7); opacity: 0; } 20% { transform: translate(-50%, 0) scale(1.15); opacity: 1; } to { transform: translate(-50%, -30px) scale(1); opacity: 0; } }
+
+/* 명령: 한 줄 4칸 */
+.b-actions { display: grid; gap: 6px; }
+.turn-of { text-align: center; font-size: 12.5px; color: var(--muted); }
+.turn-of b { color: var(--text); }
+.cmds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.cmd { display: grid; place-content: center; gap: 1px; min-height: 58px; padding: 6px 4px; border-radius: 14px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; text-align: center; transition: transform .15s; }
+.cmd:active:not(:disabled) { transform: scale(.96); }
+.cmd b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmd small { font-size: 10.5px; font-weight: 600; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmd.quiet { background: var(--card-hi); color: var(--text); }
+.cmd.ult:not(:disabled) { background: linear-gradient(135deg, var(--warn), color-mix(in srgb, var(--warn) 60%, var(--danger))); color: #2a1600; box-shadow: 0 0 16px color-mix(in srgb, var(--warn) 45%, transparent); }
+.cmd:disabled { background: var(--card-hi); color: var(--faint); cursor: default; box-shadow: none; }
+.b-prompt { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 58px; padding: 0 4px; font-weight: 700; }
+.b-prompt.muted { justify-content: center; color: var(--muted); font-weight: 600; }
+
+/* 궁극기 연출: 화면을 가로지르는 띠 */
+.cutin { position: absolute; inset: 0; display: grid; align-items: center; background: rgba(4, 6, 12, .55); z-index: 5; pointer-events: none; animation: fadein .15s; }
+.cutin .band { display: flex; align-items: center; gap: 14px; padding: 14px 20px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--warn) 30%, var(--bg2)) 18%, color-mix(in srgb, var(--warn) 30%, var(--bg2)) 82%, transparent); border-block: 2px solid var(--warn); animation: sweep .45s var(--ease); }
+.cutin.enemy .band { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--danger) 30%, var(--bg2)) 18%, color-mix(in srgb, var(--danger) 30%, var(--bg2)) 82%, transparent); border-color: var(--danger); }
+.cutin small { display: block; font-size: 12px; color: var(--muted); }
+.cutin b { font-size: 26px; color: #fff; }
+:root[data-theme='light'] .cutin b { color: var(--text); }
+@keyframes sweep { from { transform: translateX(-60%); opacity: 0; } }
+@keyframes fadein { from { opacity: 0; } }
+
+/* 결과 */
+.result { display: grid; gap: 12px; text-align: center; padding: 6px 0 2px; }
+.result .big { font-size: 44px; font-weight: 800; letter-spacing: -0.02em; animation: pop .5s var(--ease); }
+@keyframes pop { from { transform: scale(1.6); opacity: 0; } }
 .result.win .big { color: var(--teal); }
 .result.lose .big { color: var(--danger); }
 
