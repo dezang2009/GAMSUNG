@@ -1,0 +1,26 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.abyss.game'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.abyss.game'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '0.1'
+    }
+
+    // 게임 본체는 저장소 루트의 web/ 폴더를 그대로 사용한다
+    sourceSets {
+        main.assets.srcDirs = ['../../web']
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

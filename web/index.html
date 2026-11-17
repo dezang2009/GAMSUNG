@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<title>ABYSS</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- 메인 화면 -->
+<section id="screen-title" class="screen">
+  <div class="title-box">
+    <h1>ABYSS</h1>
+    <p class="subtitle">심층 탐사 전략 시뮬레이션</p>
+    <div class="title-actions">
+      <button id="btn-continue" class="btn primary" hidden>탐사 이어하기</button>
+      <button id="btn-new" class="btn">새 탐사 시작</button>
+    </div>
+    <p id="title-save" class="dim small"></p>
+  </div>
+  <p class="version dim small">STEP 1 · v0.1</p>
+</section>
+
+<!-- 탐사 화면 -->
+<section id="screen-game" class="screen" hidden>
+  <header class="topbar">
+    <div class="topbar-main">
+      <div>
+        <div id="zone-name" class="dim small"></div>
+        <div id="area-name" class="area-name"></div>
+      </div>
+      <button id="btn-menu" class="btn small-btn">메뉴</button>
+    </div>
+    <div class="gauges">
+      <div class="gauge"><span class="label">탐사</span><span id="g-exp" class="value"></span></div>
+      <div class="gauge wide">
+        <span class="label">전력</span><span id="g-energy" class="value"></span>
+        <div class="bar"><i id="bar-energy"></i></div>
+      </div>
+      <div class="gauge wide">
+        <span class="label">적재</span><span id="g-cargo" class="value"></span>
+        <div class="bar"><i id="bar-cargo" class="cargo"></i></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="map-wrap"><div id="map" class="map"></div></div>
+
+    <div class="side">
+      <section class="panel" id="tile-panel">
+        <div id="tile-info"></div>
+        <div class="actions">
+          <button id="act-move" class="btn primary">이동</button>
+          <button id="act-mine" class="btn">채굴</button>
+          <button id="act-scan" class="btn">정밀 스캔</button>
+          <button id="act-return" class="btn">귀환·보급</button>
+        </div>
+        <div id="act-hint" class="dim small"></div>
+      </section>
+
+      <nav class="tabs">
+        <button data-tab="log" class="tab active">기록</button>
+        <button data-tab="res" class="tab">자원</button>
+        <button data-tab="area" class="tab">구역 정보</button>
+      </nav>
+      <section class="panel tab-body" id="tab-log"></section>
+      <section class="panel tab-body" id="tab-res" hidden></section>
+      <section class="panel tab-body" id="tab-area" hidden></section>
+    </div>
+  </main>
+</section>
+
+<!-- 메뉴 -->
+<div id="menu" class="overlay" hidden>
+  <div class="dialog">
+    <h2>메뉴</h2>
+    <button id="menu-close" class="btn primary">탐사 계속</button>
+    <button id="menu-title" class="btn">메인 화면으로</button>
+    <button id="menu-reset" class="btn danger">기록 삭제 후 새 탐사</button>
+    <div class="legend small dim">
+      <p><b>조작</b> 칸을 눌러 선택 → 이동 버튼(또는 같은 칸을 한 번 더 누름).</p>
+      <p>이동한 칸은 조사 완료, 주변 8칸은 지형만 확인된다. 자원·위험은 직접 밟거나 정밀 스캔으로 확인한다.</p>
+      <p>오르막은 고도 차이만큼 전력이 더 든다. 채굴물은 베이스로 가져와야 보유량에 반영된다.</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/mapgen.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
