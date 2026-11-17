@@ -1,12 +1,18 @@
 // PROJECT EDEN — 그리드 기반 월드 데이터와 배경 렌더러.
-// STEP 01: 황폐한 행성 지형 배경만 그린다. 건물 배치/상호작용은 없다.
+// STEP 02: 타일 단위 월드 데이터를 만들고 그대로 화면에 그린다.
+// 카메라 이동/확대, 건물 배치, 자원 채굴은 없다.
 (function () {
   'use strict';
 
   window.EDEN = window.EDEN || {};
 
-  var TILE = { BASIN: 0, PLAIN: 1, RIDGE: 2, PLATEAU: 3 };
-  var FEATURE = { NONE: 0, CRATER: 1, ROCK: 2, CRYSTAL: 3, CRACK: 4 };
+  // 지형 종류 (고도가 낮은 순)
+  var TERRAIN = { BASIN: 'basin', PLAIN: 'plain', RIDGE: 'ridge', PLATEAU: 'plateau' };
+  // 타일 위 지형지물
+  var FEATURE = { NONE: 'none', CRATER: 'crater', ROCK: 'rock', CRYSTAL: 'crystal', CRACK: 'crack' };
+  // 건물을 놓을 수 없게 만드는 지형지물
+  var BLOCKING = {};
+  BLOCKING[FEATURE.CRATER] = BLOCKING[FEATURE.ROCK] = BLOCKING[FEATURE.CRYSTAL] = true;
 
   // ---------- 시드 기반 노이즈 ----------
   function hash(ix, iy, seed) {
@@ -37,37 +43,49 @@
   }
 
   // ---------- 월드 데이터 ----------
+  // 타일 하나: 좌표(x, y)는 왼쪽 위가 (0, 0)이고 오른쪽/아래로 증가한다.
+  function createTile(x, y, seed, ox, oy) {
+    var nx = x + ox, ny = y + oy; // 노이즈 공간 좌표
+    var e = elevationAt(nx + 0.5, ny + 0.5, seed);
+    var terrain = e < 0.4 ? TERRAIN.BASIN : e < 0.56 ? TERRAIN.PLAIN : e < 0.68 ? TERRAIN.RIDGE : TERRAIN.PLATEAU;
+
+    var r = hash(nx, ny, seed + 7);
+    var feature = FEATURE.NONE;
+    if (r < 0.035 && (terrain === TERRAIN.BASIN || terrain === TERRAIN.PLAIN)) feature = FEATURE.CRATER;
+    else if (r < 0.13) feature = FEATURE.ROCK;
+    else if (r < 0.15) feature = FEATURE.CRYSTAL;
+    else if (r < 0.21) feature = FEATURE.CRACK;
+
+    return {
+      x: x,
+      y: y,
+      terrain: terrain,                       // 지형 종류
+      elevation: e,                           // 고도 0..1
+      feature: feature,                       // 지형지물 (표현용)
+      hasResource: feature === FEATURE.CRYSTAL, // 자원 존재 여부
+      buildable: !BLOCKING[feature]           // 건물 배치 가능 여부
+    };
+  }
+
   function createWorld(cfg) {
     var cols = cfg.cols, rows = cfg.rows, seed = cfg.seed;
+    var ox = cfg.noiseOffset ? cfg.noiseOffset.x : 0;
+    var oy = cfg.noiseOffset ? cfg.noiseOffset.y : 0;
     var tiles = new Array(cols * rows);
 
     for (var y = 0; y < rows; y++) {
-      for (var x = 0; x < cols; x++) {
-        var e = elevationAt(x + 0.5, y + 0.5, seed);
-        var type = e < 0.4 ? TILE.BASIN : e < 0.56 ? TILE.PLAIN : e < 0.68 ? TILE.RIDGE : TILE.PLATEAU;
-
-        var r = hash(x, y, seed + 7);
-        var feature = FEATURE.NONE;
-        if (r < 0.035 && type <= TILE.PLAIN) feature = FEATURE.CRATER;
-        else if (r < 0.13) feature = FEATURE.ROCK;
-        else if (r < 0.15) feature = FEATURE.CRYSTAL;
-        else if (r < 0.21) feature = FEATURE.CRACK;
-
-        tiles[y * cols + x] = {
-          x: x, y: y,
-          elevation: e,
-          type: type,
-          feature: feature,
-          building: null // 이후 단계에서 사용할 자리
-        };
-      }
+      for (var x = 0; x < cols; x++) tiles[y * cols + x] = createTile(x, y, seed, ox, oy);
     }
 
     return {
-      cols: cols, rows: rows, seed: seed, tiles: tiles,
+      cols: cols, rows: rows, seed: seed,
+      noiseOffset: { x: ox, y: oy },
+      tiles: tiles, // 행 우선 배열: index = y * cols + x
+      inBounds: function (tx, ty) {
+        return tx >= 0 && ty >= 0 && tx < cols && ty < rows;
+      },
       getTile: function (tx, ty) {
-        if (tx < 0 || ty < 0 || tx >= cols || ty >= rows) return null;
-        return tiles[ty * cols + tx];
+        return this.inBounds(tx, ty) ? tiles[ty * cols + tx] : null;
       }
     };
   }
@@ -165,7 +183,7 @@
 
   // 연속 고도장을 저해상도로 샘플링한 뒤 부드럽게 확대해 지면을 그린다.
   WorldRenderer.prototype.drawTerrain = function (range) {
-    var seed = this.world.seed;
+    var seed = this.world.seed, off = this.world.noiseOffset;
     var tw = range.x1 - range.x0 + 1, th = range.y1 - range.y0 + 1;
     var w = tw * SAMPLES, h = th * SAMPLES;
     var buf = this.buffer;
@@ -176,12 +194,12 @@
 
     for (var py = 0; py < h; py++) {
       for (var px = 0; px < w; px++) {
-        var wx = range.x0 + (px + 0.5) / SAMPLES;
-        var wy = range.y0 + (py + 0.5) / SAMPLES;
+        var wx = range.x0 + off.x + (px + 0.5) / SAMPLES;
+        var wy = range.y0 + off.y + (py + 0.5) / SAMPLES;
         var e = elevationAt(wx, wy, seed);
         // 북서쪽 광원 기준 음영
         var shade = (elevationAt(wx - d, wy - d, seed) - elevationAt(wx + d, wy + d, seed)) * 4.2;
-        var grain = (hash(px + range.x0 * SAMPLES, py + range.y0 * SAMPLES, seed + 31) - 0.5) * 0.07;
+        var grain = (hash(px + (range.x0 + off.x) * SAMPLES, py + (range.y0 + off.y) * SAMPLES, seed + 31) - 0.5) * 0.07;
         var light = 1 + Math.max(-0.4, Math.min(0.4, shade)) + grain;
         rampColor(e, rgb);
         var i = (py * w + px) * 4;
@@ -201,13 +219,14 @@
   };
 
   WorldRenderer.prototype.drawFeatures = function (range) {
-    var ctx = this.ctx, ts = this.tile, seed = this.world.seed;
+    var ctx = this.ctx, ts = this.tile, seed = this.world.seed, off = this.world.noiseOffset;
     for (var y = range.y0; y <= range.y1; y++) {
       for (var x = range.x0; x <= range.x1; x++) {
         var tile = this.world.getTile(x, y);
         if (tile.feature === FEATURE.NONE) continue;
         var p = this.tileToScreen(x, y);
-        var r1 = hash(x, y, seed + 11), r2 = hash(x, y, seed + 12), r3 = hash(x, y, seed + 13);
+        var nx = x + off.x, ny = y + off.y;
+        var r1 = hash(nx, ny, seed + 11), r2 = hash(nx, ny, seed + 12), r3 = hash(nx, ny, seed + 13);
         ctx.save();
         ctx.translate(p.x, p.y);
         if (tile.feature === FEATURE.CRATER) drawCrater(ctx, ts, r1, r2);
@@ -305,7 +324,7 @@
   }
 
   WorldRenderer.prototype.drawGrid = function (range) {
-    var ctx = this.ctx, ts = this.tile;
+    var ctx = this.ctx, ts = this.tile, off = this.world.noiseOffset;
     var a = this.tileToScreen(range.x0, range.y0);
     var b = this.tileToScreen(range.x1 + 1, range.y1 + 1);
     var x, y, p;
@@ -328,9 +347,9 @@
     ctx.beginPath();
     var m = Math.max(3, ts * 0.09);
     for (y = range.y0; y <= range.y1 + 1; y++) {
-      if (y % 4) continue;
+      if ((y + off.y) % 4) continue;
       for (x = range.x0; x <= range.x1 + 1; x++) {
-        if (x % 4) continue;
+        if ((x + off.x) % 4) continue;
         var cx = a.x + (x - range.x0) * ts + 0.5, cy = a.y + (y - range.y0) * ts + 0.5;
         ctx.moveTo(cx - m, cy); ctx.lineTo(cx + m, cy);
         ctx.moveTo(cx, cy - m); ctx.lineTo(cx, cy + m);
@@ -339,7 +358,7 @@
     ctx.stroke();
   };
 
-  EDEN.TILE = TILE;
+  EDEN.TERRAIN = TERRAIN;
   EDEN.FEATURE = FEATURE;
   EDEN.createWorld = createWorld;
   EDEN.WorldRenderer = WorldRenderer;

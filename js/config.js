@@ -4,9 +4,10 @@ window.EDEN = window.EDEN || {};
 
 EDEN.config = {
   world: {
-    cols: 32,          // 그리드 가로 타일 수
+    cols: 24,          // 그리드 가로 타일 수 (확장 시 이 값만 변경)
     rows: 32,          // 그리드 세로 타일 수
     seed: 20471,       // 지형 생성 시드
+    noiseOffset: { x: 4, y: 0 }, // 지형 노이즈 원점 (기존 지형 배치 유지용)
     tilesAcross: 8,    // 화면 가로에 보이는 타일 수(기준)
     minTile: 40,
     maxTile: 64,
