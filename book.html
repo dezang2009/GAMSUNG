@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>우리의 2026 — 포토북</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Nanum+Pen+Script&family=Share+Tech+Mono&display=swap">
+<style>
+/* 판형: 200×200mm 정사각, 28쪽. 펼침면 왼쪽에 사진, 오른쪽에 그 달의 이야기 */
+@page{ size:200mm 200mm; margin:0 }
+:root{
+  --paper:#ece4e0; --paper-deep:#e0d5cf; --ink:#3a2e31; --ink-soft:#7d6a6d;
+  --stamp:#e2701f; --sage:#74836c; --frame:#fbf8f5; --line:#c9bab4;
+  --shadow:rgba(58,46,49,.22); --tape:rgba(226,201,150,.8);
+  --f-display:'Gowun Batang','Noto Serif KR',serif;
+  --f-hand:'Nanum Pen Script','Gowun Batang',cursive;
+  --f-stamp:'Share Tech Mono',monospace;
+}
+*{ box-sizing:border-box }
+html,body{ margin:0; background:var(--paper); color:var(--ink); font-family:var(--f-display);
+  -webkit-print-color-adjust:exact; print-color-adjust:exact }
+.page{ width:200mm; height:200mm; padding:20mm; position:relative; overflow:hidden; background:var(--paper);
+  break-after:page; display:flex; flex-direction:column }
+.page:last-child{ break-after:auto }
+.folio{ position:absolute; bottom:10mm; font-family:var(--f-stamp); font-size:8pt; color:var(--ink-soft); letter-spacing:.1em }
+.page.left .folio{ left:20mm } .page.right .folio{ right:20mm }
+
+/* 표지 */
+.cover{ justify-content:flex-end; gap:3mm; background:var(--paper-deep) }
+.cover .roll{ font-family:var(--f-stamp); color:var(--stamp); letter-spacing:.14em; font-size:10pt }
+.cover h1{ font-size:54pt; line-height:1.05; margin:0 }
+.cover h1 span{ font-family:var(--f-hand); font-weight:400; color:var(--sage); font-size:1.2em }
+.cover .names{ font-family:var(--f-hand); font-size:24pt; color:var(--ink-soft) }
+.cover .strip{ position:absolute; top:22mm; right:-6mm; display:flex; gap:5mm; transform:rotate(4deg) }
+.cover .strip i{ width:34mm; height:42mm; background:var(--frame); box-shadow:0 2mm 5mm var(--shadow); border:3mm solid var(--frame);
+  border-bottom-width:7mm; outline:0; background-clip:padding-box; background-color:var(--paper) }
+
+/* 사진 면 */
+.shots{ align-items:center; justify-content:center }
+.photos{ display:flex; gap:8mm; align-items:center; justify-content:center }
+.photo{ background:var(--frame); padding:4mm 4mm 5mm; margin:0; width:118mm; box-shadow:0 2.5mm 7mm var(--shadow);
+  position:relative; transform:rotate(-2deg) }
+.photos.two .photo{ width:78mm }
+.photos.two .photo:nth-child(2){ transform:rotate(3deg) translateY(9mm) }
+.photo::before{ content:""; position:absolute; top:-4mm; left:50%; width:30mm; height:8mm; margin-left:-15mm;
+  background:var(--tape); transform:rotate(-3deg) }
+.shot{ position:relative; aspect-ratio:4/5; overflow:hidden; background:var(--paper-deep);
+  display:flex; align-items:center; justify-content:center }
+.shot img{ width:100%; height:100%; object-fit:cover; display:block }
+.empty{ font-family:var(--f-hand); font-size:20pt; color:var(--ink-soft) }
+.date{ position:absolute; right:3mm; bottom:2mm; font-family:var(--f-stamp); font-size:9pt; color:var(--stamp); letter-spacing:.08em }
+.photo figcaption{ font-family:var(--f-hand); font-size:17pt; line-height:1.2; text-align:center; min-height:9mm; padding-top:2mm }
+
+/* 이야기 면 */
+.story{ justify-content:center; gap:3mm; padding-left:26mm }
+.story .num{ font-family:var(--f-hand); font-size:92pt; line-height:.9; color:var(--sage) }
+.story h2{ font-size:19pt; margin:0 }
+.story p{ margin:0; font-size:11.5pt; line-height:1.9; color:var(--ink-soft); max-width:120mm }
+.story.pending p{ font-family:var(--f-hand); font-size:22pt; line-height:1.4 }
+
+/* 편지 · 판권 · 뒤표지 */
+.letter{ justify-content:center; gap:5mm; padding:26mm }
+.letter h2{ font-family:var(--f-hand); font-weight:400; font-size:36pt; margin:0; color:var(--sage); line-height:1.1 }
+.letter p{ margin:0; font-size:11.5pt; line-height:2 }
+.letter .sign{ font-family:var(--f-hand); font-size:22pt; align-self:flex-end; color:var(--ink-soft) }
+.colophon{ justify-content:flex-end; font-family:var(--f-stamp); font-size:8.5pt; line-height:1.9; color:var(--ink-soft); letter-spacing:.06em }
+.back{ background:var(--paper-deep); align-items:center; justify-content:center }
+.back div{ font-family:var(--f-hand); font-size:26pt; color:var(--ink-soft) }
+</style>
+</head>
+<body>
+<script src="data.js"></script>
+<script>
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let n = 1;
+const folio = () => `<span class="folio">${String(++n).padStart(2, '0')}</span>`;
+const frame = (p, alt) => `
+  <figure class="photo">
+    <div class="shot">
+      ${p.src ? `<img src="${esc(p.src)}" alt="${esc(alt)}">` : `<span class="empty">${esc(p.hint || '사진 자리')}</span>`}
+      ${p.date ? `<span class="date">${esc(p.date)}</span>` : ''}
+    </div>
+    <figcaption>${esc(p.cap || '')}</figcaption>
+  </figure>`;
+
+const pages = [`
+  <section class="page right cover">
+    <div class="strip"><i></i><i></i><i></i></div>
+    <div class="roll">ROLL 2026 · 12 EXP</div>
+    <h1>우리의 <span>2026</span></h1>
+    <div class="names">${esc(BOOK.names)}</div>
+  </section>`];
+
+for (const mo of BOOK.months) {
+  const photos = (mo.photos.length ? mo.photos : [{ src:'', hint:'남겨둔 한 컷' }]).slice(0, 2);
+  pages.push(`
+  <section class="page left shots">
+    <div class="photos${photos.length > 1 ? ' two' : ''}">${photos.map(p => frame(p, mo.m + '월의 사진')).join('')}</div>
+    ${folio()}
+  </section>
+  <section class="page right story${mo.pending ? ' pending' : ''}">
+    <div class="num">${mo.m}월</div>
+    <h2>${esc(mo.title)}</h2>
+    <p>${esc(mo.text)}</p>
+    ${folio()}
+  </section>`);
+}
+
+pages.push(`
+  <section class="page left letter">
+    <h2>${esc(BOOK.letter.title)}</h2>
+    ${BOOK.letter.body.map(t => `<p>${esc(t)}</p>`).join('')}
+    <div class="sign">${esc(BOOK.letter.sign)}</div>
+    ${folio()}
+  </section>
+  <section class="page right colophon">
+    <div>우리의 2026</div><div>2026. 1 — 2026. 12</div><div>${esc(BOOK.names)}</div><div>단 한 권만 만든 책</div>
+  </section>
+  <section class="page left back"><div>다음 롤에서 계속</div></section>`);
+
+document.body.insertAdjacentHTML('beforeend', pages.join(''));
+</script>
+</body>
+</html>
