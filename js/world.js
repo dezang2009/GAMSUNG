@@ -1,6 +1,6 @@
 // PROJECT EDEN — 그리드 기반 월드 데이터와 배경 렌더러.
 // STEP 02: 타일 단위 월드 데이터를 만들고 그대로 화면에 그린다.
-// 카메라 이동/확대, 건물 배치, 자원 채굴은 없다.
+// 카메라(이동/확대) 상태는 렌더러가 갖고, 입력 처리는 camera.js가 맡는다.
 (function () {
   'use strict';
 
@@ -123,14 +123,20 @@
     this.ctx = canvas.getContext('2d');
     this.world = world;
     this.cfg = cfg;
-    this.tile = 48;
+    this.baseTile = 48;  // 줌 1배일 때 타일 한 변(CSS px)
+    this.zoom = 1;
+    this.minZoom = 1;
+    this.maxZoom = 1;
+    this.tile = 48;      // 현재 타일 한 변 = baseTile * zoom
     this.width = 0;
     this.height = 0;
     this.dpr = 1;
     // 카메라: 화면 중앙에 놓일 월드 좌표(타일 단위)
     this.camera = { x: world.cols / 2, y: world.rows / 2 };
-    this.buffer = document.createElement('canvas');
+    this.buffer = null;  // 월드 전체 지형 이미지 (최초 1회 생성)
   }
+
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 
   WorldRenderer.prototype.resize = function () {
     var rect = this.canvas.getBoundingClientRect();
@@ -140,7 +146,43 @@
     this.canvas.width = Math.round(this.width * this.dpr);
     this.canvas.height = Math.round(this.height * this.dpr);
     var t = Math.round(this.width / this.cfg.tilesAcross);
-    this.tile = Math.max(this.cfg.minTile, Math.min(this.cfg.maxTile, t));
+    this.baseTile = clamp(t, this.cfg.minTile, this.cfg.maxTile);
+    // 월드가 항상 화면을 덮도록 최소 줌을 잡는다.
+    this.minZoom = Math.max(
+      this.cfg.minZoom || 1,
+      this.width / (this.world.cols * this.baseTile),
+      this.height / (this.world.rows * this.baseTile)
+    );
+    this.maxZoom = Math.max(this.minZoom, this.cfg.maxZoom || 1);
+    this.zoom = clamp(this.zoom, this.minZoom, this.maxZoom);
+    this.tile = this.baseTile * this.zoom;
+    this.clampCamera();
+  };
+
+  // 화면이 월드 밖을 비추지 않도록 카메라 중심을 제한한다.
+  WorldRenderer.prototype.clampCamera = function () {
+    var hw = this.width / 2 / this.tile, hh = this.height / 2 / this.tile;
+    var cols = this.world.cols, rows = this.world.rows;
+    this.camera.x = hw * 2 >= cols ? cols / 2 : clamp(this.camera.x, hw, cols - hw);
+    this.camera.y = hh * 2 >= rows ? rows / 2 : clamp(this.camera.y, hh, rows - hh);
+  };
+
+  // 화면 픽셀만큼 월드를 끈다 (오른쪽으로 끌면 월드가 오른쪽으로 이동).
+  WorldRenderer.prototype.panBy = function (dx, dy) {
+    this.camera.x -= dx / this.tile;
+    this.camera.y -= dy / this.tile;
+    this.clampCamera();
+  };
+
+  // 화면 좌표 (sx, sy) 아래의 월드 지점을 고정한 채 줌을 바꾼다.
+  WorldRenderer.prototype.zoomAt = function (sx, sy, zoom) {
+    var wx = this.camera.x + (sx - this.width / 2) / this.tile;
+    var wy = this.camera.y + (sy - this.height / 2) / this.tile;
+    this.zoom = clamp(zoom, this.minZoom, this.maxZoom);
+    this.tile = this.baseTile * this.zoom;
+    this.camera.x = wx - (sx - this.width / 2) / this.tile;
+    this.camera.y = wy - (sy - this.height / 2) / this.tile;
+    this.clampCamera();
   };
 
   // 타일 좌표 → 화면 좌표(CSS px)
@@ -181,12 +223,11 @@
     this.drawGrid(range);
   };
 
-  // 연속 고도장을 저해상도로 샘플링한 뒤 부드럽게 확대해 지면을 그린다.
-  WorldRenderer.prototype.drawTerrain = function (range) {
+  // 연속 고도장을 저해상도로 샘플링해 월드 전체 지형 이미지를 한 번 만든다.
+  WorldRenderer.prototype.buildTerrain = function () {
     var seed = this.world.seed, off = this.world.noiseOffset;
-    var tw = range.x1 - range.x0 + 1, th = range.y1 - range.y0 + 1;
-    var w = tw * SAMPLES, h = th * SAMPLES;
-    var buf = this.buffer;
+    var w = this.world.cols * SAMPLES, h = this.world.rows * SAMPLES;
+    var buf = document.createElement('canvas');
     buf.width = w; buf.height = h;
     var bctx = buf.getContext('2d');
     var img = bctx.createImageData(w, h);
@@ -194,12 +235,12 @@
 
     for (var py = 0; py < h; py++) {
       for (var px = 0; px < w; px++) {
-        var wx = range.x0 + off.x + (px + 0.5) / SAMPLES;
-        var wy = range.y0 + off.y + (py + 0.5) / SAMPLES;
+        var wx = off.x + (px + 0.5) / SAMPLES;
+        var wy = off.y + (py + 0.5) / SAMPLES;
         var e = elevationAt(wx, wy, seed);
         // 북서쪽 광원 기준 음영
         var shade = (elevationAt(wx - d, wy - d, seed) - elevationAt(wx + d, wy + d, seed)) * 4.2;
-        var grain = (hash(px + (range.x0 + off.x) * SAMPLES, py + (range.y0 + off.y) * SAMPLES, seed + 31) - 0.5) * 0.07;
+        var grain = (hash(px + off.x * SAMPLES, py + off.y * SAMPLES, seed + 31) - 0.5) * 0.07;
         var light = 1 + Math.max(-0.4, Math.min(0.4, shade)) + grain;
         rampColor(e, rgb);
         var i = (py * w + px) * 4;
@@ -210,12 +251,21 @@
       }
     }
     bctx.putImageData(img, 0, 0);
+    this.buffer = buf;
+  };
 
-    var o = this.tileToScreen(range.x0, range.y0);
+  // 지형 이미지에서 보이는 타일 범위만 잘라 부드럽게 확대해 그린다.
+  WorldRenderer.prototype.drawTerrain = function (range) {
+    if (!this.buffer) this.buildTerrain();
+    var tw = range.x1 - range.x0 + 1, th = range.y1 - range.y0 + 1;
+    var a = this.tileToScreen(range.x0, range.y0);
+    var b = this.tileToScreen(range.x1 + 1, range.y1 + 1);
     var ctx = this.ctx;
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(buf, o.x, o.y, tw * this.tile, th * this.tile);
+    ctx.drawImage(this.buffer,
+      range.x0 * SAMPLES, range.y0 * SAMPLES, tw * SAMPLES, th * SAMPLES,
+      a.x, a.y, b.x - a.x, b.y - a.y);
   };
 
   WorldRenderer.prototype.drawFeatures = function (range) {
@@ -333,11 +383,11 @@
     ctx.strokeStyle = 'rgba(210, 235, 255, 0.07)';
     ctx.beginPath();
     for (x = range.x0; x <= range.x1 + 1; x++) {
-      p = a.x + (x - range.x0) * ts + 0.5;
+      p = this.tileToScreen(x, 0).x + 0.5;
       ctx.moveTo(p, a.y); ctx.lineTo(p, b.y);
     }
     for (y = range.y0; y <= range.y1 + 1; y++) {
-      p = a.y + (y - range.y0) * ts + 0.5;
+      p = this.tileToScreen(0, y).y + 0.5;
       ctx.moveTo(a.x, p); ctx.lineTo(b.x, p);
     }
     ctx.stroke();
@@ -350,7 +400,7 @@
       if ((y + off.y) % 4) continue;
       for (x = range.x0; x <= range.x1 + 1; x++) {
         if ((x + off.x) % 4) continue;
-        var cx = a.x + (x - range.x0) * ts + 0.5, cy = a.y + (y - range.y0) * ts + 0.5;
+        var c = this.tileToScreen(x, y), cx = c.x + 0.5, cy = c.y + 0.5;
         ctx.moveTo(cx - m, cy); ctx.lineTo(cx + m, cy);
         ctx.moveTo(cx, cy - m); ctx.lineTo(cx, cy + m);
       }

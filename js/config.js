@@ -11,6 +11,8 @@ EDEN.config = {
     tilesAcross: 8,    // 화면 가로에 보이는 타일 수(기준)
     minTile: 40,
     maxTile: 64,
+    minZoom: 0.5,      // 최소 줌 배율 (월드가 화면을 덮는 선에서 자동 보정)
+    maxZoom: 2.5,      // 최대 줌 배율
     sector: 'SECTOR A-01'
   },
 

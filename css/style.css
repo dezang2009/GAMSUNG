@@ -74,10 +74,11 @@ html, body {
 
 /* ---------- 월드 ---------- */
 .world { position: relative; flex: 1; min-height: 0; background: #2a2028; }
-.world__canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.world__canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
 
 .world__tag {
   position: absolute; left: 12px; bottom: 12px;
+  pointer-events: none;
   display: flex; align-items: center; gap: 8px;
   padding: 6px 10px;
   font-size: 11px; font-weight: 600; letter-spacing: 0.08em;

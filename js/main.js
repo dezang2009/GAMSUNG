@@ -42,8 +42,18 @@
     var world = EDEN.createWorld(cfg.world);
     var renderer = new EDEN.WorldRenderer(canvas, world, cfg.world);
 
+    // 프레임당 한 번만 다시 그린다.
+    var pending = false;
+    function requestRender() {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function () { pending = false; renderer.render(); });
+    }
+
     function redraw() { renderer.resize(); renderer.render(); }
     redraw();
+
+    EDEN.cameraControl = new EDEN.CameraController(canvas, renderer, requestRender);
 
     if (window.ResizeObserver) new ResizeObserver(redraw).observe(canvas);
     else window.addEventListener('resize', redraw);
