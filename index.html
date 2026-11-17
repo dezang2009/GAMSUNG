@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1017" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>PROJECT EDEN</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app" class="app">
+
+    <!-- 중앙: 월드 영역 (화면 전체를 채우고 HUD/메뉴가 위에 얹힌다) -->
+    <main class="world" aria-label="월드">
+      <canvas id="world-canvas" class="world__canvas"></canvas>
+      <div class="world__shade world__shade--top"></div>
+      <div class="world__shade world__shade--bottom"></div>
+      <div class="world__tag">
+        <span class="world__tag-dot"></span>
+        <span id="sector-label">SECTOR A-01</span>
+      </div>
+    </main>
+
+    <!-- 상단: 상태 정보 -->
+    <header class="hud" aria-label="상태 정보">
+      <ul class="resources" id="resources">
+        <li class="res" data-resource="metal">
+          <svg class="res__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>
+          <div class="res__text"><span class="res__label">금속</span><span class="res__value" data-value>0</span></div>
+        </li>
+        <li class="res" data-resource="crystal">
+          <svg class="res__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10l4 6-9 12L3 9l4-6z"/><path d="M3 9h18M9.5 9L12 21l2.5-12M7 3l2.5 6M17 3l-2.5 6"/></svg>
+          <div class="res__text"><span class="res__label">크리스털</span><span class="res__value" data-value>0</span></div>
+        </li>
+        <li class="res" data-resource="water">
+          <svg class="res__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3s6.5 7 6.5 11.500a6.5 6.5 0 01-13 0C5.5 10 12 3 12 3z"/><path d="M9 15a3 3 0 003 3"/></svg>
+          <div class="res__text"><span class="res__label">물</span><span class="res__value" data-value>0</span></div>
+        </li>
+        <li class="res" data-resource="food">
+          <svg class="res__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c0-8 5-13 15-14 0 9-5 15-13 14"/><path d="M4 21c2-6 6-10 11-12"/></svg>
+          <div class="res__text"><span class="res__label">식량</span><span class="res__value" data-value>0</span></div>
+        </li>
+      </ul>
+
+      <div class="status">
+        <section class="card card--energy" aria-label="에너지">
+          <div class="card__head">
+            <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4.5 13.500H11L10 22l8.5-11.500H12L13 2z"/></svg>
+            <span class="card__title">에너지</span>
+            <span class="card__badge" id="energy-rate">+0/s</span>
+          </div>
+          <div class="card__main">
+            <span class="card__value" id="energy-current">0</span>
+            <span class="card__sub">/ <span id="energy-max">0</span></span>
+          </div>
+          <div class="bar"><div class="bar__fill bar__fill--energy" id="energy-bar"></div></div>
+        </section>
+
+        <section class="card card--env" aria-label="행성 환경">
+          <div class="card__head">
+            <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M3.5 15.500c-1.5 1.8-.6 3 2.4 2.6 3-.4 7.3-2.3 10.8-4.8 3.5-2.5 5.3-5 4.3-6.2-.5-.6-1.7-.6-3.2-.2"/></svg>
+            <span class="card__title">행성 환경</span>
+            <span class="card__badge card__badge--warn" id="env-state">-</span>
+          </div>
+          <dl class="env">
+            <div class="env__item"><dt>기온</dt><dd id="env-temp">-</dd></div>
+            <div class="env__item"><dt>대기</dt><dd id="env-air">-</dd></div>
+            <div class="env__item"><dt>수분</dt><dd id="env-water">-</dd></div>
+          </dl>
+          <div class="bar"><div class="bar__fill bar__fill--env" id="env-bar"></div></div>
+        </section>
+      </div>
+    </header>
+
+    <!-- 하단: 메인 메뉴 (이번 단계에서는 기능 미연결) -->
+    <nav class="menu" aria-label="메인 메뉴">
+      <button class="menu__btn" type="button" data-menu="build">
+        <svg class="menu__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V10l7-5 7 5v11"/><path d="M9.5 21v-6h5v6M12 5V2.5"/></svg>
+        <span class="menu__label">건설</span>
+      </button>
+      <button class="menu__btn" type="button" data-menu="produce">
+        <svg class="menu__icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.500v3M12 18.500v3M2.5 12h3M18.5 12h3M5.3 5.300l2.1 2.100M16.6 16.600l2.1 2.100M5.3 18.700l2.1-2.100M16.6 7.400l2.1-2.1"/><circle cx="12" cy="12" r="6.8"/></svg>
+        <span class="menu__label">생산</span>
+      </button>
+      <button class="menu__btn" type="button" data-menu="research">
+        <svg class="menu__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3h5M10.5 3v6.200L5 18.500A1.7 1.7 0 006.5 21h11a1.7 1.7 0 001.5-2.500l-5.5-9.300V3"/><path d="M7.8 15h8.4"/></svg>
+        <span class="menu__label">연구</span>
+      </button>
+      <button class="menu__btn" type="button" data-menu="planet">
+        <svg class="menu__icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M3.5 15.500c-1.5 1.8-.6 3 2.4 2.6 3-.4 7.3-2.3 10.8-4.8 3.5-2.5 5.3-5 4.3-6.2-.5-.6-1.7-.6-3.2-.2"/><path d="M8.5 9.500h3M10 13h4"/></svg>
+        <span class="menu__label">행성</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
