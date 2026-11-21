@@ -36,16 +36,21 @@ HTML/CSS/JavaScript만 사용한다. 빌드 도구 없이 `index.html`의 `<scri
 | --- | --- | --- |
 | World | `systems/world.js` → `world/world.js`, `world/npcs.js` | 구현됨 (마을/필드 맵) |
 | Exploration | `systems/exploration.js` → `world/monsters.js` | 몬스터 출현 구현됨. 채집/보물/던전은 추후 |
-| Battle | `systems/battle.js` + `ui/battle-screen.js` | 구현됨: 턴제 전투(공격/물약/도망). 규칙은 시스템, 연출은 UI |
+| Battle | `systems/battle.js` + `ui/battle-screen.js` | 구현됨: 턴제 전투(기술/물약/도망), 승리 보상. 규칙은 시스템, 연출은 UI |
+| Character | `systems/character.js` (+ `data/progression.js`, `ui/character-screen.js`) | 구현됨: 경험치/레벨업, 기술 4개 습득·교체 |
+| Equipment | `systems/equipment.js` (+ `core/stats.js`) | 구현됨: 장착, 무기 숙련 레벨, 무기별 기술 제안, 등급(대장장이가 올릴 예정) |
+| Economy | `systems/economy.js` | 골드 획득만 구현 (가격/상점은 Shop 에서) |
 | Inventory | `systems/inventory.js` (+ `data/items.js`, `ui/bag-screen.js`) | 구현됨: 아이템 보유, 꾸러미 열기 |
 | Starter | `systems/starter.js` | 구현됨: NPC `gift` 설정으로 처음 한 번 지급 (촌장 → 초보자 패키지) |
-| Character, Companion, Equipment, Economy, Shop, Crafting, Collection, Quest | `systems/<이름>.js` | 뼈대만 있음 |
+| Companion, Shop, Crafting, Collection, Quest | `systems/<이름>.js` | 뼈대만 있음 |
 
 ## 확장 방법
 
 - **새 탐험 지역**: `data/regions.js` 에 항목 추가 (`gen`, `monsters` 규칙). 몬스터는 `data/monster-data.js`.
 - **새 몬스터/등급**: `MonsterData` 항목 추가, 등급은 `MonsterRarities`에 추가 (엘리트/보스 확장 지점).
 - **새 건물/NPC**: `regions.js` 마을 블록의 `buildings`/`npcs` 추가, 스프라이트는 `gfx/village-sprites.js`.
+- **승리 보상**: 승리하면 `battle:rewards { exp, gold, weaponExp, steps }` 를 보낸다. Character(경험치·레벨), Equipment(무기 숙련), Economy(골드)가 각자 지급하고 `steps` 에 전투 화면용 메시지를 덧붙인다.
+- **기술**: `data/skills.js` 에 기술, `data/items.js` 의 `weapon.skills` 에 "숙련 레벨 N 에서 배움"을 적는다. 4개가 가득 차면 전투 화면이 하나를 잊을지 묻는다(`skill:decide`).
 - **전투 시작/종료**: 필드에서 몬스터에게 닿으면 `battle:request` → 시스템이 `battle:start`/`battle:steps`(연출 단계) 를 보내고, UI 가 끝나면 `battle:finish` → `battle:end { outcome, monster }` 로 월드가 결과를 반영한다.
 - **새 아이템**: `data/items.js` 에 항목 추가, 아이콘은 `gfx/item-sprites.js`. 획득은 `Events.emit('item:gain', { id, count })`.
 - **처음 한 번 주는 선물**: NPC 데이터에 `gift { flag, lines, items, toast }` 를 넣는다.

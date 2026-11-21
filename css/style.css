@@ -1004,3 +1004,94 @@ body {
 .bt-cmd:disabled { opacity: 0.45; }
 #battle-cmds.is-busy .bt-cmd { opacity: 0.55; }
 #battle-cmds.is-items { grid-auto-rows: clamp(36px, 5.6vh, 44px); }
+
+/* ---------- 장비 / 기술 표시 ---------- */
+.bag-eq {
+  display: block;
+  margin-top: 2px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.bag-stat {
+  margin-top: 4px !important;
+  color: var(--ink) !important;
+  font-weight: 600;
+}
+
+.bag-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.bag-skill {
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bag-skill.is-owned { background: var(--accent-soft); color: var(--accent); }
+.bag-skill.is-locked { color: #aaa69a; }
+
+/* ---------- 캐릭터 화면 ---------- */
+.ch-section {
+  margin-bottom: 8px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.ch-section h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ch-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 13px;
+}
+
+.ch-row b { font-weight: 600; }
+
+.ch-exp {
+  height: 8px;
+  border-radius: 4px;
+  background: #e3dfd5;
+  overflow: hidden;
+}
+
+.ch-exp i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.ch-note {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.ch-skill {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.ch-skill:first-of-type { border-top: 0; }
+.ch-skill span { color: var(--ink-soft); font-size: 12px; }
+.ch-skill p { grid-column: 1 / -1; margin: 0; color: var(--ink-soft); font-size: 12px; }

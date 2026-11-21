@@ -2,6 +2,8 @@
 //   type     : 'package'(열면 다른 아이템이 나옴) | 'weapon' | 'armor' | 'potion'
 //   icon     : Sprites.items 의 키
 //   contents : 꾸러미(package)를 열었을 때 나오는 아이템 목록
+//   weapon   : 무기 설정 { atk, atkPerLevel, skills: [{ level, skill }] }
+//   armor    : 방어구 설정 { def }
 //   use      : 물약을 쓸 때의 효과 { hp, mp } (현재는 전투 중에만 사용)
 // 장비 능력치 같은 효과는 장비 기능을 만들 때 추가한다.
 const ItemData = {
@@ -18,10 +20,19 @@ const ItemData = {
   old_club: {
     id: 'old_club', name: '낡은 나무몽둥이', type: 'weapon', icon: 'club',
     desc: '오래 써서 여기저기 닳은 나무 몽둥이. 그래도 맨손보다는 든든하다.',
+    // 무기: 공격력(숙련 레벨마다 atkPerLevel 증가)과, 숙련 레벨에 도달하면 배울 수 있는 기술
+    weapon: {
+      atk: 3, atkPerLevel: 0.5,
+      skills: [
+        { level: 1, skill: 'swing' }, { level: 3, skill: 'throw' }, { level: 5, skill: 'thrust' },
+        { level: 7, skill: 'smash' }, { level: 9, skill: 'whirl' },
+      ],
+    },
   },
   old_leather_armor: {
     id: 'old_leather_armor', name: '낡은 가죽갑옷', type: 'armor', icon: 'armor',
     desc: '곳곳을 기워 입은 가죽갑옷. 가벼워서 움직이기 편하다.',
+    armor: { def: 2 },
   },
   hp_potion: {
     id: 'hp_potion', name: 'HP 회복물약', type: 'potion', icon: 'hpPotion',

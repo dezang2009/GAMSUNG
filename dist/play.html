@@ -1012,6 +1012,97 @@ body {
 .bt-cmd:disabled { opacity: 0.45; }
 #battle-cmds.is-busy .bt-cmd { opacity: 0.55; }
 #battle-cmds.is-items { grid-auto-rows: clamp(36px, 5.6vh, 44px); }
+
+/* ---------- 장비 / 기술 표시 ---------- */
+.bag-eq {
+  display: block;
+  margin-top: 2px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.bag-stat {
+  margin-top: 4px !important;
+  color: var(--ink) !important;
+  font-weight: 600;
+}
+
+.bag-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.bag-skill {
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bag-skill.is-owned { background: var(--accent-soft); color: var(--accent); }
+.bag-skill.is-locked { color: #aaa69a; }
+
+/* ---------- 캐릭터 화면 ---------- */
+.ch-section {
+  margin-bottom: 8px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.ch-section h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ch-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 13px;
+}
+
+.ch-row b { font-weight: 600; }
+
+.ch-exp {
+  height: 8px;
+  border-radius: 4px;
+  background: #e3dfd5;
+  overflow: hidden;
+}
+
+.ch-exp i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.ch-note {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.ch-skill {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.ch-skill:first-of-type { border-top: 0; }
+.ch-skill span { color: var(--ink-soft); font-size: 12px; }
+.ch-skill p { grid-column: 1 / -1; margin: 0; color: var(--ink-soft); font-size: 12px; }
 </style>
 </head>
 <body>
@@ -1128,6 +1219,25 @@ body {
   </div>
 
   <script>
+// 작은 공통 도구
+const Util = {
+  // 받침 여부에 따라 조사를 붙인다: josa('들쥐', '이/가') -> '들쥐가', josa('슬라임', '이/가') -> '슬라임이'
+  josa(word, pair) {
+    const [withJong, without] = pair.split('/');
+    const code = word.charCodeAt(word.length - 1) - 0xac00;
+    const hasJong = code >= 0 && code <= 11171 && code % 28 !== 0;
+    return word + (hasJong ? withJong : without);
+  },
+
+  // 따옴표로 감싼 이름에 조사를 붙인다: q('휘두르기', '을/를') -> "'휘두르기'를"
+  q(word, pair) {
+    const [withJong, without] = pair.split('/');
+    const code = word.charCodeAt(word.length - 1) - 0xac00;
+    return `'${word}'` + (code >= 0 && code <= 11171 && code % 28 !== 0 ? withJong : without);
+  },
+};
+</script>
+  <script>
 // 이벤트 버스: 시스템/화면 사이의 유일한 통신 수단.
 // 서로를 직접 호출하지 않고 이벤트로만 알려서 의존성이 얽히지 않게 한다.
 const Events = (() => {
@@ -1154,14 +1264,18 @@ const Events = (() => {
 </script>
   <script>
 // 게임 상태 저장소. 화면(HUD 등)은 여기서 읽고, 변경은 patch 로만 하며 변경 시 이벤트가 발생한다.
-//   Events: 'state:player' | 'state:wallet' | 'state:location' | 'state:inventory' | 'state:flags'
+//   Events: 'state:player' | 'state:wallet' | 'state:location' | 'state:inventory' | 'state:gear' | 'state:equipment' | 'state:skills' | 'state:flags'
 // 아직 실제 성장/경제 기능이 없으므로 값은 임시 초기값이다.
 const GameState = (() => {
   const data = {
-    player: { name: '용사', level: 1, hp: 100, maxHp: 100, mp: 30, maxMp: 30, atk: 10, def: 3, spd: 5 },
+    // atk/def/spd 는 캐릭터 기본값이며, 장비 능력치는 Stats.total() 로 합산한다
+    player: { name: '용사', level: 1, exp: 0, hp: 100, maxHp: 100, mp: 30, maxMp: 30, atk: 10, def: 3, spd: 5 },
     wallet: { gold: 0 },
     location: { id: null, name: '', type: 'village' },
-    inventory: { items: [] },   // [{ id, count }] — Inventory 시스템이 관리
+    inventory: { items: [] },   // 쌓이는 아이템 [{ id, count }] — Inventory 시스템이 관리
+    gear: { list: [] },         // 장비 한 개 한 개 [{ uid, id, level, exp, grade, offered }] — 레벨/등급이 개별로 있다
+    equipment: { weapon: null, armor: null },   // 장착 중인 장비의 uid
+    skills: { known: [] },      // 배운 기술 id (최대 4개) — Character 시스템이 관리
     flags: {},                  // 한 번만 일어나는 일의 기록 (예: starterPackage)
   };
 
@@ -1200,6 +1314,38 @@ const Game = (() => {
 
   return { register, init, systems };
 })();
+</script>
+  <script>
+// 능력치 합산: 캐릭터 기본 능력치 + 장착한 장비(무기 숙련 레벨, 등급 배율 반영)
+const Stats = {
+  // 장착 중인 장비 인스턴스 (없으면 null)
+  equipped(slot) {
+    const uid = GameState.get('equipment')[slot];
+    return GameState.get('gear').list.find((g) => g.uid === uid) || null;
+  },
+
+  weaponAtk(inst) {
+    if (!inst) return 0;
+    const w = ItemData[inst.id].weapon;
+    return (w.atk + w.atkPerLevel * (inst.level - 1)) * Progression.gradeMult(inst.grade);
+  },
+
+  armorDef(inst) {
+    if (!inst) return 0;
+    return ItemData[inst.id].armor.def * Progression.gradeMult(inst.grade);
+  },
+
+  total() {
+    const p = GameState.get('player');
+    const weapon = Stats.equipped('weapon'), armor = Stats.equipped('armor');
+    return {
+      atk: p.atk + Stats.weaponAtk(weapon),
+      def: p.def + Stats.armorDef(armor),
+      spd: p.spd,
+      weapon, armor,
+    };
+  },
+};
 </script>
   <script>
 // 외부 이미지 없이 Canvas 픽셀 단위로 그리는 스프라이트 모음
@@ -2016,6 +2162,7 @@ const Regions = [
 // 몬스터 데이터. 새 몬스터는 MonsterData 에 항목만 추가하면 된다.
 //   rarity       : MonsterRarities 의 키
 //   regions      : 등장 지역 id 목록 (한 지역에는 일반 몬스터 3종 + 중간보스 1종을 배치한다)
+//   exp / gold   : 쓰러뜨렸을 때 얻는 경험치와 골드 범위
 //   level        : [최소, 최대] 레벨. 스탯은 stats 기준이며 레벨이 오를수록 조금씩 강해진다
 //   scale        : 필드에서 그리는 배율(정수, 생략 시 1)
 //   spawnChance  : 출현 가중치 (클수록 자주, 지역 내 후보끼리 비교)
@@ -2039,49 +2186,49 @@ const MonsterRarities = {
 const MonsterData = [
   // ---- 초록숲: 일반 3종 ----
   {
-    id: 'blue_slime', name: '푸른 슬라임', rarity: 'normal', regions: ['greenforest'], level: [1, 2],
+    id: 'blue_slime', exp: 6, gold: [2, 5], name: '푸른 슬라임', rarity: 'normal', regions: ['greenforest'], level: [1, 2],
     spawnChance: 50, maxCount: 3, stats: { hp: 18, atk: 4, def: 1, spd: 3 },
     moveSpeed: 16, detectRange: 56, sprite: 'slime', wanderRadius: 36,
   },
   {
-    id: 'forest_rat', name: '들쥐', rarity: 'normal', regions: ['greenforest'], level: [1, 3],
+    id: 'forest_rat', exp: 7, gold: [2, 6], name: '들쥐', rarity: 'normal', regions: ['greenforest'], level: [1, 3],
     spawnChance: 40, maxCount: 3, stats: { hp: 14, atk: 5, def: 0, spd: 8 },
     moveSpeed: 24, detectRange: 52, sprite: 'rat', wanderRadius: 48,
   },
   {
-    id: 'mushroom_kid', name: '버섯돌이', rarity: 'normal', regions: ['greenforest'], level: [2, 3],
+    id: 'mushroom_kid', exp: 10, gold: [4, 8], name: '버섯돌이', rarity: 'normal', regions: ['greenforest'], level: [2, 3],
     spawnChance: 35, maxCount: 2, stats: { hp: 26, atk: 6, def: 2, spd: 2 },
     moveSpeed: 13, detectRange: 48, sprite: 'mushroom', wanderRadius: 44,
   },
   // ---- 초록숲: 중간보스 (맵 가장 위쪽에 자리 잡고 있다) ----
   {
-    id: 'goblin_chief', name: '고블린 대장', rarity: 'boss', regions: ['greenforest'], level: [6, 6],
+    id: 'goblin_chief', exp: 90, gold: [60, 90], name: '고블린 대장', rarity: 'boss', regions: ['greenforest'], level: [6, 6],
     spawnChance: 0, maxCount: 1, stats: { hp: 90, atk: 12, def: 4, spd: 6 },
     moveSpeed: 18, detectRange: 56, sprite: 'goblinChief', wanderRadius: 24, scale: 2,
   },
   // ---- 다른 지역용 (아직 배치하지 않음) ----
   {
-    id: 'cave_bat', name: '박쥐', rarity: 'normal', regions: [], level: [2, 4],
+    id: 'cave_bat', exp: 9, gold: [3, 7], name: '박쥐', rarity: 'normal', regions: [], level: [2, 4],
     spawnChance: 28, maxCount: 2, stats: { hp: 16, atk: 5, def: 1, spd: 10 },
     moveSpeed: 30, detectRange: 64, sprite: 'bat', wanderRadius: 60,
   },
   {
-    id: 'black_spider', name: '독거미', rarity: 'normal', regions: [], level: [3, 5],
+    id: 'black_spider', exp: 13, gold: [5, 10], name: '독거미', rarity: 'normal', regions: [], level: [3, 5],
     spawnChance: 20, maxCount: 2, stats: { hp: 22, atk: 7, def: 2, spd: 6 },
     moveSpeed: 20, detectRange: 50, sprite: 'spider', wanderRadius: 40,
   },
   {
-    id: 'goblin', name: '고블린', rarity: 'normal', regions: [], level: [3, 5],
+    id: 'goblin', exp: 15, gold: [6, 12], name: '고블린', rarity: 'normal', regions: [], level: [3, 5],
     spawnChance: 18, maxCount: 2, stats: { hp: 32, atk: 8, def: 3, spd: 5 },
     moveSpeed: 18, detectRange: 60, sprite: 'goblin', wanderRadius: 44,
   },
   {
-    id: 'gray_wolf', name: '회색 늑대', rarity: 'normal', regions: [], level: [4, 6],
+    id: 'gray_wolf', exp: 22, gold: [9, 16], name: '회색 늑대', rarity: 'normal', regions: [], level: [4, 6],
     spawnChance: 10, maxCount: 1, stats: { hp: 40, atk: 10, def: 4, spd: 9 },
     moveSpeed: 28, detectRange: 78, sprite: 'wolf', wanderRadius: 64,
   },
   {
-    id: 'moon_fox', name: '달빛 여우', rarity: 'rare', regions: [], level: [4, 5],
+    id: 'moon_fox', exp: 32, gold: [20, 35], name: '달빛 여우', rarity: 'rare', regions: [], level: [4, 5],
     spawnChance: 4, maxCount: 1, stats: { hp: 45, atk: 9, def: 4, spd: 9 },
     moveSpeed: 26, detectRange: 72, sprite: 'fox', wanderRadius: 60, lifetime: [30, 50],
   },
@@ -2128,10 +2275,48 @@ const MonsterRoster = [
 ];
 </script>
   <script>
+// 성장 규칙: 레벨/경험치 곡선, 능력치 성장, 무기 숙련도, 등급.
+// 숫자만 바꿔서 밸런스를 조정할 수 있다.
+const Progression = {
+  MAX_LEVEL: 30,
+  MAX_SKILLS: 4,                                   // 한 번에 가질 수 있는 기술 수
+
+  // 캐릭터: 현재 레벨에서 다음 레벨까지 필요한 경험치
+  charExpToNext: (lv) => 20 + (lv - 1) * 15,
+  // 레벨이 오를 때마다 늘어나는 능력치
+  charGrowth: { maxHp: 10, maxMp: 3, atk: 2, def: 1, spd: 1 },
+
+  // 무기: 현재 숙련 레벨에서 다음 레벨까지 필요한 경험치
+  weaponExpToNext: (lv) => 12 + (lv - 1) * 10,
+  // 무기 등급이 높을수록 올릴 수 있는 숙련 레벨 한계가 커진다 (등급 올리기는 대장장이 몫)
+  weaponMaxLevel: (grade) => 5 + 5 * grade,
+  // 등급에 따른 능력치 배율 (장비 능력치에 곱한다)
+  gradeMult: (grade) => 1 + 0.25 * (grade - 1),
+};
+</script>
+  <script>
+// 기술 데이터. 기술은 무기의 숙련 레벨이 오르면 배울 수 있고(items.js 의 weapon.skills), 최대 4개까지 가질 수 있다.
+//   power     : 공격 배율 (1.0 = 기본)
+//   mp        : 소모 MP
+//   ignoreDef : 상대 방어력을 무시하는 비율 (0~1)
+//   critBonus : 급소 확률 추가
+//   hits      : 연속 타격 횟수 (생략 시 1)
+const SkillData = {
+  punch: { id: 'punch', name: '맨손치기', power: 0.8, mp: 0, desc: '무기가 없을 때 쓰는 기본 공격.' },
+  swing: { id: 'swing', name: '휘두르기', power: 1.0, mp: 0, desc: '무기를 힘껏 휘두른다. MP 소모 없음.' },
+  throw: { id: 'throw', name: '던지기', power: 1.3, mp: 2, ignoreDef: 0.5, desc: '무기를 던져 맞힌다. 방어력을 절반 무시한다.' },
+  thrust: { id: 'thrust', name: '찌르기', power: 1.5, mp: 3, critBonus: 0.25, desc: '급소를 노려 찌른다. 급소 확률이 높다.' },
+  smash: { id: 'smash', name: '내려찍기', power: 2.1, mp: 6, desc: '온 힘을 실어 내려찍는다. 강하지만 MP를 많이 쓴다.' },
+  whirl: { id: 'whirl', name: '회전 타격', power: 0.95, mp: 5, hits: 2, desc: '제자리에서 돌며 두 번 연속으로 때린다.' },
+};
+</script>
+  <script>
 // 아이템 데이터. 새 아이템은 ItemData 에 항목만 추가한다.
 //   type     : 'package'(열면 다른 아이템이 나옴) | 'weapon' | 'armor' | 'potion'
 //   icon     : Sprites.items 의 키
 //   contents : 꾸러미(package)를 열었을 때 나오는 아이템 목록
+//   weapon   : 무기 설정 { atk, atkPerLevel, skills: [{ level, skill }] }
+//   armor    : 방어구 설정 { def }
 //   use      : 물약을 쓸 때의 효과 { hp, mp } (현재는 전투 중에만 사용)
 // 장비 능력치 같은 효과는 장비 기능을 만들 때 추가한다.
 const ItemData = {
@@ -2148,10 +2333,19 @@ const ItemData = {
   old_club: {
     id: 'old_club', name: '낡은 나무몽둥이', type: 'weapon', icon: 'club',
     desc: '오래 써서 여기저기 닳은 나무 몽둥이. 그래도 맨손보다는 든든하다.',
+    // 무기: 공격력(숙련 레벨마다 atkPerLevel 증가)과, 숙련 레벨에 도달하면 배울 수 있는 기술
+    weapon: {
+      atk: 3, atkPerLevel: 0.5,
+      skills: [
+        { level: 1, skill: 'swing' }, { level: 3, skill: 'throw' }, { level: 5, skill: 'thrust' },
+        { level: 7, skill: 'smash' }, { level: 9, skill: 'whirl' },
+      ],
+    },
   },
   old_leather_armor: {
     id: 'old_leather_armor', name: '낡은 가죽갑옷', type: 'armor', icon: 'armor',
     desc: '곳곳을 기워 입은 가죽갑옷. 가벼워서 움직이기 편하다.',
+    armor: { def: 2 },
   },
   hp_potion: {
     id: 'hp_potion', name: 'HP 회복물약', type: 'potion', icon: 'hpPotion',
@@ -2917,10 +3111,12 @@ Game.register('exploration', {
   <script>
 // Battle 시스템 — 턴제 전투 규칙. 화면은 모르고 이벤트로만 통신한다.
 //   수신 'battle:request' { monster }       필드에서 몬스터에게 닿음 -> 전투 시작
-//   수신 'battle:command' { type, id }      type: 'attack' | 'item' | 'flee'
+//   수신 'battle:command' { type, id }      type: 'skill'(id=기술) | 'item'(id=물약) | 'flee'
 //   수신 'battle:finish'                    화면이 결과 연출을 마침 -> 전투 종료
 //   발신 'battle:start' { enemy, player, intro }
 //   발신 'battle:steps' { steps, outcome }  steps 를 차례로 보여 준다. outcome: null | 'win' | 'lose' | 'flee'
+//   발신 'battle:rewards' payload           승리 보상: { monster, exp, gold, weaponExp, steps }
+//        Character/Economy/Equipment 가 각자 지급하고 payload.steps 에 보여 줄 메시지를 덧붙인다.
 //   발신 'battle:end' { outcome, monster }  월드가 결과를 반영한다 (몬스터 제거, 패배 시 마을 복귀 등)
 //   발신 'inventory:consume' { id }         물약 사용
 // 한 턴: 플레이어가 명령을 내리면 먼저 실행되고, 상대가 살아 있으면 상대가 한 번 공격한다.
@@ -2931,14 +3127,7 @@ Game.register('battle', {
     let b = null;                 // 진행 중인 전투
 
     const rand = (a, z) => a + Math.random() * (z - a);
-
-    // 받침 여부에 따라 조사를 붙인다: josa('들쥐', '이/가') -> '들쥐가'
-    function josa(word, pair) {
-      const [withJong, without] = pair.split('/');
-      const code = word.charCodeAt(word.length - 1) - 0xac00;
-      const hasJong = code >= 0 && code <= 11171 && code % 28 !== 0;
-      return word + (hasJong ? withJong : without);
-    }
+    const josa = Util.josa;
 
     function enemyStats(m) {
       const d = m.def;
@@ -2946,43 +3135,82 @@ Game.register('battle', {
       return { hp: Math.round(d.stats.hp * k), atk: Math.round(d.stats.atk * k), def: Math.round(d.stats.def * k), spd: d.stats.spd };
     }
 
-    function damage(atk, def) {
-      const crit = Math.random() < CRIT_CHANCE;
-      const base = atk * rand(0.85, 1.15) - def * 0.5;
+    // atk: 공격력, power: 기술 배율, def: 상대 방어력
+    function damage(atk, def, skill) {
+      const crit = Math.random() < CRIT_CHANCE + (skill.critBonus || 0);
+      const effDef = def * (1 - (skill.ignoreDef || 0));
+      const base = atk * skill.power * rand(0.85, 1.15) - effDef * 0.5;
       return { dmg: Math.max(1, Math.round(base * (crit ? 1.5 : 1))), crit };
     }
 
-    const heroHp = () => ({ hero: { hp: GameState.get('player').hp, mp: GameState.get('player').mp } });
+    const heroBars = () => {
+      const p = GameState.get('player');
+      return { hero: { hp: p.hp, mp: p.mp, maxHp: p.maxHp, maxMp: p.maxMp } };
+    };
 
     // 상대가 한 번 공격
     function enemyTurn(steps) {
       const p = GameState.get('player');
-      const { dmg, crit } = damage(b.enemy.atk, p.def);
+      const { dmg, crit } = damage(b.enemy.atk, Stats.total().def, { power: 1 });
       const hp = Math.max(0, p.hp - dmg);
       GameState.patch('player', { hp });
       steps.push({ text: `${b.name}의 공격!`, anim: 'enemy-attack' });
-      steps.push({ text: `${josa(p.name, '은/는')} ${dmg}의 데미지를 입었다!${crit ? ' 급소에 맞았다!' : ''}`, anim: 'hero-hit', hp: heroHp() });
+      steps.push({ text: `${josa(p.name, '은/는')} ${dmg}의 데미지를 입었다!${crit ? ' 급소에 맞았다!' : ''}`, anim: 'hero-hit', hp: heroBars() });
       if (hp <= 0) {
         steps.push({ text: `${josa(p.name, '은/는')} 쓰러졌다...`, anim: 'hero-faint' });
         b.outcome = 'lose';
       }
     }
 
+    // 승리: 경험치/골드/무기 경험치. 지급과 메시지는 각 시스템이 payload 에 덧붙인다
+    function win(steps) {
+      const d = b.monster.def;
+      const k = 1 + GROWTH * (b.monster.level - d.level[0]);
+      const exp = Math.round(d.exp * k);
+      const payload = {
+        monster: b.monster, exp,
+        gold: Math.round((d.gold[0] + Math.random() * (d.gold[1] - d.gold[0])) * k),
+        weaponExp: Math.max(1, Math.round(exp * 0.8)),
+        steps: [],
+      };
+      Events.emit('battle:rewards', payload);
+      steps.push(...payload.steps);
+      b.outcome = 'win';
+    }
+
+    function useSkill(cmd, steps) {
+      const p = GameState.get('player');
+      const known = GameState.get('skills').known;
+      const skill = SkillData[cmd.id];
+      if (!skill || !(known.includes(cmd.id) || (cmd.id === 'punch' && !known.length))) return false;
+      if (p.mp < skill.mp) {
+        steps.push({ text: 'MP가 부족하다!' });                     // 턴을 쓰지 않는다
+        return true;
+      }
+      if (skill.mp) GameState.patch('player', { mp: p.mp - skill.mp });
+      steps.push({ text: `${p.name}의 ${skill.name}!`, anim: 'hero-attack', hp: heroBars() });
+      const atk = Stats.total().atk;
+      for (let i = 0; i < (skill.hits || 1); i++) {
+        const { dmg, crit } = damage(atk, b.enemy.def, skill);
+        b.enemy.hp = Math.max(0, b.enemy.hp - dmg);
+        steps.push({ text: `${b.name}에게 ${dmg}의 데미지!${crit ? ' 급소에 맞았다!' : ''}`, anim: 'enemy-hit', hp: { enemy: { hp: b.enemy.hp } } });
+        if (b.enemy.hp <= 0) break;
+      }
+      if (b.enemy.hp <= 0) {
+        steps.push({ text: `${josa(b.name, '을/를')} 쓰러뜨렸다!`, anim: 'enemy-faint' });
+        win(steps);
+      } else {
+        enemyTurn(steps);
+      }
+      return true;
+    }
+
     function resolve(cmd) {
       const p = GameState.get('player');
       const steps = [];
 
-      if (cmd.type === 'attack') {
-        const { dmg, crit } = damage(p.atk, b.enemy.def);
-        b.enemy.hp = Math.max(0, b.enemy.hp - dmg);
-        steps.push({ text: `${p.name}의 공격!`, anim: 'hero-attack' });
-        steps.push({ text: `${b.name}에게 ${dmg}의 데미지!${crit ? ' 급소에 맞았다!' : ''}`, anim: 'enemy-hit', hp: { enemy: { hp: b.enemy.hp } } });
-        if (b.enemy.hp <= 0) {
-          steps.push({ text: `${josa(b.name, '을/를')} 쓰러뜨렸다!`, anim: 'enemy-faint' });
-          b.outcome = 'win';
-        } else {
-          enemyTurn(steps);
-        }
+      if (cmd.type === 'skill') {
+        if (!useSkill(cmd, steps)) return;
       } else if (cmd.type === 'item') {
         const def = ItemData[cmd.id];
         const held = GameState.get('inventory').items.find((it) => it.id === cmd.id);
@@ -2991,13 +3219,13 @@ Game.register('battle', {
         const hp = Math.min(p.maxHp, p.hp + (def.use.hp || 0));
         const mp = Math.min(p.maxMp, p.mp + (def.use.mp || 0));
         GameState.patch('player', { hp, mp });
-        steps.push({ text: `${josa(p.name, '은/는')} ${josa(def.name, '을/를')} 사용했다!`, anim: 'heal', hp: heroHp() });
+        steps.push({ text: `${josa(p.name, '은/는')} ${josa(def.name, '을/를')} 사용했다!`, anim: 'heal', hp: heroBars() });
         enemyTurn(steps);
       } else if (cmd.type === 'flee') {
         if (b.boss) {
           steps.push({ text: '이 상대에게서는 도망칠 수 없다!' });          // 턴을 쓰지 않는다
         } else {
-          const chance = Math.max(0.25, Math.min(0.9, 0.6 + (p.spd - b.enemy.spd) * 0.03));
+          const chance = Math.max(0.25, Math.min(0.9, 0.6 + (Stats.total().spd - b.enemy.spd) * 0.03));
           if (Math.random() < chance) {
             steps.push({ text: '무사히 도망쳤다!', anim: 'flee' });
             b.outcome = 'flee';
@@ -3040,12 +3268,61 @@ Game.register('battle', {
 });
 </script>
   <script>
-// Character(캐릭터 성장) 시스템 — 아직 구현하지 않음 (구조만 마련).
-// 담당: 레벨, 경험치, 능력치
-// 통신(예정): 수신 'battle:end' / 발신 'character:levelup'
+// Character 시스템 — 캐릭터 경험치/레벨업, 기술(최대 4개) 습득과 교체.
+//   수신 'battle:rewards' payload        경험치 지급 (payload.steps 에 전투 화면용 메시지를 덧붙인다)
+//   수신 'skill:offer' { skill, source, weaponName, steps }
+//        빈 칸이 있으면 바로 배운다. 가득 찼고 전투 중(steps 있음)이면 'learn' 단계를 넣어 화면이 하나를 잊을지 묻게 한다.
+//   수신 'skill:decide' { skill, source, forget }  화면에서 고른 결과 (forget: 잊을 기술 id, 없으면 배우지 않음)
+//   발신 'skill:decided' { skill, source, learned }
 Game.register('character', {
-  init(ctx) {
-    // 실제 기능을 구현할 때 ctx.Events / ctx.GameState 로만 다른 시스템과 연결한다.
+  init({ Events, GameState }) {
+    const G = Progression.charGrowth;
+
+    Events.on('battle:rewards', (r) => {
+      const p = GameState.get('player');
+      if (p.level >= Progression.MAX_LEVEL) return;
+      r.steps.push({ text: `경험치 ${r.exp}을(를) 얻었다!` });
+
+      let { level, exp, maxHp, maxMp, hp, mp, atk, def, spd } = p;
+      exp += r.exp;
+      while (level < Progression.MAX_LEVEL && exp >= Progression.charExpToNext(level)) {
+        exp -= Progression.charExpToNext(level);
+        level++;
+        maxHp += G.maxHp; hp += G.maxHp;
+        maxMp += G.maxMp; mp += G.maxMp;
+        atk += G.atk; def += G.def; spd += G.spd;
+        r.steps.push({ text: `${p.name}의 레벨이 올랐다! (Lv.${level})`, anim: 'heal', hp: { hero: { hp, mp, maxHp, maxMp } } });
+        r.steps.push({ text: `최대 HP +${G.maxHp}, 최대 MP +${G.maxMp}, 공격 +${G.atk}, 방어 +${G.def}, 속도 +${G.spd}` });
+      }
+      GameState.patch('player', { level, exp, maxHp, maxMp, hp, mp, atk, def, spd });
+    });
+
+    Events.on('skill:offer', ({ skill, source, steps }) => {
+      const known = GameState.get('skills').known;
+      const def = SkillData[skill];
+      if (known.includes(skill)) {
+        Events.emit('skill:decided', { skill, source, learned: true });
+        return;
+      }
+      if (known.length < Progression.MAX_SKILLS) {
+        GameState.patch('skills', { known: [...known, skill] });
+        if (steps) steps.push({ text: `새로운 기술 ${Util.q(def.name, '을/를')} 배웠다!`, anim: 'heal' });
+        else Events.emit('toast', { text: `기술 ${Util.q(def.name, '을/를')} 배웠어요.` });
+        Events.emit('skill:decided', { skill, source, learned: true });
+      } else if (steps) {
+        steps.push({ type: 'learn', skill, source });
+      }
+    });
+
+    Events.on('skill:decide', ({ skill, source, forget }) => {
+      const known = GameState.get('skills').known.slice();
+      const i = forget ? known.indexOf(forget) : -1;
+      if (i >= 0) {
+        known[i] = skill;
+        GameState.patch('skills', { known });
+      }
+      Events.emit('skill:decided', { skill, source, learned: i >= 0 });
+    });
   },
 });
 </script>
@@ -3060,15 +3337,18 @@ Game.register('companion', {
 });
 </script>
   <script>
-// Inventory 시스템 — 아이템 보유와 꾸러미 열기.
-// 상태는 GameState.inventory 에 두고, 다른 곳과는 이벤트로만 통신한다.
-//   수신 'item:gain'      { id, count }  아이템 획득
+// Inventory 시스템 — 아이템 보유, 꾸러미 열기, 장비 인스턴스 생성.
+// 쌓이는 아이템(꾸러미/물약)은 GameState.inventory, 장비(무기/방어구)는 한 개씩 레벨·등급을 가지므로 GameState.gear 에 둔다.
+//   수신 'item:gain'      { id, count }  아이템 획득 (장비는 count 개의 새 장비가 만들어진다)
 //   수신 'inventory:use'  { id }         꾸러미 열기
 //   수신 'inventory:consume' { id }      한 개 소모 (전투 중 물약 사용)
 //   발신 'inventory:changed'              가방 내용이 바뀜
+//   발신 'gear:added' { uid }             새 장비가 생김 (장착 여부는 Equipment 가 정한다)
 //   발신 'inventory:opened' { id, gained } 꾸러미를 열어 gained 를 얻음
 Game.register('inventory', {
   init({ Events, GameState }) {
+    let uidSeq = 1;
+    const isGear = (id) => ItemData[id].type === 'weapon' || ItemData[id].type === 'armor';
     const sorted = (items) => items.sort((a, b) =>
       ItemTypes[ItemData[a.id].type].order - ItemTypes[ItemData[b.id].type].order);
 
@@ -3080,34 +3360,46 @@ Game.register('inventory', {
 
     function gain(entries) {
       const list = GameState.get('inventory').items.map((it) => ({ ...it }));
-      for (const { id, count } of entries) if (ItemData[id]) add(list, id, count);
+      const gear = GameState.get('gear').list;
+      const added = [];
+      for (const { id, count } of entries) {
+        if (!ItemData[id]) continue;
+        if (isGear(id)) {
+          for (let i = 0; i < count; i++) {
+            const inst = { uid: 'g' + uidSeq++, id, level: 1, exp: 0, grade: 1, offered: [] };
+            gear.push(inst);
+            added.push(inst.uid);
+          }
+        } else {
+          add(list, id, count);
+        }
+      }
       GameState.patch('inventory', { items: sorted(list) });
+      GameState.patch('gear', { list: gear });
       Events.emit('inventory:changed');
+      for (const uid of added) Events.emit('gear:added', { uid });
     }
 
     Events.on('item:gain', ({ id, count }) => gain([{ id, count: count || 1 }]));
 
-    // 한 개 소모 (전투 중 물약 사용 등)
-    Events.on('inventory:consume', ({ id }) => {
+    function consume(id) {
       const items = GameState.get('inventory').items;
       const held = items.find((it) => it.id === id);
-      if (!held) return;
+      if (!held) return false;
       const list = items.map((it) => ({ ...it })).filter((it) => it.id !== id || it.count > 1);
       const left = list.find((it) => it.id === id);
       if (left) left.count -= 1;
       GameState.patch('inventory', { items: list });
-      Events.emit('inventory:changed');
+      return true;
+    }
+
+    Events.on('inventory:consume', ({ id }) => {
+      if (consume(id)) Events.emit('inventory:changed');
     });
 
     Events.on('inventory:use', ({ id }) => {
       const def = ItemData[id];
-      const items = GameState.get('inventory').items;
-      const held = items.find((it) => it.id === id);
-      if (!def || !held || def.type !== 'package') return;
-      const list = items.map((it) => ({ ...it })).filter((it) => it.id !== id || it.count > 1);
-      const left = list.find((it) => it.id === id);
-      if (left) left.count -= 1;
-      GameState.patch('inventory', { items: list });
+      if (!def || def.type !== 'package' || !consume(id)) return;
       gain(def.contents);
       Events.emit('inventory:opened', { id, gained: def.contents.map((c) => ({ ...c })) });
     });
@@ -3133,22 +3425,101 @@ Game.register('starter', {
 });
 </script>
   <script>
-// Equipment(장비) 시스템 — 아직 구현하지 않음 (구조만 마련).
-// 담당: 장비 장착과 능력치 보정
-// 통신(예정): 수신 'inventory:changed' / 발신 'equipment:changed'
+// Equipment 시스템 — 장비 장착, 무기 숙련(레벨), 무기에서 배우는 기술 제안.
+// 무기는 전투를 하면 캐릭터처럼 경험치를 얻어 숙련 레벨이 오르고, 특정 레벨에서 새 기술을 배울 수 있다.
+// 등급(grade)은 능력치 배율과 숙련 레벨 한계를 정한다. 등급을 올리는 일은 추후 대장장이(Crafting)가 맡는다.
+//   수신 'gear:added' { uid }            새 장비 -> 해당 칸이 비어 있으면 자동 장착
+//   수신 'equip:request' { uid }         장착 변경
+//   수신 'battle:rewards' payload         무기 경험치 지급 (payload.steps 에 전투 화면용 메시지를 덧붙인다)
+//   수신 'skill:decided' { source, skill } 제안한 기술에 대한 결정이 끝남 -> 다시 제안하지 않도록 기록
+//   발신 'equipment:changed'
+//   발신 'skill:offer' { skill, source, weaponName, steps }  배울 수 있는 기술이 생김 (Character 가 처리)
 Game.register('equipment', {
-  init(ctx) {
-    // 실제 기능을 구현할 때 ctx.Events / ctx.GameState 로만 다른 시스템과 연결한다.
+  init({ Events, GameState }) {
+    const gearList = () => GameState.get('gear').list;
+    const find = (uid) => gearList().find((g) => g.uid === uid);
+
+    function setSlot(slot, uid) {
+      GameState.patch('equipment', { [slot]: uid });
+      Events.emit('equipment:changed');
+    }
+
+    // 이 무기의 숙련 레벨로 배울 수 있는 기술 중, 아직 제안하지 않은 것을 제안한다
+    function offerSkills(inst, steps) {
+      const w = ItemData[inst.id].weapon;
+      if (!w) return;
+      for (const u of w.skills) {
+        if (u.level <= inst.level && !inst.offered.includes(u.skill)) {
+          Events.emit('skill:offer', { skill: u.skill, source: inst.uid, weaponName: ItemData[inst.id].name, steps });
+        }
+      }
+    }
+
+    Events.on('gear:added', ({ uid }) => {
+      const inst = find(uid);
+      const slot = ItemData[inst.id].type;
+      if (GameState.get('equipment')[slot]) return;
+      setSlot(slot, uid);
+      if (slot === 'weapon') offerSkills(inst, null);
+    });
+
+    Events.on('equip:request', ({ uid }) => {
+      const inst = find(uid);
+      if (!inst) return;
+      const slot = ItemData[inst.id].type;
+      if (GameState.get('equipment')[slot] === uid) return;
+      setSlot(slot, uid);
+      if (slot === 'weapon') offerSkills(inst, null);
+      Events.emit('toast', { text: `${Util.josa(ItemData[inst.id].name, '을/를')} 장착했어요.` });
+    });
+
+    Events.on('skill:decided', ({ source, skill }) => {
+      const inst = find(source);
+      if (inst && !inst.offered.includes(skill)) {
+        inst.offered.push(skill);
+        GameState.patch('gear', { list: gearList() });
+      }
+    });
+
+    Events.on('battle:rewards', (r) => {
+      const inst = Stats.equipped('weapon');
+      if (!inst) return;
+      const def = ItemData[inst.id];
+      const cap = Progression.weaponMaxLevel(inst.grade);
+      if (inst.level >= cap) return;   // 한계: 등급을 올려야 더 성장한다
+
+      inst.exp += r.weaponExp;
+      r.steps.push({ text: `${def.name}의 숙련 경험치 ${r.weaponExp}을(를) 쌓았다!` });
+      while (inst.level < cap && inst.exp >= Progression.weaponExpToNext(inst.level)) {
+        inst.exp -= Progression.weaponExpToNext(inst.level);
+        inst.level++;
+        r.steps.push({ text: `${def.name}의 숙련 레벨이 올랐다! (Lv.${inst.level})`, anim: 'heal' });
+        offerSkills(inst, r.steps);
+      }
+      if (inst.level >= cap) {
+        inst.exp = 0;
+        r.steps.push({ text: `${def.name}의 숙련이 한계에 이르렀다. 등급을 올리면 더 성장할 수 있다!` });
+      }
+      GameState.patch('gear', { list: gearList() });
+    });
   },
 });
 </script>
   <script>
-// Economy(화폐와 가격) 시스템 — 아직 구현하지 않음 (구조만 마련).
-// 담당: 골드 증감, 가격 규칙
-// 통신(예정): 발신 'gold:changed' (GameState.wallet 갱신)
+// Economy 시스템 — 골드(화폐) 증감. 가격 규칙과 상점 거래는 Shop 이 추가될 때 이어서 만든다.
+//   수신 'battle:rewards' payload  전투 보상 골드 지급 (payload.steps 에 메시지를 덧붙인다)
+//   수신 'gold:gain' { amount }    골드 획득
 Game.register('economy', {
-  init(ctx) {
-    // 실제 기능을 구현할 때 ctx.Events / ctx.GameState 로만 다른 시스템과 연결한다.
+  init({ Events, GameState }) {
+    const add = (amount) => GameState.patch('wallet', { gold: Math.max(0, GameState.get('wallet').gold + amount) });
+
+    Events.on('gold:gain', ({ amount }) => add(amount));
+
+    Events.on('battle:rewards', (r) => {
+      if (r.gold <= 0) return;
+      add(r.gold);
+      r.steps.push({ text: `${r.gold} 골드를 획득했다!` });
+    });
   },
 });
 </script>
@@ -3587,8 +3958,8 @@ const Toast = (() => {
 })();
 </script>
   <script>
-// 가방 화면: 보유 아이템 목록과 상세. 조작은 하단 컨트롤(방향/확인/뒤로)로만 한다.
-//   ▲▼ 또는 직접 눌러 아이템 선택, 확인(또는 상세의 열기 버튼): 꾸러미 열기 (다른 아이템의 사용/장착은 추후)
+// 가방 화면: 보유 아이템(쌓이는 것 + 장비)과 상세. 조작은 하단 컨트롤(방향/확인/뒤로)이나 직접 터치.
+//   ▲▼ 또는 직접 눌러 선택, 확인(또는 상세의 버튼): 꾸러미는 열기, 장비는 장착
 (() => {
   const bagBtn = document.querySelector('.dock-btn[data-menu="bag"]');
   let root = null;
@@ -3596,64 +3967,107 @@ const Toast = (() => {
   let result = null;   // 방금 꾸러미를 열어 얻은 목록 (보여 주는 중이면 값이 있다)
   let rows = [];
   let detail = null;
+  let list = [];       // 화면에 그리는 항목: { kind: 'stack' | 'gear', def, it | inst }
 
-  const items = () => GameState.get('inventory').items;
+  // 쌓이는 아이템과 장비를 종류 순서(꾸러미, 무기, 방어구, 물약)로 합친다
+  function collect() {
+    const out = [];
+    for (const it of GameState.get('inventory').items) out.push({ kind: 'stack', def: ItemData[it.id], it });
+    for (const inst of GameState.get('gear').list) out.push({ kind: 'gear', def: ItemData[inst.id], inst });
+    return out.sort((a, b) => ItemTypes[a.def.type].order - ItemTypes[b.def.type].order);
+  }
+
+  const isEquipped = (inst) => {
+    const eq = GameState.get('equipment');
+    return eq.weapon === inst.uid || eq.armor === inst.uid;
+  };
 
   function iconCanvas(def) {
     const c = document.createElement('canvas');
     c.className = 'bag-icon';
     c.width = 16;
     c.height = 16;
-    const g = c.getContext('2d');
-    g.drawImage(Sprites.items[def.icon], 0, 0); // 아이콘이 16x16(외곽선 포함)이라 잘리지 않게 0,0 에 그린다
+    c.getContext('2d').drawImage(Sprites.items[def.icon], 0, 0); // 아이콘이 16x16(외곽선 포함)이라 0,0 에 그려야 잘리지 않는다
     return c;
+  }
+
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+
+  // 장비 상세: 능력치, 숙련, 기술
+  function gearDetail(entry) {
+    const { inst, def } = entry;
+    const wrap = document.createDocumentFragment();
+    wrap.append(el('h3', '', def.name), el('p', '', def.desc));
+    const stats = el('p', 'bag-stat');
+    if (def.weapon) {
+      const cap = Progression.weaponMaxLevel(inst.grade);
+      const need = Progression.weaponExpToNext(inst.level);
+      stats.textContent = `등급 ${inst.grade} · 숙련 Lv.${inst.level}/${cap} · 공격 +${Stats.weaponAtk(inst).toFixed(1)}`;
+      wrap.append(stats);
+      wrap.append(el('p', 'bag-stat', inst.level >= cap ? '숙련 한계 (등급을 올리면 더 성장해요)' : `숙련 경험치 ${inst.exp}/${need}`));
+      const sk = el('div', 'bag-skills');
+      for (const u of def.weapon.skills) {
+        const s = SkillData[u.skill];
+        const owned = GameState.get('skills').known.includes(u.skill);
+        const reached = inst.level >= u.level;
+        sk.append(el('span', 'bag-skill' + (owned ? ' is-owned' : reached ? '' : ' is-locked'), `${s.name} · Lv.${u.level}${owned ? ' ✓' : ''}`));
+      }
+      wrap.append(sk);
+    } else {
+      stats.textContent = `등급 ${inst.grade} · 방어 +${Stats.armorDef(inst).toFixed(1)}`;
+      wrap.append(stats);
+    }
+    return wrap;
   }
 
   function showDetail() {
     detail.replaceChildren();
     if (result) {
       detail.className = 'bag-detail bag-result';
-      const h = document.createElement('h3');
-      h.textContent = ItemData[result.id].name + '을(를) 열었어요!';
-      const ul = document.createElement('ul');
+      const ul = el('ul');
       for (const g of result.gained) {
-        const li = document.createElement('li');
-        const name = document.createElement('span');
-        name.textContent = ItemData[g.id].name;
-        const n = document.createElement('b');
-        n.textContent = '×' + g.count;
-        li.append(name, n);
+        const li = el('li');
+        li.append(el('span', '', ItemData[g.id].name), el('b', '', '×' + g.count));
         ul.appendChild(li);
       }
-      detail.append(h, ul);
+      detail.append(el('h3', '', ItemData[result.id].name + '을(를) 열었어요!'), ul);
       return;
     }
     detail.className = 'bag-detail';
-    const it = items()[selected];
-    if (!it) return;
-    const def = ItemData[it.id];
-    const h = document.createElement('h3');
-    h.textContent = def.name;
-    const p = document.createElement('p');
-    p.textContent = def.desc;
-    detail.append(h, p);
+    const entry = list[selected];
+    if (!entry) return;
+    const { def } = entry;
+    if (entry.kind === 'gear') {
+      detail.append(gearDetail(entry));
+      const equipped = isEquipped(entry.inst);
+      detail.append(el('p', 'bag-action', equipped ? '장착 중이에요.' : '확인 버튼이나 아래 버튼으로 장착할 수 있어요.'));
+      if (!equipped) {
+        const b = el('button', 'bag-open', '장착');
+        b.type = 'button';
+        b.addEventListener('click', () => Events.emit('equip:request', { uid: entry.inst.uid }));
+        detail.append(b);
+      }
+      return;
+    }
+    detail.append(el('h3', '', def.name), el('p', '', def.desc));
     if (def.type === 'package') {
-      const a = document.createElement('p');
-      a.className = 'bag-action';
-      a.textContent = '확인 버튼이나 아래 버튼으로 열어 볼 수 있어요.';
-      const open = document.createElement('button');
-      open.type = 'button';
-      open.className = 'bag-open';
-      open.textContent = '열기';
-      open.addEventListener('click', () => Events.emit('inventory:use', { id: it.id }));
-      detail.append(a, open);
+      detail.append(el('p', 'bag-action', '확인 버튼이나 아래 버튼으로 열어 볼 수 있어요.'));
+      const b = el('button', 'bag-open', '열기');
+      b.type = 'button';
+      b.addEventListener('click', () => Events.emit('inventory:use', { id: entry.it.id }));
+      detail.append(b);
     }
   }
 
   function select(i) {
-    if (!items().length) return;
-    selected = (i + items().length) % items().length;
-    rows.forEach((el, n) => el.classList.toggle('is-selected', n === selected));
+    if (!list.length) return;
+    selected = (i + list.length) % list.length;
+    rows.forEach((r, n) => r.classList.toggle('is-selected', n === selected));
     if (rows[selected]) rows[selected].scrollIntoView({ block: 'nearest' });
     showDetail();
   }
@@ -3662,40 +4076,43 @@ const Toast = (() => {
     if (!root) return;
     root.replaceChildren();
     rows = [];
-    const list = items();
+    list = collect();
     if (!list.length) {
-      const empty = document.createElement('p');
-      empty.className = 'bag-empty';
-      empty.textContent = '가방이 비어 있어요.';
-      root.appendChild(empty);
+      root.appendChild(el('p', 'bag-empty', '가방이 비어 있어요.'));
       return;
     }
-    const ul = document.createElement('ul');
-    ul.className = 'bag-list';
-    for (const it of list) {
-      const def = ItemData[it.id];
-      const li = document.createElement('li');
-      li.className = 'bag-row';
+    const ul = el('ul', 'bag-list');
+    for (const entry of list) {
+      const { def } = entry;
+      const li = el('li', 'bag-row');
       const idx = rows.length;
-      li.addEventListener('click', () => { if (result) { result = null; } select(idx); }); // 눌러서 선택
-      const text = document.createElement('div');
-      text.className = 'bag-name';
-      text.textContent = def.name;
-      const type = document.createElement('span');
-      type.className = 'bag-type';
-      type.textContent = ItemTypes[def.type].label;
-      text.appendChild(type);
-      const count = document.createElement('div');
-      count.className = 'bag-count';
-      count.textContent = '×' + it.count;
-      li.append(iconCanvas(def), text, count);
+      li.addEventListener('click', () => { result = null; select(idx); }); // 눌러서 선택
+      const text = el('div', 'bag-name', def.name);
+      text.append(el('span', 'bag-type', ItemTypes[def.type].label));
+      let right;
+      if (entry.kind === 'gear') {
+        right = el('div', 'bag-count', def.weapon ? `Lv.${entry.inst.level}` : `★${entry.inst.grade}`);
+        if (isEquipped(entry.inst)) right.append(el('span', 'bag-eq', '장착 중'));
+      } else {
+        right = el('div', 'bag-count', '×' + entry.it.count);
+      }
+      li.append(iconCanvas(def), text, right);
       ul.appendChild(li);
       rows.push(li);
     }
-    detail = document.createElement('div');
+    detail = el('div');
     root.append(ul, detail);
     selected = Math.min(selected, list.length - 1);
     select(selected);
+  }
+
+  function confirm() {
+    if (result) { result = null; showDetail(); return; }
+    const entry = list[selected];
+    if (!entry) return;
+    if (entry.kind === 'gear') Events.emit('equip:request', { uid: entry.inst.uid });
+    else if (entry.def.type === 'package') Events.emit('inventory:use', { id: entry.it.id });
+    else Events.emit('toast', { text: '가방에서는 쓸 수 없어요. 전투 중에 사용해요.' });
   }
 
   Screens.register('bag', {
@@ -3712,19 +4129,20 @@ const Toast = (() => {
       if (dir === 'up') select(selected - 1);
       else if (dir === 'down') select(selected + 1);
     },
-    onConfirm() {
-      if (result) { result = null; showDetail(); return; }
-      const it = items()[selected];
-      if (!it) return;
-      if (ItemData[it.id].type === 'package') Events.emit('inventory:use', { id: it.id });
-      else Events.emit('toast', { text: '아직 사용할 수 없어요. (준비 중)' });
-    },
+    onConfirm: confirm,
   });
+
+  const refresh = () => {
+    if (Screens.current === 'bag') build();
+  };
 
   Events.on('inventory:changed', () => {
     if (Screens.current === 'bag') build();
     else bagBtn.classList.add('has-new');   // 새 아이템이 있으면 가방 버튼에 점을 띄운다
   });
+  Events.on('equipment:changed', refresh);
+  Events.on('state:gear', refresh);
+  Events.on('state:skills', refresh);
 
   Events.on('inventory:opened', ({ id, gained }) => {
     result = { id, gained };
@@ -3735,9 +4153,72 @@ const Toast = (() => {
 })();
 </script>
   <script>
+// 캐릭터 화면: 레벨/경험치, 능력치(장비 포함), 장비, 배운 기술. 보기 전용.
+(() => {
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+
+  function section(title) {
+    const s = el('section', 'ch-section');
+    s.appendChild(el('h3', '', title));
+    return s;
+  }
+
+  function row(k, v) {
+    const r = el('div', 'ch-row');
+    r.append(el('span', '', k), el('b', '', v));
+    return r;
+  }
+
+  Screens.register('char', {
+    title: '캐릭터',
+    render(body) {
+      const p = GameState.get('player');
+      const st = Stats.total();
+      const next = Progression.charExpToNext(p.level);
+
+      const head = section(`${p.name}  Lv.${p.level}`);
+      const bar = el('div', 'ch-exp');
+      const fill = el('i');
+      fill.style.width = (p.level >= Progression.MAX_LEVEL ? 100 : (p.exp / next) * 100) + '%';
+      bar.appendChild(fill);
+      head.append(bar, el('p', 'ch-note', p.level >= Progression.MAX_LEVEL ? '최고 레벨' : `경험치 ${p.exp} / ${next}`));
+
+      const stats = section('능력치');
+      stats.append(
+        row('HP', `${p.hp} / ${p.maxHp}`), row('MP', `${p.mp} / ${p.maxMp}`),
+        row('공격', st.atk.toFixed(1)), row('방어', st.def.toFixed(1)), row('속도', String(st.spd)),
+      );
+
+      const gear = section('장비');
+      gear.append(
+        row('무기', st.weapon ? `${ItemData[st.weapon.id].name}  Lv.${st.weapon.level}` : '없음'),
+        row('방어구', st.armor ? ItemData[st.armor.id].name : '없음'),
+      );
+
+      const skills = section(`기술 (${GameState.get('skills').known.length}/${Progression.MAX_SKILLS})`);
+      const known = GameState.get('skills').known;
+      if (!known.length) skills.append(el('p', 'ch-note', '배운 기술이 없어요. 무기를 장착하면 기술을 배울 수 있어요.'));
+      for (const id of known) {
+        const s = SkillData[id];
+        const r = el('div', 'ch-skill');
+        r.append(el('b', '', s.name), el('span', '', s.mp ? `MP ${s.mp}` : 'MP 0'), el('p', '', s.desc));
+        skills.append(r);
+      }
+      body.append(head, stats, gear, skills);
+    },
+  });
+})();
+</script>
+  <script>
 // 전투 화면 (포켓몬 스타일): 위쪽은 전투 장면, 아래쪽 메뉴는 전투 명령으로 바뀐다.
 // 규칙은 systems/battle.js 가 계산하고, 여기서는 그 결과(steps)를 차례로 보여 주기만 한다.
 //   명령 선택: 방향 버튼 + 확인/뒤로, 또는 명령 버튼을 직접 터치
+//   기술: 배운 기술(최대 4개) 중 고른다. 승리 후 새 기술을 배울 때 기술이 가득 차 있으면 하나를 잊을지 고른다.
 const BattleUI = (() => {
   const $ = (id) => document.getElementById(id);
   const root = $('battle');
@@ -3749,7 +4230,7 @@ const BattleUI = (() => {
 
   const STEP_MS = 1150;
   const MAIN = [
-    { id: 'attack', label: '공격' },
+    { id: 'skill', label: '기술' },
     { id: 'bag', label: '가방' },
     { id: 'party', label: '동료' },
     { id: 'flee', label: '도망' },
@@ -3761,7 +4242,8 @@ const BattleUI = (() => {
   let outcome = null;
   let queue = [];
   let timer = 0;
-  let view = 'main';      // 'main' | 'items'
+  let view = 'main';      // 'main' | 'items' | 'skills' | 'learn'
+  let learning = null;    // 새 기술을 배우는 중이면 { skill, source }
   let sel = 0;
   let enemyMax = 1;
   let heroMax = { hp: 1, mp: 1 };
@@ -3782,7 +4264,8 @@ const BattleUI = (() => {
     el.classList.toggle('crit', pct <= 0.2);
   }
 
-  function setHero(hp, mp) {
+  function setHero(hp, mp, maxHp, maxMp) {
+    if (maxHp) heroMax = { hp: maxHp, mp: maxMp };   // 레벨업으로 최대치가 늘어난 경우
     setBar($('bt-h-bar'), hp, heroMax.hp);
     setBar($('bt-h-mpbar'), mp, heroMax.mp);
     $('bt-h-num').textContent = `HP ${hp}/${heroMax.hp}  MP ${mp}/${heroMax.mp}`;
@@ -3816,10 +4299,11 @@ const BattleUI = (() => {
     clearTimeout(timer);
     if (!queue.length) return done();
     const s = queue.shift();
+    if (s.type === 'learn') return startLearn(s);   // 새 기술: 잊을 기술을 고르게 한다
     textEl.textContent = s.text;
     if (s.hp) {
       if (s.hp.enemy) setBar($('bt-e-bar'), s.hp.enemy.hp, enemyMax);
-      if (s.hp.hero) setHero(s.hp.hero.hp, s.hp.hero.mp);
+      if (s.hp.hero) setHero(s.hp.hero.hp, s.hp.hero.mp, s.hp.hero.maxHp, s.hp.hero.maxMp);
     }
     if (s.anim && ANIM_TARGET[s.anim]) playAnim(...ANIM_TARGET[s.anim]);
     timer = setTimeout(next, STEP_MS);
@@ -3857,7 +4341,54 @@ const BattleUI = (() => {
     return GameState.get('inventory').items.filter((it) => ItemData[it.id] && ItemData[it.id].use);
   }
 
+  // 배운 기술 목록 (없으면 맨손치기)
+  function knownSkills() {
+    const known = GameState.get('skills').known;
+    return (known.length ? known : ['punch']).map((id) => SkillData[id]);
+  }
+
+  function startLearn(step) {
+    learning = { skill: step.skill, source: step.source };
+    busy = false;
+    view = 'learn';
+    sel = 0;
+    renderCmds();
+    Events.emit('ui:changed');
+  }
+
+  // 새 기술을 배울지 정한다 (forget: 잊을 기술 id, 없으면 배우지 않음)
+  function decideLearn(forget) {
+    const { skill, source } = learning;
+    learning = null;
+    Events.emit('skill:decide', { skill, source, forget });
+    const name = SkillData[skill].name;
+    queue.unshift({
+      text: forget
+        ? `${Util.josa(SkillData[forget].name, '을/를')} 잊고 ${Util.q(name, '을/를')} 배웠다!`
+        : `${Util.q(name, '을/를')} 배우지 않았다.`,
+      anim: forget ? 'heal' : undefined,
+    });
+    view = 'main';
+    busy = true;
+    renderCmds();
+    Events.emit('ui:changed');
+    next();
+  }
+
   function entries() {
+    if (view === 'skills') {
+      const mp = GameState.get('player').mp;
+      const list = knownSkills().map((s) => ({
+        id: s.id, label: s.mp ? `${s.name}  MP ${s.mp}` : s.name, desc: s.desc, disabled: mp < s.mp,
+      }));
+      list.push({ id: 'cancel', label: '취소', wide: true });
+      return list;
+    }
+    if (view === 'learn') {
+      const list = GameState.get('skills').known.map((id) => ({ id: 'forget', forget: id, label: `${SkillData[id].name} 잊기`, desc: SkillData[id].desc }));
+      list.push({ id: 'decline', label: '배우지 않는다', wide: true });
+      return list;
+    }
     if (view === 'items') {
       const list = potions().map((it) => ({ id: it.id, label: `${ItemData[it.id].name} ×${it.count}` }));
       if (!list.length) list.push({ id: 'none', label: '쓸 수 있는 물약이 없어요', disabled: true });
@@ -3872,7 +4403,13 @@ const BattleUI = (() => {
     sel = Math.min(sel, list.length - 1);
     cmdBox.replaceChildren();
     cmdBox.classList.toggle('is-busy', busy);
-    cmdBox.classList.toggle('is-items', view === 'items');
+    cmdBox.classList.toggle('is-items', view !== 'main');
+    if (!busy && view === 'learn') {
+      const sk = SkillData[learning.skill];
+      textEl.textContent = `새 기술 ${Util.q(sk.name, '을/를')} 배울 수 있다! 기술이 가득 찼으니, 잊을 기술을 고르자.`;
+    } else if (!busy && (view === 'skills') && list[sel] && list[sel].desc) {
+      textEl.textContent = list[sel].desc;
+    }
     list.forEach((e, i) => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -3886,13 +4423,20 @@ const BattleUI = (() => {
 
   function run(e) {
     if (busy || e.disabled) return;
+    if (view === 'learn') { decideLearn(e.forget || null); return; }
+    if (view === 'skills') {
+      if (e.id === 'cancel') { view = 'main'; sel = 0; renderCmds(); Events.emit('ui:changed'); return; }
+      view = 'main';
+      Events.emit('battle:command', { type: 'skill', id: e.id });
+      return;
+    }
     if (view === 'items') {
       if (e.id === 'cancel') { view = 'main'; sel = 0; renderCmds(); Events.emit('ui:changed'); return; }
       view = 'main';
       Events.emit('battle:command', { type: 'item', id: e.id });
       return;
     }
-    if (e.id === 'attack') Events.emit('battle:command', { type: 'attack' });
+    if (e.id === 'skill') { view = 'skills'; sel = 0; renderCmds(); Events.emit('ui:changed'); }
     else if (e.id === 'flee') Events.emit('battle:command', { type: 'flee' });
     else if (e.id === 'bag') { view = 'items'; sel = 0; renderCmds(); Events.emit('ui:changed'); }
     else if (e.id === 'party') Events.emit('toast', { text: '동료는 아직 없어요. (준비 중)' });
@@ -3913,9 +4457,11 @@ const BattleUI = (() => {
       else if (dir === 'right') sel = row * 2 + 1;
       else if (dir === 'up') sel = col;
       else if (dir === 'down') sel = 2 + col;
-    } else {
-      if (dir === 'left' || dir === 'up') sel = (sel - 1 + n) % n;
-      else sel = (sel + 1) % n;
+    } else {                       // 2열 격자 (마지막 '취소'는 한 줄 전체)
+      if (dir === 'left') sel = Math.max(0, sel - 1);
+      else if (dir === 'right') sel = Math.min(n - 1, sel + 1);
+      else if (dir === 'up') sel = sel - 2 >= 0 ? sel - 2 : sel;
+      else sel = sel + 2 < n ? sel + 2 : n - 1;
     }
     renderCmds();
   }
@@ -3927,7 +4473,8 @@ const BattleUI = (() => {
 
   function back() {
     if (busy) { skip(); return; }
-    if (view === 'items') { view = 'main'; sel = 0; renderCmds(); Events.emit('ui:changed'); }
+    if (view === 'learn') { decideLearn(null); return; }   // 뒤로 = 배우지 않는다
+    if (view === 'items' || view === 'skills') { view = 'main'; sel = 0; renderCmds(); Events.emit('ui:changed'); }
   }
 
   // ---------- 이벤트 ----------
@@ -3936,6 +4483,7 @@ const BattleUI = (() => {
     busy = true;
     finishing = false;
     outcome = null;
+    learning = null;
     view = 'main';
     sel = 0;
     enemyMax = d.enemy.maxHp;
@@ -3983,7 +4531,7 @@ const BattleUI = (() => {
   return {
     get active() { return active; },
     confirmLabel: () => (busy ? '다음' : '확인'),
-    canBack: () => active && !busy && view === 'items',
+    canBack: () => active && !busy && view !== 'main',
     nav,
     confirm,
     back,

@@ -1,8 +1,16 @@
-// Economy(화폐와 가격) 시스템 — 아직 구현하지 않음 (구조만 마련).
-// 담당: 골드 증감, 가격 규칙
-// 통신(예정): 발신 'gold:changed' (GameState.wallet 갱신)
+// Economy 시스템 — 골드(화폐) 증감. 가격 규칙과 상점 거래는 Shop 이 추가될 때 이어서 만든다.
+//   수신 'battle:rewards' payload  전투 보상 골드 지급 (payload.steps 에 메시지를 덧붙인다)
+//   수신 'gold:gain' { amount }    골드 획득
 Game.register('economy', {
-  init(ctx) {
-    // 실제 기능을 구현할 때 ctx.Events / ctx.GameState 로만 다른 시스템과 연결한다.
+  init({ Events, GameState }) {
+    const add = (amount) => GameState.patch('wallet', { gold: Math.max(0, GameState.get('wallet').gold + amount) });
+
+    Events.on('gold:gain', ({ amount }) => add(amount));
+
+    Events.on('battle:rewards', (r) => {
+      if (r.gold <= 0) return;
+      add(r.gold);
+      r.steps.push({ text: `${r.gold} 골드를 획득했다!` });
+    });
   },
 });
