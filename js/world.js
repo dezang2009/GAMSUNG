@@ -13,6 +13,7 @@ const World = (() => {
   const GRASS_C = [[108, 186, 76], [100, 178, 70], [122, 200, 90], [86, 160, 62]];
   const TALL_C = [[78, 150, 56], [70, 140, 50]];
   const TALL_BLADE = [104, 180, 74];
+  const PATH_RIM = [176, 140, 88];
   const PATH_C = [[218, 188, 126], [208, 176, 114], [226, 202, 146], [190, 156, 100]];
   const FLOWER_COLORS = ['#fff6e0', '#ffd84a', '#ff8fb1', '#b3a6ff'];
 
@@ -192,12 +193,16 @@ const World = (() => {
       for (let px = 0; px < W; px++) {
         const tx = px >> 4, ty = py >> 4, lx = px & 15, ly = py & 15;
         let k = kind[idx(tx, ty)];
-        if (k === PATH && edgeOfPath(tx, ty, lx, ly) && hash(px, py, 9) < 0.5) k = GRASS;
+        let rim = false;
+        if (k === PATH && edgeOfPath(tx, ty, lx, ly)) {
+          if (hash(px, py, 9) < 0.5) k = GRASS;
+          else rim = true;
+        }
 
         let c;
         if (k === PATH) {
           const n = hash(px >> 1, py >> 1, 4);
-          c = n < 0.55 ? PATH_C[0] : n < 0.8 ? PATH_C[1] : n < 0.92 ? PATH_C[2] : PATH_C[3];
+          c = rim && n < 0.75 ? PATH_RIM : n < 0.55 ? PATH_C[0] : n < 0.8 ? PATH_C[1] : n < 0.92 ? PATH_C[2] : PATH_C[3];
         } else if (k === TALL) {
           c = hash(px >> 1, py >> 1, 6) < 0.6 ? TALL_C[0] : TALL_C[1];
           if (hash(px, py, 7) > 0.93) c = TALL_BLADE;
@@ -211,6 +216,22 @@ const World = (() => {
       }
     }
     g.putImageData(img, 0, 0);
+
+    // 풀 다발: 단조로운 바닥에 질감을 더한다
+    for (let ty = 0; ty < ROWS; ty++) {
+      for (let tx = 0; tx < COLS; tx++) {
+        if (kind[idx(tx, ty)] !== GRASS || solid[idx(tx, ty)] || hash(tx, ty, 31) > 0.35) continue;
+        const x = tx * TILE + 3 + Math.floor(hash(tx, ty, 32) * 9);
+        const y = ty * TILE + 4 + Math.floor(hash(tx, ty, 33) * 8);
+        g.fillStyle = '#4c9a38';
+        g.fillRect(x, y, 1, 3);
+        g.fillRect(x + 2, y - 1, 1, 4);
+        g.fillRect(x + 4, y + 1, 1, 2);
+        g.fillStyle = '#8fd96a';
+        g.fillRect(x, y - 1, 1, 1);
+        g.fillRect(x + 2, y - 2, 1, 1);
+      }
+    }
 
     // 꽃
     for (const f of flowers) {

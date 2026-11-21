@@ -6,6 +6,16 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>픽셀 탐험</title>
   <style>
+:root {
+  --ink: #14201a;
+  --panel: #2f5d34;
+  --accent: #8fd46a;
+  /* 픽셀 UI 패널: 모서리가 깎인 두꺼운 테두리 + 위/아래 음영 */
+  --px-edge: 0 -4px 0 0 var(--ink), 0 4px 0 0 var(--ink), -4px 0 0 0 var(--ink), 4px 0 0 0 var(--ink);
+  --px-shade: inset 0 4px 0 0 rgba(255, 255, 255, 0.2), inset 0 -4px 0 0 rgba(0, 0, 0, 0.28);
+  --font: system-ui, -apple-system, "Noto Sans KR", "Malgun Gothic", sans-serif;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -35,7 +45,11 @@ body {
   image-rendering: crisp-edges;
 }
 
-/* 가상 조이스틱: 화면 하단 왼쪽, 터치/마우스 모두 지원 */
+.px {
+  box-shadow: var(--px-edge), var(--px-shade);
+}
+
+/* ---------- 가상 조이스틱 (픽셀 팔각형) ---------- */
 #joy {
   position: fixed;
   left: calc(env(safe-area-inset-left, 0px) + 12px);
@@ -50,29 +64,47 @@ body {
   z-index: 2;
 }
 
+#joy-base,
+#joy-base::before,
+#joy-knob,
+#joy-knob::before {
+  clip-path: polygon(28% 0, 72% 0, 100% 28%, 100% 72%, 72% 100%, 28% 100%, 0 72%, 0 28%);
+}
+
 #joy-base {
   position: relative;
   width: 120px;
   height: 120px;
-  border-radius: 50%;
-  background: rgba(18, 30, 20, 0.32);
-  border: 3px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+#joy-base::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  background: rgba(16, 28, 18, 0.6);
 }
 
 #joy-knob {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 48px;
-  height: 48px;
-  margin: -24px 0 0 -24px;
-  background: rgba(255, 255, 255, 0.75);
-  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  background: #14201a;
   pointer-events: none;
 }
 
-/* 화면 전환: 메뉴 / 플레이 */
+#joy-knob::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background: #e9f5df;
+  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18);
+}
+
+/* ---------- 화면 전환 ---------- */
 body[data-screen="menu"] #game,
 body[data-screen="menu"] #joy,
 body[data-screen="menu"] #hud,
@@ -80,7 +112,7 @@ body[data-screen="play"] #menu {
   display: none;
 }
 
-/* 탐험 중 상단 UI */
+/* ---------- 탐험 중 상단 UI ---------- */
 #hud {
   position: fixed;
   top: 0;
@@ -90,47 +122,63 @@ body[data-screen="play"] #menu {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 12px) 0 calc(env(safe-area-inset-left, 0px) + 12px);
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) calc(env(safe-area-inset-right, 0px) + 16px) 0 calc(env(safe-area-inset-left, 0px) + 16px);
   pointer-events: none;
   z-index: 3;
   color: #fff;
-  font: 700 16px/1 system-ui, -apple-system, "Noto Sans KR", sans-serif;
+  font: 800 16px/1 var(--font);
 }
 
 #hud-name,
 #exit-btn {
   pointer-events: auto;
-  background: rgba(20, 30, 22, 0.72);
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
-  color: inherit;
+  border: 0;
+  margin: 0;
+  color: #f4fbe9;
   font: inherit;
-  padding: 0 14px;
-  height: 40px;
+  padding: 0 16px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
+  box-shadow: var(--px-edge), var(--px-shade);
+}
+
+#hud-name {
+  background: #24472a;
+  letter-spacing: 1px;
+}
+
+#hud-name::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  margin-right: 9px;
+  background: var(--accent);
+  box-shadow: 0 -2px 0 var(--accent), 0 2px 0 var(--accent), -2px 0 0 var(--accent), 2px 0 0 var(--accent);
 }
 
 #exit-btn {
+  background: #a8433a;
   cursor: pointer;
   touch-action: manipulation;
 }
 
 #exit-btn:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+  transform: translateY(3px);
 }
 
-/* 탐험지 선택 화면 */
+/* ---------- 탐험지 선택 화면 ---------- */
 #menu {
   position: fixed;
   inset: 0;
   overflow-y: auto;
-  background: #1c2b1f;
+  background-color: #5aa23c;
+  background-size: 128px 128px;
+  image-rendering: pixelated;
   color: #f3f7ea;
   touch-action: pan-y;
-  padding: calc(env(safe-area-inset-top, 0px) + 28px) 16px calc(env(safe-area-inset-bottom, 0px) + 28px);
-  font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif;
+  padding: calc(env(safe-area-inset-top, 0px) + 30px) 20px calc(env(safe-area-inset-bottom, 0px) + 36px);
+  font-family: var(--font);
 }
 
 .menu-inner {
@@ -138,16 +186,36 @@ body[data-screen="play"] #menu {
   margin: 0 auto;
 }
 
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #1f3a24;
+  padding: 14px 16px;
+  margin-bottom: 26px;
+}
+
+#hero {
+  width: 144px;
+  height: 54px;
+  flex: none;
+  image-rendering: pixelated;
+}
+
 #menu h1 {
   margin: 0 0 6px;
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--accent);
+  text-shadow: 2px 2px 0 var(--ink);
+  letter-spacing: 1px;
 }
 
 .menu-sub {
-  margin: 0 0 20px;
-  color: #b9c8b0;
-  font-size: 15px;
+  margin: 0;
+  color: #cddfc3;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 #region-list {
@@ -155,88 +223,93 @@ body[data-screen="play"] #menu {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 14px;
+  gap: 22px;
 }
 
 .region-card {
   width: 100%;
   display: grid;
-  grid-template-columns: 72px 1fr;
+  grid-template-columns: 88px 1fr;
   gap: 14px;
   align-items: center;
   text-align: left;
-  padding: 12px;
-  background: #2f5d34;
+  padding: 14px;
+  border: 0;
+  background: var(--panel);
   color: inherit;
-  border: 3px solid #8fd46a;
-  box-shadow: 0 4px 0 #14201a;
   font: inherit;
   cursor: pointer;
   touch-action: manipulation;
+  box-shadow: var(--px-edge), var(--px-shade);
 }
 
 .region-card:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 #14201a;
+  transform: translateY(4px);
 }
 
 .region-card .thumb {
-  width: 72px;
-  height: 72px;
+  width: 88px;
+  height: 88px;
   image-rendering: pixelated;
-  border: 2px solid #2a2233;
   display: block;
+  box-shadow: 0 0 0 3px var(--ink);
 }
 
 .region-card h2 {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   font-size: 19px;
+  font-weight: 900;
+  text-shadow: 2px 2px 0 var(--ink);
 }
 
 .region-card p {
   margin: 0;
   font-size: 13px;
   line-height: 1.45;
-  color: #d5e3cc;
+  color: #d5e6cb;
 }
 
 .badge {
   display: inline-block;
-  margin-top: 8px;
-  padding: 3px 8px;
+  margin-top: 10px;
+  padding: 4px 9px;
   font-size: 12px;
-  font-weight: 700;
-  background: #8fd46a;
-  color: #14201a;
+  font-weight: 900;
+  background: var(--accent);
+  color: var(--ink);
+  box-shadow: 0 -2px 0 0 var(--ink), 0 2px 0 0 var(--ink), -2px 0 0 0 var(--ink), 2px 0 0 0 var(--ink);
 }
 
 .region-card.locked {
-  background: #2b3430;
-  border-color: #4a5551;
-  box-shadow: 0 4px 0 #161c19;
-  color: #8a9690;
+  background: #3c4742;
+  color: #a2aea8;
   cursor: not-allowed;
 }
 
-.region-card.locked p {
-  color: #7d8984;
+.region-card.locked h2 {
+  text-shadow: 2px 2px 0 #1b2420;
 }
 
-.region-card.locked .thumb {
-  filter: grayscale(1) brightness(0.6);
+.region-card.locked p {
+  color: #8f9b95;
 }
 
 .region-card.locked .badge {
-  background: #4a5551;
-  color: #c3cdc8;
+  background: #59655f;
+  color: #dbe3df;
 }
 </style>
 </head>
 <body data-screen="menu">
   <main id="menu">
     <div class="menu-inner">
-      <h1>탐험지 선택</h1>
-      <p class="menu-sub">가고 싶은 지역을 골라 입장하세요.</p>
+      <header class="banner px">
+        <canvas id="hero" width="96" height="36"></canvas>
+        <div>
+          <h1>탐험지 선택</h1>
+          <p class="menu-sub">가고 싶은 지역을 골라 입장하세요.</p>
+        </div>
+      </header>
       <ul id="region-list"></ul>
     </div>
   </main>
@@ -257,7 +330,7 @@ body[data-screen="play"] #menu {
   <script>
 // 외부 이미지 없이 Canvas 픽셀 단위로 그리는 스프라이트 모음
 const Sprites = (() => {
-  const OUTLINE = [42, 34, 51];
+  const OUTLINE = '#2a2233';
 
   const C = {
     skin: '#f4c99b', skinSh: '#d9a074', hair: '#4a2f22',
@@ -279,7 +352,13 @@ const Sprites = (() => {
   }
 
   // 투명 픽셀 중 색 있는 픽셀과 맞닿은 곳에 외곽선을 그린다
-  function addOutline(canvas) {
+  function hexToRgb(h) {
+    const n = parseInt(h.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function addOutline(canvas, color) {
+    const rgb = hexToRgb(color || OUTLINE);
     const ctx = canvas.getContext('2d');
     const w = canvas.width, h = canvas.height;
     const s = ctx.getImageData(0, 0, w, h).data;
@@ -291,7 +370,7 @@ const Sprites = (() => {
         const near = (x > 0 && s[i - 1]) || (x < w - 1 && s[i + 7]) ||
                      (y > 0 && s[i - w * 4 + 3]) || (y < h - 1 && s[i + w * 4 + 3]);
         if (near) {
-          out[i] = OUTLINE[0]; out[i + 1] = OUTLINE[1]; out[i + 2] = OUTLINE[2]; out[i + 3] = 255;
+          out[i] = rgb[0]; out[i + 1] = rgb[1]; out[i + 2] = rgb[2]; out[i + 3] = 255;
         }
       }
     }
@@ -299,12 +378,12 @@ const Sprites = (() => {
   }
 
   // 내용 영역 w x h 에 draw 를 실행하고, 외곽선용 1px 여백을 더해 반환
-  function build(w, h, draw) {
+  function build(w, h, draw, outlineColor) {
     const c = document.createElement('canvas');
     c.width = w + 2;
     c.height = h + 2;
     draw(c.getContext('2d'), 1, 1);
-    addOutline(c);
+    addOutline(c, outlineColor);
     return c;
   }
 
@@ -421,6 +500,105 @@ const Sprites = (() => {
     });
   }
 
+  // ---- 몬스터 ----
+  // 푸른 슬라임 (14x11): squash 프레임으로 통통 튀는 느낌
+  function makeSlime(squash) {
+    return build(14, 11, (ctx, ox, oy) => {
+      const cx = 7, cy = squash ? 7 : 6, rx = squash ? 6.8 : 6.2, ry = squash ? 3.6 : 4.6;
+      for (let y = 0; y < 11; y++) {
+        for (let x = 0; x < 14; x++) {
+          const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry;
+          if (nx * nx + ny * ny > 1) continue;
+          const col = ny < -0.35 ? '#a6d8ff' : ny > 0.45 ? '#3a74d0' : '#5aa8ff';
+          rect(ctx, ox + x, oy + y, 1, 1, col);
+        }
+      }
+      rect(ctx, ox + 3, oy + Math.round(cy - ry + 1.2), 2, 1, '#e8f6ff');
+      rect(ctx, ox + 4, oy + cy - 1, 1, 2, '#1b1b2f');
+      rect(ctx, ox + 9, oy + cy - 1, 1, 2, '#1b1b2f');
+      rect(ctx, ox + 6, oy + cy + 1, 2, 1, '#1b1b2f');
+    });
+  }
+
+  // 버섯돌이 (14x16)
+  function makeMushroom(step) {
+    return build(14, 16, (ctx, ox, oy) => {
+      const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
+      r(4, 9, 6, 5, '#f2e3c3');
+      r(8, 9, 2, 5, '#d9c49d');
+      r(5, 10, 1, 2, '#231c2e');
+      r(8, 10, 1, 2, '#231c2e');
+      r(6, 12, 2, 1, '#b5523b');
+      r(3, step ? 14 : 15, 3, step ? 2 : 1, '#c9a77a');
+      r(8, step ? 15 : 14, 3, step ? 1 : 2, '#c9a77a');
+      for (let y = 0; y < 9; y++) {
+        for (let x = 0; x < 14; x++) {
+          const nx = (x + 0.5 - 7) / 7, ny = (y + 0.5 - 5) / 5;
+          if (nx * nx + ny * ny > 1) continue;
+          const col = nx + ny < -0.6 ? '#f2705f' : ny > 0.4 ? '#a8332b' : '#d8483c';
+          r(x, y, 1, 1, col);
+        }
+      }
+      r(3, 2, 2, 2, '#fff7ea');
+      r(9, 1, 2, 2, '#fff7ea');
+      r(6, 5, 2, 1, '#fff7ea');
+    });
+  }
+
+  // 달빛 여우 (희귀, 20x14, 오른쪽을 봄): 금색 외곽선으로 일반 몬스터와 구분
+  function makeFox(step) {
+    return build(20, 14, (ctx, ox, oy) => {
+      const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
+      const body = '#d9d4ff', shade = '#b4abf0', light = '#efeaff';
+      r(1, 3, 3, 6, body);
+      r(0, 2, 3, 3, '#ffffff');
+      r(3, 6, 10, 4, body);
+      r(3, 9, 10, 1, shade);
+      r(4, 6, 8, 1, light);
+      r(12, 3, 6, 5, body);
+      r(17, 5, 3, 3, light);
+      r(19, 5, 1, 1, '#231c2e');
+      r(15, 5, 1, 1, '#231c2e');
+      r(12, 1, 2, 3, body);
+      r(16, 1, 2, 3, body);
+      r(13, 2, 1, 1, '#ff9fc0');
+      r(17, 2, 1, 1, '#ff9fc0');
+      r(4, 10, 2, step ? 3 : 4, shade);
+      r(6, 10, 2, step ? 4 : 3, shade);
+      r(10, 10, 2, step ? 4 : 3, shade);
+      r(12, 10, 2, step ? 3 : 4, shade);
+    }, '#f2b632');
+  }
+
+  // 플레이어를 감지했을 때 머리 위에 뜨는 느낌표
+  function makeAlert() {
+    return build(3, 8, (ctx, ox, oy) => {
+      rect(ctx, ox, oy, 3, 5, '#ff4d4d');
+      rect(ctx, ox, oy + 6, 3, 2, '#ff4d4d');
+    });
+  }
+
+  function monsterSet(make) {
+    const right = [make(0), make(1)];
+    return { right, left: right.map(flip) };
+  }
+
+  // 잔디 무늬 타일 (메뉴 배경, 썸네일용)
+  function makeGrassPattern(w, h) {
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext('2d');
+    const cols = ['#6cbb48', '#62ae40', '#78c755', '#58a23a'];
+    for (let y = 0; y < h; y += 2) {
+      for (let x = 0; x < w; x += 2) {
+        const n = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
+        rect(ctx, x, y, 2, 2, n < 0.55 ? cols[0] : n < 0.8 ? cols[1] : n < 0.93 ? cols[2] : cols[3]);
+      }
+    }
+    return c;
+  }
+
   const playerFront = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'down', legs)));
   const playerBack = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'up', legs)));
   const playerSide = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'side', legs)));
@@ -436,6 +614,13 @@ const Sprites = (() => {
     trees: [makeTree(8.5), makeTree(7.4)],
     rocks: [makeRock(0), makeRock(4), makeRock(8)],
     bushes: [makeBush(0), makeBush(7)],
+    monsters: {
+      slime: monsterSet(makeSlime),
+      mushroom: monsterSet(makeMushroom),
+      fox: monsterSet(makeFox),
+    },
+    alert: makeAlert(),
+    makeGrassPattern,
   };
 })();
 </script>
@@ -447,24 +632,33 @@ const Sprites = (() => {
 //   cols / rows      : 맵 크기(타일 수)
 //   spawn            : 시작 위치(타일 좌표)
 //   gen              : 맵 생성 설정(시드, 길 웨이포인트, 오브젝트 개수)
+//   monsters         : 몬스터 출현 규칙(유지 수, 재출현 시간, 최소 출현 거리, 수명)
+//                      종류별 출현 확률/최대 수는 monster-data.js 에서 설정
 const Regions = [
   {
     id: 'greenforest',
     name: '초록숲',
     desc: '나무와 풀이 우거진 고요한 숲. 길을 따라 걸으며 천천히 둘러보자.',
     color: '#6fbf4a',
-    thumb: ['trees', 'trees'],
-    cols: 60,
-    rows: 60,
-    spawn: { tx: 30, ty: 54 },
+    // 썸네일 장면: [스프라이트 키, 변형 번호, x, y]
+    thumb: [['trees', 1, 25, 6], ['trees', 0, 1, 12], ['monsters.slime', 0, 16, 30]],
+    cols: 34,
+    rows: 42,
+    spawn: { tx: 17, ty: 37 },
     gen: {
       seed: 20260,
-      path: [[30, 55], [30, 44], [15, 39], [15, 24], [30, 16], [45, 24], [45, 40], [30, 44]],
-      forests: 8,
-      rockClusters: 10,
-      bushes: 90,
-      tallGrass: 16,
-      flowers: 160,
+      path: [[17, 38], [17, 31], [8, 28], [8, 17], [17, 12], [26, 17], [26, 28], [17, 31]],
+      forests: 4,
+      rockClusters: 5,
+      bushes: 40,
+      tallGrass: 8,
+      flowers: 80,
+    },
+    monsters: {
+      target: 6,              // 필드에 유지할 몬스터 수
+      respawn: [5, 9],        // 빈자리가 생긴 뒤 새로 출현하기까지 걸리는 시간(초)
+      minSpawnDist: 80,       // 플레이어와 최소 거리(px)
+      lifetime: [40, 80],     // 몬스터가 필드에 머무는 시간(초)
     },
   },
   {
@@ -484,6 +678,70 @@ const Regions = [
 ];
 </script>
   <script>
+// 몬스터 데이터. 새 몬스터는 MonsterData 에 항목만 추가하면 된다.
+//   rarity       : MonsterRarities 의 키
+//   regions      : 등장 지역 id 목록
+//   spawnChance  : 출현 가중치 (클수록 자주, 지역 내 후보끼리 비교)
+//   maxCount     : 동시에 필드에 존재할 수 있는 최대 수
+//   stats        : 기본 능력치 (전투 구현 시 사용)
+//   moveSpeed    : 이동 속도 (px/s)
+//   detectRange  : 플레이어 감지 거리 (px)
+//   sprite       : Sprites.monsters 의 키
+//   wanderRadius : 배회 반경 (px, 생략 시 40)
+//   lifetime     : [최소, 최대] 초 (생략 시 지역 규칙 사용)
+
+// 등급 정의. 엘리트/필드 보스는 여기에 항목을 추가하는 방식으로 확장한다.
+const MonsterRarities = {
+  normal: { label: '일반', nameColor: '#ffffff', mark: '' },
+  rare: { label: '희귀', nameColor: '#ffd84a', mark: '★', sparkle: true },
+  // elite: { label: '엘리트', ... },
+  // boss:  { label: '필드 보스', ... },
+};
+
+const MonsterData = [
+  {
+    id: 'blue_slime',
+    name: '푸른 슬라임',
+    rarity: 'normal',
+    regions: ['greenforest'],
+    spawnChance: 50,
+    maxCount: 4,
+    stats: { hp: 20, atk: 4, def: 2, spd: 3 },
+    moveSpeed: 16,
+    detectRange: 56,
+    sprite: 'slime',
+    wanderRadius: 36,
+  },
+  {
+    id: 'mushroom_kid',
+    name: '버섯돌이',
+    rarity: 'normal',
+    regions: ['greenforest'],
+    spawnChance: 35,
+    maxCount: 3,
+    stats: { hp: 28, atk: 6, def: 3, spd: 2 },
+    moveSpeed: 13,
+    detectRange: 48,
+    sprite: 'mushroom',
+    wanderRadius: 44,
+  },
+  {
+    id: 'moon_fox',
+    name: '달빛 여우',
+    rarity: 'rare',
+    regions: ['greenforest'],
+    spawnChance: 4,
+    maxCount: 1,
+    stats: { hp: 45, atk: 9, def: 4, spd: 9 },
+    moveSpeed: 26,
+    detectRange: 72,
+    sprite: 'fox',
+    wanderRadius: 60,
+    lifetime: [30, 50],
+  },
+];
+</script>
+  <script>
 // 타일 기반 탐험 맵: 지형 생성, 장애물 배치, 바닥 렌더링, 충돌 판정
 const World = (() => {
   const TILE = 16;
@@ -499,6 +757,7 @@ const World = (() => {
   const GRASS_C = [[108, 186, 76], [100, 178, 70], [122, 200, 90], [86, 160, 62]];
   const TALL_C = [[78, 150, 56], [70, 140, 50]];
   const TALL_BLADE = [104, 180, 74];
+  const PATH_RIM = [176, 140, 88];
   const PATH_C = [[218, 188, 126], [208, 176, 114], [226, 202, 146], [190, 156, 100]];
   const FLOWER_COLORS = ['#fff6e0', '#ffd84a', '#ff8fb1', '#b3a6ff'];
 
@@ -678,12 +937,16 @@ const World = (() => {
       for (let px = 0; px < W; px++) {
         const tx = px >> 4, ty = py >> 4, lx = px & 15, ly = py & 15;
         let k = kind[idx(tx, ty)];
-        if (k === PATH && edgeOfPath(tx, ty, lx, ly) && hash(px, py, 9) < 0.5) k = GRASS;
+        let rim = false;
+        if (k === PATH && edgeOfPath(tx, ty, lx, ly)) {
+          if (hash(px, py, 9) < 0.5) k = GRASS;
+          else rim = true;
+        }
 
         let c;
         if (k === PATH) {
           const n = hash(px >> 1, py >> 1, 4);
-          c = n < 0.55 ? PATH_C[0] : n < 0.8 ? PATH_C[1] : n < 0.92 ? PATH_C[2] : PATH_C[3];
+          c = rim && n < 0.75 ? PATH_RIM : n < 0.55 ? PATH_C[0] : n < 0.8 ? PATH_C[1] : n < 0.92 ? PATH_C[2] : PATH_C[3];
         } else if (k === TALL) {
           c = hash(px >> 1, py >> 1, 6) < 0.6 ? TALL_C[0] : TALL_C[1];
           if (hash(px, py, 7) > 0.93) c = TALL_BLADE;
@@ -697,6 +960,22 @@ const World = (() => {
       }
     }
     g.putImageData(img, 0, 0);
+
+    // 풀 다발: 단조로운 바닥에 질감을 더한다
+    for (let ty = 0; ty < ROWS; ty++) {
+      for (let tx = 0; tx < COLS; tx++) {
+        if (kind[idx(tx, ty)] !== GRASS || solid[idx(tx, ty)] || hash(tx, ty, 31) > 0.35) continue;
+        const x = tx * TILE + 3 + Math.floor(hash(tx, ty, 32) * 9);
+        const y = ty * TILE + 4 + Math.floor(hash(tx, ty, 33) * 8);
+        g.fillStyle = '#4c9a38';
+        g.fillRect(x, y, 1, 3);
+        g.fillRect(x + 2, y - 1, 1, 4);
+        g.fillRect(x + 4, y + 1, 1, 2);
+        g.fillStyle = '#8fd96a';
+        g.fillRect(x, y - 1, 1, 1);
+        g.fillRect(x + 2, y - 2, 1, 1);
+      }
+    }
 
     // 꽃
     for (const f of flowers) {
@@ -762,6 +1041,221 @@ const World = (() => {
     blocked,
     get ground() { return ground; },
   };
+})();
+</script>
+  <script>
+// 필드 몬스터: 출현 / 소멸 / 행동(대기·배회·추적·복귀) / 충돌
+const Monsters = (() => {
+  const HALF_W = 4;          // 몬스터 발 판정 박스
+  const FEET_H = 3;
+  const R_PLAYER = 10;       // 플레이어와 유지할 최소 간격
+  const R_MONSTER = 9;       // 몬스터끼리 유지할 최소 간격
+  const STOP_DIST = 13;      // 추적 중 이 거리 안이면 멈춘다
+  const FADE_TIME = 0.8;
+
+  const entities = [];
+  let region = null;
+  let rules = null;
+  let respawnTimer = 0;
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
+
+  function defsFor() {
+    return MonsterData.filter((d) => d.regions.includes(region.id));
+  }
+
+  function countOf(id) {
+    let n = 0;
+    for (const m of entities) if (m.def.id === id) n++;
+    return n;
+  }
+
+  // 출현 확률(spawnChance)에 따라 몬스터 종류를 뽑는다. 최대 수에 찬 종류는 제외
+  function rollDef() {
+    const c = defsFor().filter((d) => countOf(d.id) < d.maxCount);
+    const total = c.reduce((sum, d) => sum + d.spawnChance, 0);
+    if (!total) return null;
+    let r = Math.random() * total;
+    for (const d of c) {
+      r -= d.spawnChance;
+      if (r <= 0) return d;
+    }
+    return c[c.length - 1];
+  }
+
+  const inRect = (x, y, rect, margin) =>
+    x > rect.x - margin && x < rect.x + rect.w + margin &&
+    y > rect.y - margin && y < rect.y + rect.h + margin;
+
+  // 화면 밖이고 플레이어와 충분히 떨어졌으며 장애물이 없는 자리를 찾는다
+  function findSpawnPoint(player, rect) {
+    for (let i = 0; i < 60; i++) {
+      const tx = 3 + Math.floor(Math.random() * (World.COLS - 6));
+      const ty = 3 + Math.floor(Math.random() * (World.ROWS - 6));
+      const x = tx * World.TILE + 8, y = ty * World.TILE + 12;
+      if (World.blocked(x - HALF_W - 3, y - FEET_H - 3, x + HALF_W + 3, y + 4)) continue;
+      if (inRect(x, y, rect, 32)) continue;
+      if (dist(x, y, player.x, player.y) < rules.minSpawnDist) continue;
+      if (entities.some((m) => dist(x, y, m.x, m.y) < 24)) continue;
+      return { x, y };
+    }
+    return null;
+  }
+
+  function spawnOne(player, rect) {
+    if (entities.length >= rules.target) return false;
+    const def = rollDef();
+    if (!def) return false;
+    const pt = findSpawnPoint(player, rect);
+    if (!pt) return false;
+    const life = def.lifetime || rules.lifetime;
+    entities.push({
+      def, x: pt.x, y: pt.y, home: { x: pt.x, y: pt.y },
+      state: 'idle', timer: rnd(0.5, 2.5), tx: 0, ty: 0, wanderT: 0,
+      dir: Math.random() < 0.5 ? 1 : -1, animT: Math.random() * 3, frame: 0, moving: false,
+      life: rnd(life[0], life[1]), fading: false, fade: 1, alert: 0, dead: false,
+    });
+    return true;
+  }
+
+  function tryMove(m, nx, ny, player) {
+    if (World.blocked(nx - HALF_W, ny - FEET_H, nx + HALF_W, ny + 1)) return false;
+    const dOld = dist(m.x, m.y, player.x, player.y);
+    const dNew = dist(nx, ny, player.x, player.y);
+    if (dNew < R_PLAYER && dNew < dOld) return false;
+    for (const o of entities) {
+      if (o === m) continue;
+      const a = dist(m.x, m.y, o.x, o.y), b = dist(nx, ny, o.x, o.y);
+      if (b < R_MONSTER && b < a) return false;
+    }
+    m.x = nx;
+    m.y = ny;
+    return true;
+  }
+
+  // 목표 지점으로 이동. 축을 나눠 이동하므로 장애물에 닿아도 벽을 따라 미끄러진다
+  function moveToward(m, tx, ty, speed, dt, player) {
+    const dx = tx - m.x, dy = ty - m.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 0.01) return false;
+    const vx = (dx / d) * speed * dt, vy = (dy / d) * speed * dt;
+    let moved = false;
+    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(vx), Math.abs(vy)) / 0.5));
+    for (let i = 0; i < steps; i++) {
+      if (tryMove(m, m.x + vx / steps, m.y, player)) moved = true;
+      if (tryMove(m, m.x, m.y + vy / steps, player)) moved = true;
+    }
+    if (Math.abs(dx) > 0.5) m.dir = dx > 0 ? 1 : -1;
+    return moved;
+  }
+
+  function pickWander(m) {
+    const radius = m.def.wanderRadius || 40;
+    const a = Math.random() * Math.PI * 2;
+    const r = rnd(12, radius);
+    const tx = m.home.x + Math.cos(a) * r, ty = m.home.y + Math.sin(a) * r;
+    if (World.blocked(tx - HALF_W, ty - FEET_H, tx + HALF_W, ty + 1)) return false;
+    m.tx = tx;
+    m.ty = ty;
+    m.wanderT = 3;
+    m.state = 'wander';
+    return true;
+  }
+
+  function updateMonster(m, dt, player, rect) {
+    const def = m.def;
+    m.alert = Math.max(0, m.alert - dt);
+    m.animT += dt;
+
+    if (m.fading) {
+      m.fade -= dt / FADE_TIME;
+      if (m.fade <= 0) m.dead = true;
+      return;
+    }
+
+    const d = dist(m.x, m.y, player.x, player.y);
+
+    // 감지 / 추적 해제
+    if (m.state !== 'chase' && d < def.detectRange) {
+      m.state = 'chase';
+      m.alert = 0.8;
+    } else if (m.state === 'chase' && d > def.detectRange * 1.5) {
+      m.state = 'return';
+    }
+
+    let moved = false;
+    if (m.state === 'chase') {
+      if (d > STOP_DIST) moved = moveToward(m, player.x, player.y, def.moveSpeed, dt, player);
+      else if (Math.abs(player.x - m.x) > 0.5) m.dir = player.x > m.x ? 1 : -1;
+    } else if (m.state === 'return') {
+      if (dist(m.x, m.y, m.home.x, m.home.y) < 3) {
+        m.state = 'idle';
+        m.timer = rnd(1, 2);
+      } else {
+        moved = moveToward(m, m.home.x, m.home.y, def.moveSpeed * 0.7, dt, player);
+      }
+    } else if (m.state === 'wander') {
+      m.wanderT -= dt;
+      if (m.wanderT <= 0 || dist(m.x, m.y, m.tx, m.ty) < 2) {
+        m.state = 'idle';
+        m.timer = rnd(1, 3);
+      } else {
+        moved = moveToward(m, m.tx, m.ty, def.moveSpeed * 0.45, dt, player);
+      }
+    } else {
+      m.timer -= dt;
+      if (m.timer <= 0 && !pickWander(m)) m.timer = rnd(1, 2);
+    }
+
+    m.moving = moved;
+    m.frame = Math.floor(m.animT * (moved ? 6 : 2)) % 2;
+
+    // 수명이 다하면 사라진다: 화면 밖이면 바로, 화면 안이면 서서히 투명해진다
+    m.life -= dt;
+    if (m.life <= 0 && m.state !== 'chase') {
+      if (inRect(m.x, m.y, rect, 24)) m.fading = true;
+      else m.dead = true;
+    }
+  }
+
+  function update(dt, player, rect) {
+    // 비어 있으면 일정 시간 뒤에 새 몬스터 출현
+    if (entities.length >= rules.target) {
+      respawnTimer = rnd(rules.respawn[0], rules.respawn[1]);
+    } else {
+      respawnTimer -= dt;
+      if (respawnTimer <= 0) {
+        respawnTimer = spawnOne(player, rect) ? rnd(rules.respawn[0], rules.respawn[1]) : 1.5;
+      }
+    }
+    for (const m of entities) updateMonster(m, dt, player, rect);
+    for (let i = entities.length - 1; i >= 0; i--) if (entities[i].dead) entities.splice(i, 1);
+  }
+
+  // 플레이어가 몬스터 쪽으로 파고드는 이동인지 확인
+  function blocksPlayer(nx, ny, px, py) {
+    for (const m of entities) {
+      if (m.fading) continue;
+      const dNew = dist(nx, ny, m.x, m.y);
+      if (dNew < R_PLAYER && dNew < dist(px, py, m.x, m.y)) return true;
+    }
+    return false;
+  }
+
+  function init(reg, player, rect) {
+    region = reg;
+    rules = reg.monsters;
+    entities.length = 0;
+    respawnTimer = rnd(rules.respawn[0], rules.respawn[1]);
+    for (let i = 0; i < rules.target; i++) spawnOne(player, rect);
+  }
+
+  function clear() {
+    entities.length = 0;
+  }
+
+  return { entities, init, clear, update, blocksPlayer, rollDef };
 })();
 </script>
   <script>
@@ -847,7 +1341,7 @@ const Input = (() => {
   const HEIGHT_FEET = 3;             // 발 판정 박스 높이
   const BG = '#1c2b1f';
 
-  const view = { w: 0, h: 0, zoom: 1, sx: 1, sy: 1 }; // sx, sy: 논리 픽셀 -> 실제 기기 픽셀 배율
+  const view = { w: 0, h: 0, zoom: 1, sx: 1, sy: 1, dpr: 1 }; // sx, sy: 논리 픽셀 -> 실제 기기 픽셀 배율
   const cam = { x: 0, y: 0 };
   const player = { x: 0, y: 0, vx: 0, vy: 0, dir: 'down', walkT: 0, frame: 2 };
 
@@ -865,6 +1359,7 @@ const Input = (() => {
   function fit() {
     const cw = window.innerWidth, ch = window.innerHeight;
     const dpr = window.devicePixelRatio || 1;
+    view.dpr = dpr;
     view.zoom = Math.max(1, Math.min(Math.floor(cw / 160), Math.floor(ch / 200)));
     view.w = Math.floor(cw / view.zoom);
     view.h = Math.floor(ch / view.zoom);
@@ -897,7 +1392,8 @@ const Input = (() => {
     for (let i = 0; i < steps; i++) {
       const nx = axis === 'x' ? player.x + s : player.x;
       const ny = axis === 'y' ? player.y + s : player.y;
-      if (World.blocked(nx - HALF_W, ny - HEIGHT_FEET, nx + HALF_W, ny + 1)) {
+      if (World.blocked(nx - HALF_W, ny - HEIGHT_FEET, nx + HALF_W, ny + 1) ||
+          Monsters.blocksPlayer(nx, ny, player.x, player.y)) {
         if (axis === 'x') player.vx = 0; else player.vy = 0;
         return;
       }
@@ -947,23 +1443,83 @@ const Input = (() => {
     const ox = snapX(cam.x), oy = snapY(cam.y);
     if (World.ground) ctx.drawImage(World.ground, -ox, -oy);
 
-    // 플레이어는 카메라와 같은 원본 좌표 차이로 그려 화면 위치가 흔들리지 않는다
-    const img = Sprites.player[player.dir][player.frame];
-    const psx = snapX(player.x - 7 - cam.x);
-    const psy = snapY(player.y - 17 - cam.y);
+    // 플레이어/몬스터는 카메라와 같은 원본 좌표 차이로 그려 화면 위치가 흔들리지 않는다
+    const dyn = [{ y: player.y, draw: drawPlayer }];
+    for (const m of Monsters.entities) dyn.push({ y: m.y, draw: () => drawMonster(m) });
+    dyn.sort((a, b) => a.y - b.y);
 
-    // 오브젝트는 기준선(baseY) 순서로 그리고, 플레이어와 깊이 순서를 맞춘다
-    let playerDrawn = false;
+    // 오브젝트(baseY)와 움직이는 개체(발 위치 y)를 깊이 순서대로 섞어 그린다
+    let di = 0;
     for (const o of World.objects) {
-      if (!playerDrawn && o.baseY > player.y) {
-        ctx.drawImage(img, psx, psy);
-        playerDrawn = true;
-      }
+      while (di < dyn.length && dyn[di].y < o.baseY) dyn[di++].draw();
       const sx = o.x - ox, sy = o.y - oy;
       if (sx > view.w || sy > view.h || sx + o.w < 0 || sy + o.h < 0) continue;
       ctx.drawImage(o.img, sx, sy);
     }
-    if (!playerDrawn) ctx.drawImage(img, psx, psy);
+    while (di < dyn.length) dyn[di++].draw();
+
+    drawMonsterLabels();
+  }
+
+  function drawPlayer() {
+    const img = Sprites.player[player.dir][player.frame];
+    ctx.drawImage(img, snapX(player.x - 7 - cam.x), snapY(player.y - 17 - cam.y));
+  }
+
+  function drawMonster(m) {
+    const set = Sprites.monsters[m.def.sprite];
+    const img = (m.dir < 0 ? set.left : set.right)[m.frame];
+    const x = snapX(m.x - img.width / 2 - cam.x);
+    const y = snapY(m.y - (img.height - 1) - cam.y);
+    const rarity = MonsterRarities[m.def.rarity];
+
+    ctx.globalAlpha = Math.max(0, m.fade);
+    ctx.drawImage(img, x, y);
+    ctx.globalAlpha = 1;
+
+    if (rarity.sparkle && !m.fading) {
+      // 희귀 몬스터 주변에서 반짝이는 빛
+      const t = performance.now() / 1000;
+      for (let i = 0; i < 3; i++) {
+        const a = t * 2 + i * 2.1;
+        const px = x + img.width / 2 + Math.cos(a) * (img.width * 0.65);
+        const py = y + img.height / 2 + Math.sin(a * 1.3) * (img.height * 0.55);
+        ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 6 + i * 2);
+        ctx.fillStyle = i === 1 ? '#ffffff' : '#ffd84a';
+        ctx.fillRect(snapX(px), snapY(py), 1, 1);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    if (m.alert > 0) {
+      ctx.drawImage(Sprites.alert, snapX(x + img.width - 2), snapY(y - 8));
+    }
+  }
+
+  // 이름표는 기기 해상도로 그려 글자를 선명하게 유지한다. 멀어지면 서서히 사라진다
+  const LABEL_FULL = 80, LABEL_HIDE = 115;
+  function drawMonsterLabels() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = `800 ${Math.round(11 * view.dpr)}px system-ui, -apple-system, "Noto Sans KR", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.lineJoin = 'round';
+    for (const m of Monsters.entities) {
+      const d = Math.hypot(m.x - player.x, m.y - player.y);
+      if (d >= LABEL_HIDE) continue;
+      const rarity = MonsterRarities[m.def.rarity];
+      const img = Sprites.monsters[m.def.sprite].right[0];
+      const x = snapX(m.x - cam.x) * view.sx;
+      const y = snapY(m.y - (img.height - 1) - cam.y) * view.sy - 3 * view.dpr;
+      ctx.globalAlpha = Math.min(1, (LABEL_HIDE - d) / (LABEL_HIDE - LABEL_FULL)) * Math.max(0, m.fade);
+      const text = (rarity.mark ? rarity.mark + ' ' : '') + m.def.name;
+      ctx.lineWidth = 4 * view.dpr;
+      ctx.strokeStyle = 'rgba(20, 28, 22, 0.92)';
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = rarity.nameColor;
+      ctx.fillText(text, x, y);
+    }
+    ctx.globalAlpha = 1;
   }
 
   function frame(now) {
@@ -972,6 +1528,7 @@ const Input = (() => {
     last = now;
     update(dt);
     updateCamera();
+    Monsters.update(dt, player, { x: cam.x, y: cam.y, w: view.w, h: view.h });
     render();
     rafId = requestAnimationFrame(frame);
   }
@@ -993,6 +1550,7 @@ const Input = (() => {
     running = true;
     fit();
     updateCamera();
+    Monsters.init(region, player, { x: cam.x, y: cam.y, w: view.w, h: view.h });
     last = performance.now();
     cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(frame);
@@ -1001,26 +1559,50 @@ const Input = (() => {
   function exitRegion() {
     running = false;
     cancelAnimationFrame(rafId);
+    Monsters.clear();
     Input.reset();
     document.body.dataset.screen = 'menu';
   }
 
   // ---------- 선택 화면 ----------
+  function resolveSprite(key, i) {
+    let o = Sprites;
+    for (const part of key.split('.')) o = o[part];
+    return o.right ? o.right[i] : o[i];
+  }
+
+  // 지역 카드 썸네일: 잔디 바탕에 지역 대표 오브젝트를 배치 (잠긴 지역은 자물쇠)
   function makeThumb(region) {
     const c = document.createElement('canvas');
     c.className = 'thumb';
-    c.width = 48;
-    c.height = 48;
+    c.width = 44;
+    c.height = 44;
     const g = c.getContext('2d');
-    g.fillStyle = region.color;
-    g.fillRect(0, 0, 48, 48);
-    if (!region.locked && region.thumb) {
-      region.thumb.forEach((key, i) => {
-        const s = Sprites[key][0];
-        g.drawImage(s, 3 + i * 22, 48 - s.height - 2 - (i % 2) * 2);
-      });
+    g.drawImage(Sprites.makeGrassPattern(44, 44), 0, 0);
+    if (region.locked) {
+      g.fillStyle = region.color;
+      g.fillRect(0, 0, 44, 44);
+      const r = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+      r(15, 12, 14, 4, '#2a2233'); r(15, 12, 4, 12, '#2a2233'); r(25, 12, 4, 12, '#2a2233');
+      r(16, 13, 2, 11, '#d6dcd8'); r(26, 13, 2, 11, '#d6dcd8'); r(16, 13, 12, 2, '#d6dcd8');
+      r(11, 22, 22, 15, '#2a2233'); r(12, 23, 20, 13, '#c8d0cc'); r(12, 33, 20, 3, '#9aa5a0');
+      r(21, 27, 2, 5, '#2a2233');
+    } else {
+      for (const [key, i, x, y] of region.thumb || []) g.drawImage(resolveSprite(key, i), x, y);
     }
     return c;
+  }
+
+  // 메뉴 배너 그림: 플레이어와 몬스터가 있는 작은 장면
+  function drawHero() {
+    const c = document.getElementById('hero');
+    const g = c.getContext('2d');
+    g.drawImage(Sprites.makeGrassPattern(96, 36), 0, 0);
+    g.drawImage(Sprites.trees[0], 2, 6);
+    g.drawImage(Sprites.trees[1], 74, 8);
+    g.drawImage(Sprites.monsters.mushroom.right[0], 54, 17);
+    g.drawImage(Sprites.monsters.slime.right[0], 38, 22);
+    g.drawImage(Sprites.player.right[2], 22, 16);
   }
 
   function buildMenu() {
@@ -1047,10 +1629,12 @@ const Input = (() => {
 
   document.getElementById('exit-btn').addEventListener('click', exitRegion);
   window.addEventListener('resize', fit);
+  document.getElementById('menu').style.backgroundImage = `url(${Sprites.makeGrassPattern(64, 64).toDataURL()})`;
+  drawHero();
   buildMenu();
 
   // 테스트용 참조
-  window.__game = { player, cam, view, World, enterRegion, exitRegion };
+  window.__game = { player, cam, view, World, Monsters, enterRegion, exitRegion };
 })();
 </script>
 </body>

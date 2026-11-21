@@ -1,3 +1,13 @@
+:root {
+  --ink: #14201a;
+  --panel: #2f5d34;
+  --accent: #8fd46a;
+  /* 픽셀 UI 패널: 모서리가 깎인 두꺼운 테두리 + 위/아래 음영 */
+  --px-edge: 0 -4px 0 0 var(--ink), 0 4px 0 0 var(--ink), -4px 0 0 0 var(--ink), 4px 0 0 0 var(--ink);
+  --px-shade: inset 0 4px 0 0 rgba(255, 255, 255, 0.2), inset 0 -4px 0 0 rgba(0, 0, 0, 0.28);
+  --font: system-ui, -apple-system, "Noto Sans KR", "Malgun Gothic", sans-serif;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -27,7 +37,11 @@ body {
   image-rendering: crisp-edges;
 }
 
-/* 가상 조이스틱: 화면 하단 왼쪽, 터치/마우스 모두 지원 */
+.px {
+  box-shadow: var(--px-edge), var(--px-shade);
+}
+
+/* ---------- 가상 조이스틱 (픽셀 팔각형) ---------- */
 #joy {
   position: fixed;
   left: calc(env(safe-area-inset-left, 0px) + 12px);
@@ -42,29 +56,47 @@ body {
   z-index: 2;
 }
 
+#joy-base,
+#joy-base::before,
+#joy-knob,
+#joy-knob::before {
+  clip-path: polygon(28% 0, 72% 0, 100% 28%, 100% 72%, 72% 100%, 28% 100%, 0 72%, 0 28%);
+}
+
 #joy-base {
   position: relative;
   width: 120px;
   height: 120px;
-  border-radius: 50%;
-  background: rgba(18, 30, 20, 0.32);
-  border: 3px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+#joy-base::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  background: rgba(16, 28, 18, 0.6);
 }
 
 #joy-knob {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 48px;
-  height: 48px;
-  margin: -24px 0 0 -24px;
-  background: rgba(255, 255, 255, 0.75);
-  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  background: #14201a;
   pointer-events: none;
 }
 
-/* 화면 전환: 메뉴 / 플레이 */
+#joy-knob::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background: #e9f5df;
+  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18);
+}
+
+/* ---------- 화면 전환 ---------- */
 body[data-screen="menu"] #game,
 body[data-screen="menu"] #joy,
 body[data-screen="menu"] #hud,
@@ -72,7 +104,7 @@ body[data-screen="play"] #menu {
   display: none;
 }
 
-/* 탐험 중 상단 UI */
+/* ---------- 탐험 중 상단 UI ---------- */
 #hud {
   position: fixed;
   top: 0;
@@ -82,47 +114,63 @@ body[data-screen="play"] #menu {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 12px) 0 calc(env(safe-area-inset-left, 0px) + 12px);
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) calc(env(safe-area-inset-right, 0px) + 16px) 0 calc(env(safe-area-inset-left, 0px) + 16px);
   pointer-events: none;
   z-index: 3;
   color: #fff;
-  font: 700 16px/1 system-ui, -apple-system, "Noto Sans KR", sans-serif;
+  font: 800 16px/1 var(--font);
 }
 
 #hud-name,
 #exit-btn {
   pointer-events: auto;
-  background: rgba(20, 30, 22, 0.72);
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
-  color: inherit;
+  border: 0;
+  margin: 0;
+  color: #f4fbe9;
   font: inherit;
-  padding: 0 14px;
-  height: 40px;
+  padding: 0 16px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
+  box-shadow: var(--px-edge), var(--px-shade);
+}
+
+#hud-name {
+  background: #24472a;
+  letter-spacing: 1px;
+}
+
+#hud-name::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  margin-right: 9px;
+  background: var(--accent);
+  box-shadow: 0 -2px 0 var(--accent), 0 2px 0 var(--accent), -2px 0 0 var(--accent), 2px 0 0 var(--accent);
 }
 
 #exit-btn {
+  background: #a8433a;
   cursor: pointer;
   touch-action: manipulation;
 }
 
 #exit-btn:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+  transform: translateY(3px);
 }
 
-/* 탐험지 선택 화면 */
+/* ---------- 탐험지 선택 화면 ---------- */
 #menu {
   position: fixed;
   inset: 0;
   overflow-y: auto;
-  background: #1c2b1f;
+  background-color: #5aa23c;
+  background-size: 128px 128px;
+  image-rendering: pixelated;
   color: #f3f7ea;
   touch-action: pan-y;
-  padding: calc(env(safe-area-inset-top, 0px) + 28px) 16px calc(env(safe-area-inset-bottom, 0px) + 28px);
-  font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif;
+  padding: calc(env(safe-area-inset-top, 0px) + 30px) 20px calc(env(safe-area-inset-bottom, 0px) + 36px);
+  font-family: var(--font);
 }
 
 .menu-inner {
@@ -130,16 +178,36 @@ body[data-screen="play"] #menu {
   margin: 0 auto;
 }
 
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #1f3a24;
+  padding: 14px 16px;
+  margin-bottom: 26px;
+}
+
+#hero {
+  width: 144px;
+  height: 54px;
+  flex: none;
+  image-rendering: pixelated;
+}
+
 #menu h1 {
   margin: 0 0 6px;
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--accent);
+  text-shadow: 2px 2px 0 var(--ink);
+  letter-spacing: 1px;
 }
 
 .menu-sub {
-  margin: 0 0 20px;
-  color: #b9c8b0;
-  font-size: 15px;
+  margin: 0;
+  color: #cddfc3;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 #region-list {
@@ -147,78 +215,78 @@ body[data-screen="play"] #menu {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 14px;
+  gap: 22px;
 }
 
 .region-card {
   width: 100%;
   display: grid;
-  grid-template-columns: 72px 1fr;
+  grid-template-columns: 88px 1fr;
   gap: 14px;
   align-items: center;
   text-align: left;
-  padding: 12px;
-  background: #2f5d34;
+  padding: 14px;
+  border: 0;
+  background: var(--panel);
   color: inherit;
-  border: 3px solid #8fd46a;
-  box-shadow: 0 4px 0 #14201a;
   font: inherit;
   cursor: pointer;
   touch-action: manipulation;
+  box-shadow: var(--px-edge), var(--px-shade);
 }
 
 .region-card:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 #14201a;
+  transform: translateY(4px);
 }
 
 .region-card .thumb {
-  width: 72px;
-  height: 72px;
+  width: 88px;
+  height: 88px;
   image-rendering: pixelated;
-  border: 2px solid #2a2233;
   display: block;
+  box-shadow: 0 0 0 3px var(--ink);
 }
 
 .region-card h2 {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   font-size: 19px;
+  font-weight: 900;
+  text-shadow: 2px 2px 0 var(--ink);
 }
 
 .region-card p {
   margin: 0;
   font-size: 13px;
   line-height: 1.45;
-  color: #d5e3cc;
+  color: #d5e6cb;
 }
 
 .badge {
   display: inline-block;
-  margin-top: 8px;
-  padding: 3px 8px;
+  margin-top: 10px;
+  padding: 4px 9px;
   font-size: 12px;
-  font-weight: 700;
-  background: #8fd46a;
-  color: #14201a;
+  font-weight: 900;
+  background: var(--accent);
+  color: var(--ink);
+  box-shadow: 0 -2px 0 0 var(--ink), 0 2px 0 0 var(--ink), -2px 0 0 0 var(--ink), 2px 0 0 0 var(--ink);
 }
 
 .region-card.locked {
-  background: #2b3430;
-  border-color: #4a5551;
-  box-shadow: 0 4px 0 #161c19;
-  color: #8a9690;
+  background: #3c4742;
+  color: #a2aea8;
   cursor: not-allowed;
 }
 
-.region-card.locked p {
-  color: #7d8984;
+.region-card.locked h2 {
+  text-shadow: 2px 2px 0 #1b2420;
 }
 
-.region-card.locked .thumb {
-  filter: grayscale(1) brightness(0.6);
+.region-card.locked p {
+  color: #8f9b95;
 }
 
 .region-card.locked .badge {
-  background: #4a5551;
-  color: #c3cdc8;
+  background: #59655f;
+  color: #dbe3df;
 }

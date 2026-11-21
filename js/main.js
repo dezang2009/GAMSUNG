@@ -9,7 +9,7 @@
   const HEIGHT_FEET = 3;             // 발 판정 박스 높이
   const BG = '#1c2b1f';
 
-  const view = { w: 0, h: 0, zoom: 1, sx: 1, sy: 1 }; // sx, sy: 논리 픽셀 -> 실제 기기 픽셀 배율
+  const view = { w: 0, h: 0, zoom: 1, sx: 1, sy: 1, dpr: 1 }; // sx, sy: 논리 픽셀 -> 실제 기기 픽셀 배율
   const cam = { x: 0, y: 0 };
   const player = { x: 0, y: 0, vx: 0, vy: 0, dir: 'down', walkT: 0, frame: 2 };
 
@@ -27,6 +27,7 @@
   function fit() {
     const cw = window.innerWidth, ch = window.innerHeight;
     const dpr = window.devicePixelRatio || 1;
+    view.dpr = dpr;
     view.zoom = Math.max(1, Math.min(Math.floor(cw / 160), Math.floor(ch / 200)));
     view.w = Math.floor(cw / view.zoom);
     view.h = Math.floor(ch / view.zoom);
@@ -59,7 +60,8 @@
     for (let i = 0; i < steps; i++) {
       const nx = axis === 'x' ? player.x + s : player.x;
       const ny = axis === 'y' ? player.y + s : player.y;
-      if (World.blocked(nx - HALF_W, ny - HEIGHT_FEET, nx + HALF_W, ny + 1)) {
+      if (World.blocked(nx - HALF_W, ny - HEIGHT_FEET, nx + HALF_W, ny + 1) ||
+          Monsters.blocksPlayer(nx, ny, player.x, player.y)) {
         if (axis === 'x') player.vx = 0; else player.vy = 0;
         return;
       }
@@ -109,23 +111,83 @@
     const ox = snapX(cam.x), oy = snapY(cam.y);
     if (World.ground) ctx.drawImage(World.ground, -ox, -oy);
 
-    // 플레이어는 카메라와 같은 원본 좌표 차이로 그려 화면 위치가 흔들리지 않는다
-    const img = Sprites.player[player.dir][player.frame];
-    const psx = snapX(player.x - 7 - cam.x);
-    const psy = snapY(player.y - 17 - cam.y);
+    // 플레이어/몬스터는 카메라와 같은 원본 좌표 차이로 그려 화면 위치가 흔들리지 않는다
+    const dyn = [{ y: player.y, draw: drawPlayer }];
+    for (const m of Monsters.entities) dyn.push({ y: m.y, draw: () => drawMonster(m) });
+    dyn.sort((a, b) => a.y - b.y);
 
-    // 오브젝트는 기준선(baseY) 순서로 그리고, 플레이어와 깊이 순서를 맞춘다
-    let playerDrawn = false;
+    // 오브젝트(baseY)와 움직이는 개체(발 위치 y)를 깊이 순서대로 섞어 그린다
+    let di = 0;
     for (const o of World.objects) {
-      if (!playerDrawn && o.baseY > player.y) {
-        ctx.drawImage(img, psx, psy);
-        playerDrawn = true;
-      }
+      while (di < dyn.length && dyn[di].y < o.baseY) dyn[di++].draw();
       const sx = o.x - ox, sy = o.y - oy;
       if (sx > view.w || sy > view.h || sx + o.w < 0 || sy + o.h < 0) continue;
       ctx.drawImage(o.img, sx, sy);
     }
-    if (!playerDrawn) ctx.drawImage(img, psx, psy);
+    while (di < dyn.length) dyn[di++].draw();
+
+    drawMonsterLabels();
+  }
+
+  function drawPlayer() {
+    const img = Sprites.player[player.dir][player.frame];
+    ctx.drawImage(img, snapX(player.x - 7 - cam.x), snapY(player.y - 17 - cam.y));
+  }
+
+  function drawMonster(m) {
+    const set = Sprites.monsters[m.def.sprite];
+    const img = (m.dir < 0 ? set.left : set.right)[m.frame];
+    const x = snapX(m.x - img.width / 2 - cam.x);
+    const y = snapY(m.y - (img.height - 1) - cam.y);
+    const rarity = MonsterRarities[m.def.rarity];
+
+    ctx.globalAlpha = Math.max(0, m.fade);
+    ctx.drawImage(img, x, y);
+    ctx.globalAlpha = 1;
+
+    if (rarity.sparkle && !m.fading) {
+      // 희귀 몬스터 주변에서 반짝이는 빛
+      const t = performance.now() / 1000;
+      for (let i = 0; i < 3; i++) {
+        const a = t * 2 + i * 2.1;
+        const px = x + img.width / 2 + Math.cos(a) * (img.width * 0.65);
+        const py = y + img.height / 2 + Math.sin(a * 1.3) * (img.height * 0.55);
+        ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 6 + i * 2);
+        ctx.fillStyle = i === 1 ? '#ffffff' : '#ffd84a';
+        ctx.fillRect(snapX(px), snapY(py), 1, 1);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    if (m.alert > 0) {
+      ctx.drawImage(Sprites.alert, snapX(x + img.width - 2), snapY(y - 8));
+    }
+  }
+
+  // 이름표는 기기 해상도로 그려 글자를 선명하게 유지한다. 멀어지면 서서히 사라진다
+  const LABEL_FULL = 80, LABEL_HIDE = 115;
+  function drawMonsterLabels() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = `800 ${Math.round(11 * view.dpr)}px system-ui, -apple-system, "Noto Sans KR", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.lineJoin = 'round';
+    for (const m of Monsters.entities) {
+      const d = Math.hypot(m.x - player.x, m.y - player.y);
+      if (d >= LABEL_HIDE) continue;
+      const rarity = MonsterRarities[m.def.rarity];
+      const img = Sprites.monsters[m.def.sprite].right[0];
+      const x = snapX(m.x - cam.x) * view.sx;
+      const y = snapY(m.y - (img.height - 1) - cam.y) * view.sy - 3 * view.dpr;
+      ctx.globalAlpha = Math.min(1, (LABEL_HIDE - d) / (LABEL_HIDE - LABEL_FULL)) * Math.max(0, m.fade);
+      const text = (rarity.mark ? rarity.mark + ' ' : '') + m.def.name;
+      ctx.lineWidth = 4 * view.dpr;
+      ctx.strokeStyle = 'rgba(20, 28, 22, 0.92)';
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = rarity.nameColor;
+      ctx.fillText(text, x, y);
+    }
+    ctx.globalAlpha = 1;
   }
 
   function frame(now) {
@@ -134,6 +196,7 @@
     last = now;
     update(dt);
     updateCamera();
+    Monsters.update(dt, player, { x: cam.x, y: cam.y, w: view.w, h: view.h });
     render();
     rafId = requestAnimationFrame(frame);
   }
@@ -155,6 +218,7 @@
     running = true;
     fit();
     updateCamera();
+    Monsters.init(region, player, { x: cam.x, y: cam.y, w: view.w, h: view.h });
     last = performance.now();
     cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(frame);
@@ -163,26 +227,50 @@
   function exitRegion() {
     running = false;
     cancelAnimationFrame(rafId);
+    Monsters.clear();
     Input.reset();
     document.body.dataset.screen = 'menu';
   }
 
   // ---------- 선택 화면 ----------
+  function resolveSprite(key, i) {
+    let o = Sprites;
+    for (const part of key.split('.')) o = o[part];
+    return o.right ? o.right[i] : o[i];
+  }
+
+  // 지역 카드 썸네일: 잔디 바탕에 지역 대표 오브젝트를 배치 (잠긴 지역은 자물쇠)
   function makeThumb(region) {
     const c = document.createElement('canvas');
     c.className = 'thumb';
-    c.width = 48;
-    c.height = 48;
+    c.width = 44;
+    c.height = 44;
     const g = c.getContext('2d');
-    g.fillStyle = region.color;
-    g.fillRect(0, 0, 48, 48);
-    if (!region.locked && region.thumb) {
-      region.thumb.forEach((key, i) => {
-        const s = Sprites[key][0];
-        g.drawImage(s, 3 + i * 22, 48 - s.height - 2 - (i % 2) * 2);
-      });
+    g.drawImage(Sprites.makeGrassPattern(44, 44), 0, 0);
+    if (region.locked) {
+      g.fillStyle = region.color;
+      g.fillRect(0, 0, 44, 44);
+      const r = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+      r(15, 12, 14, 4, '#2a2233'); r(15, 12, 4, 12, '#2a2233'); r(25, 12, 4, 12, '#2a2233');
+      r(16, 13, 2, 11, '#d6dcd8'); r(26, 13, 2, 11, '#d6dcd8'); r(16, 13, 12, 2, '#d6dcd8');
+      r(11, 22, 22, 15, '#2a2233'); r(12, 23, 20, 13, '#c8d0cc'); r(12, 33, 20, 3, '#9aa5a0');
+      r(21, 27, 2, 5, '#2a2233');
+    } else {
+      for (const [key, i, x, y] of region.thumb || []) g.drawImage(resolveSprite(key, i), x, y);
     }
     return c;
+  }
+
+  // 메뉴 배너 그림: 플레이어와 몬스터가 있는 작은 장면
+  function drawHero() {
+    const c = document.getElementById('hero');
+    const g = c.getContext('2d');
+    g.drawImage(Sprites.makeGrassPattern(96, 36), 0, 0);
+    g.drawImage(Sprites.trees[0], 2, 6);
+    g.drawImage(Sprites.trees[1], 74, 8);
+    g.drawImage(Sprites.monsters.mushroom.right[0], 54, 17);
+    g.drawImage(Sprites.monsters.slime.right[0], 38, 22);
+    g.drawImage(Sprites.player.right[2], 22, 16);
   }
 
   function buildMenu() {
@@ -209,8 +297,10 @@
 
   document.getElementById('exit-btn').addEventListener('click', exitRegion);
   window.addEventListener('resize', fit);
+  document.getElementById('menu').style.backgroundImage = `url(${Sprites.makeGrassPattern(64, 64).toDataURL()})`;
+  drawHero();
   buildMenu();
 
   // 테스트용 참조
-  window.__game = { player, cam, view, World, enterRegion, exitRegion };
+  window.__game = { player, cam, view, World, Monsters, enterRegion, exitRegion };
 })();
