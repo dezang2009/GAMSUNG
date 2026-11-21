@@ -15,6 +15,7 @@
   const player = { x: 0, y: 0, vx: 0, vy: 0, dir: 'down', walkT: 0, frame: 2 };
 
   let running = false;
+  let paused = false;     // 메뉴 화면이 열려 있는 동안 월드 갱신을 멈춘다
   let rafId = 0;
   let last = 0;
 
@@ -206,7 +207,7 @@
   }
 
   function frame(now) {
-    if (!running) return;
+    if (!running || paused) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     update(dt);
@@ -227,6 +228,8 @@
     player.walkT = 0;
     player.frame = 2;
     Input.reset();
+    Screens.close();
+    paused = false;
 
     hudName.textContent = region.name;
     document.body.dataset.screen = 'play';
@@ -244,6 +247,7 @@
     cancelAnimationFrame(rafId);
     Monsters.clear();
     Input.reset();
+    Screens.close();
     document.body.dataset.screen = 'menu';
   }
 
@@ -297,6 +301,20 @@
       list.appendChild(li);
     }
   }
+
+  // 메뉴 화면이 열리면 월드(플레이어/몬스터/카메라)를 그대로 멈추고, 닫으면 이어서 진행한다
+  function setPaused(p) {
+    if (paused === p) return;
+    paused = p;
+    cancelAnimationFrame(rafId);
+    if (p) {
+      Input.reset();
+    } else if (running) {
+      last = performance.now();
+      rafId = requestAnimationFrame(frame);
+    }
+  }
+  Screens.onChange((id) => setPaused(!!id));
 
   document.getElementById('exit-btn').addEventListener('click', exitRegion);
   window.addEventListener('resize', fit);

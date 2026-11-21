@@ -69,8 +69,8 @@ body[data-screen="play"] #menu {
 /* ---------- 가상 조이스틱 ---------- */
 #joy {
   position: absolute;
-  left: 8px;
-  bottom: 8px;
+  left: 4px;
+  bottom: -6px;
   width: 150px;
   height: 150px;
   display: flex;
@@ -353,3 +353,105 @@ body[data-screen="play"] #menu {
 .c-blue { --c: #7a8cff; }
 .c-violet { --c: #b583f2; }
 .c-sky { --c: #5cc2f0; }
+
+/* ---------- 메뉴 화면 (탐험 필드 위에 덮임) ---------- */
+#screen {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  background: #10131b;
+  color: #e9ecf5;
+  touch-action: none;
+}
+
+#screen[hidden] {
+  display: none;
+}
+
+.screen-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(env(safe-area-inset-top, 0px) + 60px);
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
+}
+
+#screen-back {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #1f2533;
+  color: inherit;
+  font: 700 15px/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.12s;
+}
+
+#screen-back:active {
+  transform: scale(0.96);
+}
+
+#screen-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+#screen-body {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 16px 16px;
+  overflow: hidden;
+}
+
+.screen-placeholder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  background: #151922;
+  text-align: center;
+}
+
+.screen-placeholder-icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #1f2533;
+  color: #7a8cff;
+}
+
+.screen-placeholder-icon svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.screen-placeholder strong {
+  font-size: 16px;
+}
+
+.screen-placeholder p {
+  margin: 0;
+  color: #8f98ab;
+  font-size: 13px;
+}

@@ -1,0 +1,81 @@
+// 메인 메뉴 화면 전환. 탐험 필드(게임 상태)는 건드리지 않고 그 위에 화면만 덮는다.
+// 실제 기능을 붙일 때는 Screens.register(id, { render(body), onOpen(), onClose() }) 로 교체하면 된다.
+const Screens = (() => {
+  const overlay = document.getElementById('screen');
+  const titleEl = document.getElementById('screen-title');
+  const body = document.getElementById('screen-body');
+  const dockButtons = document.querySelectorAll('.dock-btn');
+
+  let current = null;
+  const listeners = [];
+
+  // 임시 화면 정의 (아이콘은 하단 메뉴 버튼의 것을 재사용)
+  const defs = {
+    battle: { title: '전투', desc: '전투 화면이 들어갈 자리예요.' },
+    bag: { title: '가방', desc: '아이템 목록이 들어갈 자리예요.' },
+    party: { title: '동료', desc: '동료 목록이 들어갈 자리예요.' },
+    dex: { title: '도감', desc: '도감이 들어갈 자리예요.' },
+    char: { title: '캐릭터', desc: '캐릭터 정보가 들어갈 자리예요.' },
+  };
+
+  // 기본 임시 콘텐츠
+  function placeholder(id, def) {
+    const btn = document.querySelector(`.dock-btn[data-menu="${id}"]`);
+    const wrap = document.createElement('div');
+    wrap.className = 'screen-placeholder';
+    const icon = document.createElement('span');
+    icon.className = 'screen-placeholder-icon';
+    if (btn) icon.innerHTML = btn.querySelector('.dock-icon').innerHTML;
+    const name = document.createElement('strong');
+    name.textContent = '준비 중';
+    const desc = document.createElement('p');
+    desc.textContent = def.desc;
+    wrap.append(icon, name, desc);
+    return wrap;
+  }
+
+  function setCurrent(id) {
+    // 열린 화면이 없으면 탐험(필드)이 현재 위치
+    const active = id || 'explore';
+    dockButtons.forEach((b) => b.classList.toggle('is-current', b.dataset.menu === active));
+  }
+
+  function open(id) {
+    if (id === 'explore' || !defs[id]) return close();
+    const prev = current;
+    if (prev && prev !== id && defs[prev].onClose) defs[prev].onClose();
+    const def = defs[id];
+    current = id;
+    titleEl.textContent = def.title;
+    body.replaceChildren();
+    if (def.render) def.render(body); // 실제 화면은 render(body) 에서 body 를 채운다
+    else body.appendChild(placeholder(id, def));
+    overlay.hidden = false;
+    setCurrent(id);
+    if (def.onOpen) def.onOpen();
+    listeners.forEach((fn) => fn(current));
+  }
+
+  function close() {
+    if (!current) return;
+    const def = defs[current];
+    current = null;
+    overlay.hidden = true;
+    body.replaceChildren();
+    setCurrent(null);
+    if (def.onClose) def.onClose();
+    listeners.forEach((fn) => fn(null));
+  }
+
+  dockButtons.forEach((b) => b.addEventListener('click', () => open(b.dataset.menu)));
+  document.getElementById('screen-back').addEventListener('click', close);
+
+  return {
+    open,
+    close,
+    get current() { return current; },
+    onChange: (fn) => listeners.push(fn),
+    // 실제 기능 구현 시 화면 정의를 덮어쓴다
+    register: (id, def) => { defs[id] = Object.assign(defs[id] || {}, def); },
+  };
+})();

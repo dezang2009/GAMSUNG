@@ -77,8 +77,8 @@ body[data-screen="play"] #menu {
 /* ---------- 가상 조이스틱 ---------- */
 #joy {
   position: absolute;
-  left: 8px;
-  bottom: 8px;
+  left: 4px;
+  bottom: -6px;
   width: 150px;
   height: 150px;
   display: flex;
@@ -361,6 +361,108 @@ body[data-screen="play"] #menu {
 .c-blue { --c: #7a8cff; }
 .c-violet { --c: #b583f2; }
 .c-sky { --c: #5cc2f0; }
+
+/* ---------- 메뉴 화면 (탐험 필드 위에 덮임) ---------- */
+#screen {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  background: #10131b;
+  color: #e9ecf5;
+  touch-action: none;
+}
+
+#screen[hidden] {
+  display: none;
+}
+
+.screen-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(env(safe-area-inset-top, 0px) + 60px);
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
+}
+
+#screen-back {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #1f2533;
+  color: inherit;
+  font: 700 15px/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.12s;
+}
+
+#screen-back:active {
+  transform: scale(0.96);
+}
+
+#screen-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+#screen-body {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 16px 16px;
+  overflow: hidden;
+}
+
+.screen-placeholder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  background: #151922;
+  text-align: center;
+}
+
+.screen-placeholder-icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #1f2533;
+  color: #7a8cff;
+}
+
+.screen-placeholder-icon svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.screen-placeholder strong {
+  font-size: 16px;
+}
+
+.screen-placeholder p {
+  margin: 0;
+  color: #8f98ab;
+  font-size: 13px;
+}
 </style>
 </head>
 <body data-screen="menu">
@@ -388,6 +490,14 @@ body[data-screen="play"] #menu {
           <div id="joy-knob"></div>
         </div>
       </div>
+
+      <section id="screen" hidden>
+        <header class="screen-bar">
+          <button id="screen-back" type="button">‹ 뒤로</button>
+          <h2 id="screen-title"></h2>
+        </header>
+        <div id="screen-body"></div>
+      </section>
     </section>
 
     <nav id="dock" aria-label="메인 메뉴">
@@ -1423,6 +1533,89 @@ const Input = (() => {
 })();
 </script>
   <script>
+// 메인 메뉴 화면 전환. 탐험 필드(게임 상태)는 건드리지 않고 그 위에 화면만 덮는다.
+// 실제 기능을 붙일 때는 Screens.register(id, { render(body), onOpen(), onClose() }) 로 교체하면 된다.
+const Screens = (() => {
+  const overlay = document.getElementById('screen');
+  const titleEl = document.getElementById('screen-title');
+  const body = document.getElementById('screen-body');
+  const dockButtons = document.querySelectorAll('.dock-btn');
+
+  let current = null;
+  const listeners = [];
+
+  // 임시 화면 정의 (아이콘은 하단 메뉴 버튼의 것을 재사용)
+  const defs = {
+    battle: { title: '전투', desc: '전투 화면이 들어갈 자리예요.' },
+    bag: { title: '가방', desc: '아이템 목록이 들어갈 자리예요.' },
+    party: { title: '동료', desc: '동료 목록이 들어갈 자리예요.' },
+    dex: { title: '도감', desc: '도감이 들어갈 자리예요.' },
+    char: { title: '캐릭터', desc: '캐릭터 정보가 들어갈 자리예요.' },
+  };
+
+  // 기본 임시 콘텐츠
+  function placeholder(id, def) {
+    const btn = document.querySelector(`.dock-btn[data-menu="${id}"]`);
+    const wrap = document.createElement('div');
+    wrap.className = 'screen-placeholder';
+    const icon = document.createElement('span');
+    icon.className = 'screen-placeholder-icon';
+    if (btn) icon.innerHTML = btn.querySelector('.dock-icon').innerHTML;
+    const name = document.createElement('strong');
+    name.textContent = '준비 중';
+    const desc = document.createElement('p');
+    desc.textContent = def.desc;
+    wrap.append(icon, name, desc);
+    return wrap;
+  }
+
+  function setCurrent(id) {
+    // 열린 화면이 없으면 탐험(필드)이 현재 위치
+    const active = id || 'explore';
+    dockButtons.forEach((b) => b.classList.toggle('is-current', b.dataset.menu === active));
+  }
+
+  function open(id) {
+    if (id === 'explore' || !defs[id]) return close();
+    const prev = current;
+    if (prev && prev !== id && defs[prev].onClose) defs[prev].onClose();
+    const def = defs[id];
+    current = id;
+    titleEl.textContent = def.title;
+    body.replaceChildren();
+    if (def.render) def.render(body); // 실제 화면은 render(body) 에서 body 를 채운다
+    else body.appendChild(placeholder(id, def));
+    overlay.hidden = false;
+    setCurrent(id);
+    if (def.onOpen) def.onOpen();
+    listeners.forEach((fn) => fn(current));
+  }
+
+  function close() {
+    if (!current) return;
+    const def = defs[current];
+    current = null;
+    overlay.hidden = true;
+    body.replaceChildren();
+    setCurrent(null);
+    if (def.onClose) def.onClose();
+    listeners.forEach((fn) => fn(null));
+  }
+
+  dockButtons.forEach((b) => b.addEventListener('click', () => open(b.dataset.menu)));
+  document.getElementById('screen-back').addEventListener('click', close);
+
+  return {
+    open,
+    close,
+    get current() { return current; },
+    onChange: (fn) => listeners.push(fn),
+    // 실제 기능 구현 시 화면 정의를 덮어쓴다
+    register: (id, def) => { defs[id] = Object.assign(defs[id] || {}, def); },
+  };
+})();
+</script>
+  <script>
 // 게임 루프: 탐험지 선택/입장, 플레이어 이동/충돌, 카메라, 렌더링
 (() => {
   const canvas = document.getElementById('game');
@@ -1440,6 +1633,7 @@ const Input = (() => {
   const player = { x: 0, y: 0, vx: 0, vy: 0, dir: 'down', walkT: 0, frame: 2 };
 
   let running = false;
+  let paused = false;     // 메뉴 화면이 열려 있는 동안 월드 갱신을 멈춘다
   let rafId = 0;
   let last = 0;
 
@@ -1631,7 +1825,7 @@ const Input = (() => {
   }
 
   function frame(now) {
-    if (!running) return;
+    if (!running || paused) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     update(dt);
@@ -1652,6 +1846,8 @@ const Input = (() => {
     player.walkT = 0;
     player.frame = 2;
     Input.reset();
+    Screens.close();
+    paused = false;
 
     hudName.textContent = region.name;
     document.body.dataset.screen = 'play';
@@ -1669,6 +1865,7 @@ const Input = (() => {
     cancelAnimationFrame(rafId);
     Monsters.clear();
     Input.reset();
+    Screens.close();
     document.body.dataset.screen = 'menu';
   }
 
@@ -1722,6 +1919,20 @@ const Input = (() => {
       list.appendChild(li);
     }
   }
+
+  // 메뉴 화면이 열리면 월드(플레이어/몬스터/카메라)를 그대로 멈추고, 닫으면 이어서 진행한다
+  function setPaused(p) {
+    if (paused === p) return;
+    paused = p;
+    cancelAnimationFrame(rafId);
+    if (p) {
+      Input.reset();
+    } else if (running) {
+      last = performance.now();
+      rafId = requestAnimationFrame(frame);
+    }
+  }
+  Screens.onChange((id) => setPaused(!!id));
 
   document.getElementById('exit-btn').addEventListener('click', exitRegion);
   window.addEventListener('resize', fit);
