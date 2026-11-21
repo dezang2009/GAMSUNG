@@ -1,9 +1,10 @@
 // 타일 기반 탐험 맵: 지형 생성, 장애물 배치, 바닥 렌더링, 충돌 판정
 const World = (() => {
   const TILE = 16;
-  const COLS = 60;
-  const ROWS = 60;
-  const SPAWN = { tx: 30, ty: 54 };
+  let COLS = 0;
+  let ROWS = 0;
+  let SPAWN = { tx: 0, ty: 0 };
+  let cfg = null; // 지역 데이터의 gen 설정
 
   const GRASS = 0;
   const PATH = 1;
@@ -15,8 +16,8 @@ const World = (() => {
   const PATH_C = [[218, 188, 126], [208, 176, 114], [226, 202, 146], [190, 156, 100]];
   const FLOWER_COLORS = ['#fff6e0', '#ffd84a', '#ff8fb1', '#b3a6ff'];
 
-  const kind = new Uint8Array(COLS * ROWS);
-  const solid = new Uint8Array(COLS * ROWS);
+  let kind = null;
+  let solid = null;
   const objects = [];
   const flowers = [];
   let ground = null;
@@ -33,7 +34,7 @@ const World = (() => {
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
-  const rand = mulberry32(20260);
+  let rand = Math.random;
 
   function hash(x, y, s) {
     let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(s, 2246822519);
@@ -90,7 +91,7 @@ const World = (() => {
   }
 
   function generatePath() {
-    const pts = [[30, 55], [30, 44], [15, 39], [15, 24], [30, 16], [45, 24], [45, 40], [30, 44]];
+    const pts = cfg.path;
     for (let i = 0; i < pts.length - 1; i++) {
       const [ax, ay] = pts[i];
       const [bx, by] = pts[i + 1];
@@ -111,7 +112,7 @@ const World = (() => {
     }
 
     // 숲 덩어리
-    for (let b = 0; b < 8; b++) {
+    for (let b = 0; b < cfg.forests; b++) {
       const cx = 5 + rand() * (COLS - 10);
       const cy = 5 + rand() * (ROWS - 10);
       const r = 3 + rand() * 3;
@@ -125,7 +126,7 @@ const World = (() => {
     }
 
     // 바위 무리
-    for (let c = 0; c < 10; c++) {
+    for (let c = 0; c < cfg.rockClusters; c++) {
       const cx = 3 + Math.floor(rand() * (COLS - 6));
       const cy = 3 + Math.floor(rand() * (ROWS - 6));
       const count = 1 + Math.floor(rand() * 3);
@@ -137,7 +138,7 @@ const World = (() => {
     }
 
     // 덤불
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < cfg.bushes; i++) {
       const tx = 2 + Math.floor(rand() * (COLS - 4));
       const ty = 2 + Math.floor(rand() * (ROWS - 4));
       if (canPlace(tx, ty) && kind[idx(tx, ty)] === GRASS) placeBush(tx, ty);
@@ -145,7 +146,7 @@ const World = (() => {
   }
 
   function generateTallGrass() {
-    for (let b = 0; b < 16; b++) {
+    for (let b = 0; b < cfg.tallGrass; b++) {
       const cx = 3 + rand() * (COLS - 6);
       const cy = 3 + rand() * (ROWS - 6);
       const r = 2 + rand() * 2;
@@ -159,7 +160,7 @@ const World = (() => {
   }
 
   function generateFlowers() {
-    for (let i = 0; i < 160; i++) {
+    for (let i = 0; i < cfg.flowers; i++) {
       const tx = Math.floor(rand() * COLS);
       const ty = Math.floor(rand() * ROWS);
       if (!inMap(tx, ty) || solid[idx(tx, ty)] || kind[idx(tx, ty)] !== GRASS) continue;
@@ -234,7 +235,17 @@ const World = (() => {
     ground = cvs;
   }
 
-  function generate() {
+  // 지역 데이터(Regions)로 맵을 새로 만든다
+  function load(region) {
+    cfg = region.gen;
+    COLS = region.cols;
+    ROWS = region.rows;
+    SPAWN = region.spawn;
+    kind = new Uint8Array(COLS * ROWS);
+    solid = new Uint8Array(COLS * ROWS);
+    objects.length = 0;
+    flowers.length = 0;
+    rand = mulberry32(cfg.seed);
     generatePath();
     generateObstacles();
     generateTallGrass();
@@ -255,14 +266,13 @@ const World = (() => {
     return false;
   }
 
-  generate();
-
   return {
     TILE,
-    COLS,
-    ROWS,
-    SPAWN,
+    get COLS() { return COLS; },
+    get ROWS() { return ROWS; },
+    get SPAWN() { return SPAWN; },
     objects,
+    load,
     blocked,
     get ground() { return ground; },
   };

@@ -17,7 +17,6 @@ body {
   overflow: hidden;
   background: #1c2b1f;
   overscroll-behavior: none;
-  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -31,6 +30,7 @@ body {
 
 #game {
   display: block;
+  touch-action: none;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
@@ -71,10 +71,182 @@ body {
   clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
   pointer-events: none;
 }
+
+/* 화면 전환: 메뉴 / 플레이 */
+body[data-screen="menu"] #game,
+body[data-screen="menu"] #joy,
+body[data-screen="menu"] #hud,
+body[data-screen="play"] #menu {
+  display: none;
+}
+
+/* 탐험 중 상단 UI */
+#hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 12px) 0 calc(env(safe-area-inset-left, 0px) + 12px);
+  pointer-events: none;
+  z-index: 3;
+  color: #fff;
+  font: 700 16px/1 system-ui, -apple-system, "Noto Sans KR", sans-serif;
+}
+
+#hud-name,
+#exit-btn {
+  pointer-events: auto;
+  background: rgba(20, 30, 22, 0.72);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+  color: inherit;
+  font: inherit;
+  padding: 0 14px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+}
+
+#exit-btn {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+#exit-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* 탐험지 선택 화면 */
+#menu {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  background: #1c2b1f;
+  color: #f3f7ea;
+  touch-action: pan-y;
+  padding: calc(env(safe-area-inset-top, 0px) + 28px) 16px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif;
+}
+
+.menu-inner {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+#menu h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.menu-sub {
+  margin: 0 0 20px;
+  color: #b9c8b0;
+  font-size: 15px;
+}
+
+#region-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.region-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 14px;
+  align-items: center;
+  text-align: left;
+  padding: 12px;
+  background: #2f5d34;
+  color: inherit;
+  border: 3px solid #8fd46a;
+  box-shadow: 0 4px 0 #14201a;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.region-card:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #14201a;
+}
+
+.region-card .thumb {
+  width: 72px;
+  height: 72px;
+  image-rendering: pixelated;
+  border: 2px solid #2a2233;
+  display: block;
+}
+
+.region-card h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+}
+
+.region-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #d5e3cc;
+}
+
+.badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #8fd46a;
+  color: #14201a;
+}
+
+.region-card.locked {
+  background: #2b3430;
+  border-color: #4a5551;
+  box-shadow: 0 4px 0 #161c19;
+  color: #8a9690;
+  cursor: not-allowed;
+}
+
+.region-card.locked p {
+  color: #7d8984;
+}
+
+.region-card.locked .thumb {
+  filter: grayscale(1) brightness(0.6);
+}
+
+.region-card.locked .badge {
+  background: #4a5551;
+  color: #c3cdc8;
+}
 </style>
 </head>
-<body>
+<body data-screen="menu">
+  <main id="menu">
+    <div class="menu-inner">
+      <h1>탐험지 선택</h1>
+      <p class="menu-sub">가고 싶은 지역을 골라 입장하세요.</p>
+      <ul id="region-list"></ul>
+    </div>
+  </main>
+
   <canvas id="game"></canvas>
+
+  <div id="hud">
+    <span id="hud-name"></span>
+    <button id="exit-btn" type="button">나가기</button>
+  </div>
 
   <div id="joy" aria-label="가상 조이스틱">
     <div id="joy-base">
@@ -268,12 +440,57 @@ const Sprites = (() => {
 })();
 </script>
   <script>
+// 탐험지 데이터. 새 지역은 이 배열에 항목만 추가하면 메뉴에 카드로 나타난다.
+//   id / name / desc : 식별자, 이름, 설명
+//   locked           : true 면 "준비 중"으로 표시되고 입장할 수 없다
+//   color / thumb    : 카드 썸네일 배경색, 썸네일에 그릴 스프라이트(Sprites 키)
+//   cols / rows      : 맵 크기(타일 수)
+//   spawn            : 시작 위치(타일 좌표)
+//   gen              : 맵 생성 설정(시드, 길 웨이포인트, 오브젝트 개수)
+const Regions = [
+  {
+    id: 'greenforest',
+    name: '초록숲',
+    desc: '나무와 풀이 우거진 고요한 숲. 길을 따라 걸으며 천천히 둘러보자.',
+    color: '#6fbf4a',
+    thumb: ['trees', 'trees'],
+    cols: 60,
+    rows: 60,
+    spawn: { tx: 30, ty: 54 },
+    gen: {
+      seed: 20260,
+      path: [[30, 55], [30, 44], [15, 39], [15, 24], [30, 16], [45, 24], [45, 40], [30, 44]],
+      forests: 8,
+      rockClusters: 10,
+      bushes: 90,
+      tallGrass: 16,
+      flowers: 160,
+    },
+  },
+  {
+    id: 'mistmarsh',
+    name: '안개 늪지',
+    desc: '짙은 안개가 깔린 늪. 준비 중이에요.',
+    locked: true,
+    color: '#5f7f7a',
+  },
+  {
+    id: 'redcliff',
+    name: '붉은 바위산',
+    desc: '붉은 절벽이 이어지는 산악 지대. 준비 중이에요.',
+    locked: true,
+    color: '#b5654a',
+  },
+];
+</script>
+  <script>
 // 타일 기반 탐험 맵: 지형 생성, 장애물 배치, 바닥 렌더링, 충돌 판정
 const World = (() => {
   const TILE = 16;
-  const COLS = 60;
-  const ROWS = 60;
-  const SPAWN = { tx: 30, ty: 54 };
+  let COLS = 0;
+  let ROWS = 0;
+  let SPAWN = { tx: 0, ty: 0 };
+  let cfg = null; // 지역 데이터의 gen 설정
 
   const GRASS = 0;
   const PATH = 1;
@@ -285,8 +502,8 @@ const World = (() => {
   const PATH_C = [[218, 188, 126], [208, 176, 114], [226, 202, 146], [190, 156, 100]];
   const FLOWER_COLORS = ['#fff6e0', '#ffd84a', '#ff8fb1', '#b3a6ff'];
 
-  const kind = new Uint8Array(COLS * ROWS);
-  const solid = new Uint8Array(COLS * ROWS);
+  let kind = null;
+  let solid = null;
   const objects = [];
   const flowers = [];
   let ground = null;
@@ -303,7 +520,7 @@ const World = (() => {
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
-  const rand = mulberry32(20260);
+  let rand = Math.random;
 
   function hash(x, y, s) {
     let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(s, 2246822519);
@@ -360,7 +577,7 @@ const World = (() => {
   }
 
   function generatePath() {
-    const pts = [[30, 55], [30, 44], [15, 39], [15, 24], [30, 16], [45, 24], [45, 40], [30, 44]];
+    const pts = cfg.path;
     for (let i = 0; i < pts.length - 1; i++) {
       const [ax, ay] = pts[i];
       const [bx, by] = pts[i + 1];
@@ -381,7 +598,7 @@ const World = (() => {
     }
 
     // 숲 덩어리
-    for (let b = 0; b < 8; b++) {
+    for (let b = 0; b < cfg.forests; b++) {
       const cx = 5 + rand() * (COLS - 10);
       const cy = 5 + rand() * (ROWS - 10);
       const r = 3 + rand() * 3;
@@ -395,7 +612,7 @@ const World = (() => {
     }
 
     // 바위 무리
-    for (let c = 0; c < 10; c++) {
+    for (let c = 0; c < cfg.rockClusters; c++) {
       const cx = 3 + Math.floor(rand() * (COLS - 6));
       const cy = 3 + Math.floor(rand() * (ROWS - 6));
       const count = 1 + Math.floor(rand() * 3);
@@ -407,7 +624,7 @@ const World = (() => {
     }
 
     // 덤불
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < cfg.bushes; i++) {
       const tx = 2 + Math.floor(rand() * (COLS - 4));
       const ty = 2 + Math.floor(rand() * (ROWS - 4));
       if (canPlace(tx, ty) && kind[idx(tx, ty)] === GRASS) placeBush(tx, ty);
@@ -415,7 +632,7 @@ const World = (() => {
   }
 
   function generateTallGrass() {
-    for (let b = 0; b < 16; b++) {
+    for (let b = 0; b < cfg.tallGrass; b++) {
       const cx = 3 + rand() * (COLS - 6);
       const cy = 3 + rand() * (ROWS - 6);
       const r = 2 + rand() * 2;
@@ -429,7 +646,7 @@ const World = (() => {
   }
 
   function generateFlowers() {
-    for (let i = 0; i < 160; i++) {
+    for (let i = 0; i < cfg.flowers; i++) {
       const tx = Math.floor(rand() * COLS);
       const ty = Math.floor(rand() * ROWS);
       if (!inMap(tx, ty) || solid[idx(tx, ty)] || kind[idx(tx, ty)] !== GRASS) continue;
@@ -504,7 +721,17 @@ const World = (() => {
     ground = cvs;
   }
 
-  function generate() {
+  // 지역 데이터(Regions)로 맵을 새로 만든다
+  function load(region) {
+    cfg = region.gen;
+    COLS = region.cols;
+    ROWS = region.rows;
+    SPAWN = region.spawn;
+    kind = new Uint8Array(COLS * ROWS);
+    solid = new Uint8Array(COLS * ROWS);
+    objects.length = 0;
+    flowers.length = 0;
+    rand = mulberry32(cfg.seed);
     generatePath();
     generateObstacles();
     generateTallGrass();
@@ -525,14 +752,13 @@ const World = (() => {
     return false;
   }
 
-  generate();
-
   return {
     TILE,
-    COLS,
-    ROWS,
-    SPAWN,
+    get COLS() { return COLS; },
+    get ROWS() { return ROWS; },
+    get SPAWN() { return SPAWN; },
     objects,
+    load,
     blocked,
     get ground() { return ground; },
   };
@@ -605,62 +831,65 @@ const Input = (() => {
 
   return {
     get: () => state,
+    reset: release,
   };
 })();
 </script>
   <script>
-// 게임 루프: 플레이어 이동/충돌, 카메라, 렌더링
+// 게임 루프: 탐험지 선택/입장, 플레이어 이동/충돌, 카메라, 렌더링
 (() => {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
+  const hudName = document.getElementById('hud-name');
 
   const SPEED = 46;                  // 최대 이동 속도 (논리 픽셀/초)
   const HALF_W = 3;                  // 발 판정 박스 반너비
   const HEIGHT_FEET = 3;             // 발 판정 박스 높이
   const BG = '#1c2b1f';
-  const MAP_W = World.COLS * World.TILE;
-  const MAP_H = World.ROWS * World.TILE;
 
-  const view = { w: 0, h: 0, zoom: 1 };
+  const view = { w: 0, h: 0, zoom: 1, sx: 1, sy: 1 }; // sx, sy: 논리 픽셀 -> 실제 기기 픽셀 배율
   const cam = { x: 0, y: 0 };
-  const player = {
-    x: World.SPAWN.tx * World.TILE + World.TILE / 2,
-    y: World.SPAWN.ty * World.TILE + 12,   // 발 위치(스프라이트 하단)
-    vx: 0, vy: 0,
-    dir: 'down',
-    walkT: 0,
-    frame: 2,                              // 0,1: 걷기 / 2: 정지
-  };
+  const player = { x: 0, y: 0, vx: 0, vy: 0, dir: 'down', walkT: 0, frame: 2 };
+
+  let running = false;
+  let rafId = 0;
+  let last = 0;
 
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const mapW = () => World.COLS * World.TILE;
+  const mapH = () => World.ROWS * World.TILE;
 
-  // 화면 크기에 맞춰 정수 배율로 확대하고, 논리 해상도를 다시 계산
+  // ---------- 화면 크기 ----------
+  // 논리 해상도는 정수 배율로 맞추고, 캔버스 백버퍼는 기기 픽셀 단위로 만든다.
+  // 이렇게 하면 이동을 기기 픽셀 단위로 표현할 수 있어 대각선에서도 끊김이 줄어든다.
   function fit() {
     const cw = window.innerWidth, ch = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
     view.zoom = Math.max(1, Math.min(Math.floor(cw / 160), Math.floor(ch / 200)));
     view.w = Math.floor(cw / view.zoom);
     view.h = Math.floor(ch / view.zoom);
-    canvas.width = view.w;
-    canvas.height = view.h;
-    canvas.style.width = view.w * view.zoom + 'px';
-    canvas.style.height = view.h * view.zoom + 'px';
-    ctx.imageSmoothingEnabled = false;
-    Object.assign(cam, cameraTarget());
+    const cssW = view.w * view.zoom, cssH = view.h * view.zoom;
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    view.sx = canvas.width / view.w;
+    view.sy = canvas.height / view.h;
+    if (running) updateCamera();
   }
 
-  // 플레이어를 중심에 두되, 맵 밖은 보이지 않도록 제한
-  function cameraTarget() {
-    // 화면에 그려지는 플레이어 좌표(반올림)를 기준으로 정수 카메라를 만든다.
-    // 플레이어와 월드가 같은 정수 기준으로 움직여 상대 위치가 흔들리지 않는다.
-    const tx = Math.round(player.x) - Math.floor(view.w / 2);
-    const ty = Math.round(player.y) - 8 - Math.floor(view.h / 2);
-    return {
-      x: MAP_W <= view.w ? Math.round((MAP_W - view.w) / 2) : clamp(tx, 0, MAP_W - view.w),
-      y: MAP_H <= view.h ? Math.round((MAP_H - view.h) / 2) : clamp(ty, 0, MAP_H - view.h),
-    };
+  // ---------- 카메라 ----------
+  // 보간 없이 플레이어를 그대로 따라가므로 플레이어의 화면 위치가 항상 일정하다.
+  // 맵 경계에서만 카메라가 멈추고 그때는 플레이어가 움직인다.
+  function updateCamera() {
+    const tx = player.x - view.w / 2;
+    const ty = player.y - 8 - view.h / 2;
+    cam.x = mapW() <= view.w ? (mapW() - view.w) / 2 : clamp(tx, 0, mapW() - view.w);
+    cam.y = mapH() <= view.h ? (mapH() - view.h) / 2 : clamp(ty, 0, mapH() - view.h);
   }
 
-  // 한 축으로 이동. 1px 이하 단위로 나눠 전진하며, 막히면 그 축 속도만 0으로 만든다
+  // ---------- 이동 / 충돌 ----------
+  // 한 축으로 이동. 0.5px 이하 단위로 나눠 전진하며, 막히면 그 축 속도만 0으로 만든다
   function moveAxis(axis, delta) {
     if (delta === 0) return;
     const steps = Math.ceil(Math.abs(delta) / 0.5);
@@ -704,54 +933,124 @@ const Input = (() => {
     }
   }
 
-  function drawPlayer(ox, oy) {
-    const img = Sprites.player[player.dir][player.frame];
-    ctx.drawImage(img, Math.round(player.x) - 7 - ox, Math.round(player.y) - 17 - oy);
-  }
+  // ---------- 렌더링 ----------
+  const snapX = (v) => Math.round(v * view.sx) / view.sx;
+  const snapY = (v) => Math.round(v * view.sy) / view.sy;
 
   function render() {
+    ctx.setTransform(view.sx, 0, 0, view.sy, 0, 0);
+    ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, view.w, view.h);
 
-    const ox = cam.x, oy = cam.y;
+    // 월드는 기기 픽셀 단위로 맞춘 카메라 값 하나로 모두 그린다
+    const ox = snapX(cam.x), oy = snapY(cam.y);
     if (World.ground) ctx.drawImage(World.ground, -ox, -oy);
+
+    // 플레이어는 카메라와 같은 원본 좌표 차이로 그려 화면 위치가 흔들리지 않는다
+    const img = Sprites.player[player.dir][player.frame];
+    const psx = snapX(player.x - 7 - cam.x);
+    const psy = snapY(player.y - 17 - cam.y);
 
     // 오브젝트는 기준선(baseY) 순서로 그리고, 플레이어와 깊이 순서를 맞춘다
     let playerDrawn = false;
     for (const o of World.objects) {
       if (!playerDrawn && o.baseY > player.y) {
-        drawPlayer(ox, oy);
+        ctx.drawImage(img, psx, psy);
         playerDrawn = true;
       }
       const sx = o.x - ox, sy = o.y - oy;
       if (sx > view.w || sy > view.h || sx + o.w < 0 || sy + o.h < 0) continue;
       ctx.drawImage(o.img, sx, sy);
     }
-    if (!playerDrawn) drawPlayer(ox, oy);
+    if (!playerDrawn) ctx.drawImage(img, psx, psy);
   }
 
-  const STEP = 1 / 120;
-  let acc = 0;
-  let last = performance.now();
   function frame(now) {
-    // 고정 시간 간격으로 갱신해 프레임 간격이 불규칙해도 이동량이 일정하다
-    acc += Math.min(0.1, (now - last) / 1000);
+    if (!running) return;
+    const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    while (acc >= STEP) {
-      update(STEP);
-      acc -= STEP;
-    }
-    Object.assign(cam, cameraTarget());
+    update(dt);
+    updateCamera();
     render();
-    requestAnimationFrame(frame);
+    rafId = requestAnimationFrame(frame);
   }
 
+  // ---------- 탐험지 입장 / 나가기 ----------
+  function enterRegion(region) {
+    World.load(region);
+    player.x = region.spawn.tx * World.TILE + World.TILE / 2;
+    player.y = region.spawn.ty * World.TILE + 12;
+    player.vx = 0;
+    player.vy = 0;
+    player.dir = 'down';
+    player.walkT = 0;
+    player.frame = 2;
+    Input.reset();
+
+    hudName.textContent = region.name;
+    document.body.dataset.screen = 'play';
+    running = true;
+    fit();
+    updateCamera();
+    last = performance.now();
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function exitRegion() {
+    running = false;
+    cancelAnimationFrame(rafId);
+    Input.reset();
+    document.body.dataset.screen = 'menu';
+  }
+
+  // ---------- 선택 화면 ----------
+  function makeThumb(region) {
+    const c = document.createElement('canvas');
+    c.className = 'thumb';
+    c.width = 48;
+    c.height = 48;
+    const g = c.getContext('2d');
+    g.fillStyle = region.color;
+    g.fillRect(0, 0, 48, 48);
+    if (!region.locked && region.thumb) {
+      region.thumb.forEach((key, i) => {
+        const s = Sprites[key][0];
+        g.drawImage(s, 3 + i * 22, 48 - s.height - 2 - (i % 2) * 2);
+      });
+    }
+    return c;
+  }
+
+  function buildMenu() {
+    const list = document.getElementById('region-list');
+    for (const region of Regions) {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'region-card' + (region.locked ? ' locked' : '');
+      btn.disabled = !!region.locked;
+
+      const text = document.createElement('div');
+      text.innerHTML = '<h2></h2><p></p><span class="badge"></span>';
+      text.querySelector('h2').textContent = region.name;
+      text.querySelector('p').textContent = region.desc;
+      text.querySelector('.badge').textContent = region.locked ? '준비 중' : '입장 가능';
+
+      btn.append(makeThumb(region), text);
+      if (!region.locked) btn.addEventListener('click', () => enterRegion(region));
+      li.appendChild(btn);
+      list.appendChild(li);
+    }
+  }
+
+  document.getElementById('exit-btn').addEventListener('click', exitRegion);
   window.addEventListener('resize', fit);
-  fit();
-  requestAnimationFrame(frame);
+  buildMenu();
 
   // 테스트용 참조
-  window.__game = { player, cam, view, World };
+  window.__game = { player, cam, view, World, enterRegion, exitRegion };
 })();
 </script>
 </body>

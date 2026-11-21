@@ -64,5 +64,6 @@ const Input = (() => {
 
   return {
     get: () => state,
+    reset: release,
   };
 })();

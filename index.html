@@ -7,8 +7,21 @@
   <title>픽셀 탐험</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body data-screen="menu">
+  <main id="menu">
+    <div class="menu-inner">
+      <h1>탐험지 선택</h1>
+      <p class="menu-sub">가고 싶은 지역을 골라 입장하세요.</p>
+      <ul id="region-list"></ul>
+    </div>
+  </main>
+
   <canvas id="game"></canvas>
+
+  <div id="hud">
+    <span id="hud-name"></span>
+    <button id="exit-btn" type="button">나가기</button>
+  </div>
 
   <div id="joy" aria-label="가상 조이스틱">
     <div id="joy-base">
@@ -17,6 +30,7 @@
   </div>
 
   <script src="js/sprites.js"></script>
+  <script src="js/regions.js"></script>
   <script src="js/world.js"></script>
   <script src="js/input.js"></script>
   <script src="js/main.js"></script>

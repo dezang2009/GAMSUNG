@@ -9,7 +9,6 @@ body {
   overflow: hidden;
   background: #1c2b1f;
   overscroll-behavior: none;
-  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -23,6 +22,7 @@ body {
 
 #game {
   display: block;
+  touch-action: none;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
@@ -62,4 +62,163 @@ body {
   background: rgba(255, 255, 255, 0.75);
   clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
   pointer-events: none;
+}
+
+/* 화면 전환: 메뉴 / 플레이 */
+body[data-screen="menu"] #game,
+body[data-screen="menu"] #joy,
+body[data-screen="menu"] #hud,
+body[data-screen="play"] #menu {
+  display: none;
+}
+
+/* 탐험 중 상단 UI */
+#hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 12px) 0 calc(env(safe-area-inset-left, 0px) + 12px);
+  pointer-events: none;
+  z-index: 3;
+  color: #fff;
+  font: 700 16px/1 system-ui, -apple-system, "Noto Sans KR", sans-serif;
+}
+
+#hud-name,
+#exit-btn {
+  pointer-events: auto;
+  background: rgba(20, 30, 22, 0.72);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+  color: inherit;
+  font: inherit;
+  padding: 0 14px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+}
+
+#exit-btn {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+#exit-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* 탐험지 선택 화면 */
+#menu {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  background: #1c2b1f;
+  color: #f3f7ea;
+  touch-action: pan-y;
+  padding: calc(env(safe-area-inset-top, 0px) + 28px) 16px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif;
+}
+
+.menu-inner {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+#menu h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.menu-sub {
+  margin: 0 0 20px;
+  color: #b9c8b0;
+  font-size: 15px;
+}
+
+#region-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.region-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 14px;
+  align-items: center;
+  text-align: left;
+  padding: 12px;
+  background: #2f5d34;
+  color: inherit;
+  border: 3px solid #8fd46a;
+  box-shadow: 0 4px 0 #14201a;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.region-card:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #14201a;
+}
+
+.region-card .thumb {
+  width: 72px;
+  height: 72px;
+  image-rendering: pixelated;
+  border: 2px solid #2a2233;
+  display: block;
+}
+
+.region-card h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+}
+
+.region-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #d5e3cc;
+}
+
+.badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #8fd46a;
+  color: #14201a;
+}
+
+.region-card.locked {
+  background: #2b3430;
+  border-color: #4a5551;
+  box-shadow: 0 4px 0 #161c19;
+  color: #8a9690;
+  cursor: not-allowed;
+}
+
+.region-card.locked p {
+  color: #7d8984;
+}
+
+.region-card.locked .thumb {
+  filter: grayscale(1) brightness(0.6);
+}
+
+.region-card.locked .badge {
+  background: #4a5551;
+  color: #c3cdc8;
 }
