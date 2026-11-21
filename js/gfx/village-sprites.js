@@ -132,15 +132,27 @@
     r(29, 3, 6, 5, '#ffd24a');
   });
 
-  // ---- NPC (플레이어와 같은 12x16 몸, 색만 다름) ----
+  // ---- 인물 (플레이어와 같은 12x16 몸. 색과 모자/수염/치마 같은 옵션으로 구분) ----
   const base = { skin: '#f4c99b', skinSh: '#d9a074', eye: '#231c2e', shoe: '#2d211b' };
   const looks = {
-    merchant: { ...base, hair: '#6b4a2e', cap: '#c98a3f', capSh: '#a66f2c', shirt: '#4f9a8a', shirtSh: '#3b7a6c', pants: '#5a4a7a' },
-    innkeeper: { ...base, hair: '#8a4b2d', cap: '#c27a8a', capSh: '#9d5c6b', shirt: '#fffaf0', shirtSh: '#e6dccb', pants: '#7a6cc4' },
-    smith: { ...base, hair: '#2f2a33', cap: '#6b7385', capSh: '#4e5565', shirt: '#c25b3a', shirtSh: '#9c4529', pants: '#3b3f63' },
-    clerk: { ...base, hair: '#3d2a55', cap: '#7f6a9e', capSh: '#5f4d7a', shirt: '#e3dae9', shirtSh: '#c7bad2', pants: '#4a4466' },
-    kid: { ...base, hair: '#b3702f', cap: '#d4b04a', capSh: '#aa8a30', shirt: '#c26a58', shirtSh: '#9d5042', pants: '#506c9b' },
-    guard: { ...base, hair: '#4a3a2e', cap: '#8f97a8', capSh: '#6d7586', shirt: '#506c9b', shirtSh: '#3d557f', pants: '#3b3f63' },
+    // 마을 사람
+    merchant: { ...base, hat: 'none', hair: '#7a5a3a', hairLt: '#9a7a54', shirt: '#c98a3f', shirtSh: '#a66f2c', pants: '#5a4a7a', apron: '#8a5a3c' },
+    shopF: { ...base, hat: 'none', longHair: true, hair: '#6b4226', hairLt: '#8c5a35', shirt: '#8a68b8', shirtSh: '#6b4d98', dress: '#8a68b8', pants: '#8a68b8' },
+    innkeeper: { ...base, hat: 'none', longHair: true, hair: '#8a4b2d', hairLt: '#a8643f', shirt: '#5f9a7a', shirtSh: '#487a5e', dress: '#5f9a7a', pants: '#5f9a7a', apron: '#f4efe2' },
+    maid: { ...base, hat: 'kerchief', hair: '#6b4a2e', shirt: '#5f9aa0', shirtSh: '#487a80', dress: '#5f9aa0', pants: '#5f9aa0', apron: '#ffffff' },
+    smith: { ...base, hat: 'none', hair: '#2f2a33', hairLt: '#4a4450', beard: '#3a3030', shirt: '#8a5a3c', shirtSh: '#6d4529', pants: '#3b3f63', apron: '#4a4a52' },
+    elder: { ...base, hat: 'none', hair: '#e8e8ea', hairLt: '#ffffff', beard: '#e8e8ea', shirt: '#7a7f90', shirtSh: '#5d6272', dress: '#7a7f90', pants: '#7a7f90' },
+    kid: { ...base, hat: 'cap', hair: '#b3702f', cap: '#d4b04a', capSh: '#aa8a30', shirt: '#c26a58', shirtSh: '#9d5042', pants: '#506c9b' },
+    // 의뢰/관리
+    guard: { ...base, hat: 'cap', hair: '#4a3a2e', cap: '#2f4f8a', capSh: '#223a68', shirt: '#3a5fa0', shirtSh: '#2b4879', pants: '#2f333c' },
+    clerk: { ...base, hat: 'none', hair: '#3d2a55', hairLt: '#5a4478', shirt: '#e3dae9', shirtSh: '#c7bad2', pants: '#4a4466' },
+    witch: { ...base, hat: 'witch', cap: '#6b4a8a', longHair: true, hair: '#2a2236', shirt: '#6b4a8a', shirtSh: '#523870', dress: '#6b4a8a', pants: '#6b4a8a' },
+    king: { ...base, hat: 'crown', hair: '#8a6a3a', beard: '#8a6a3a', shirt: '#b03a3a', shirtSh: '#8a2a2a', dress: '#b03a3a', pants: '#b03a3a' },
+    // 동료 후보 (추후 동료 시스템에서 사용)
+    mage: { ...base, hat: 'witch', cap: '#4f6fc0', longHair: true, hair: '#c9c2f0', shirt: '#4f6fc0', shirtSh: '#3b559a', dress: '#4f6fc0', pants: '#4f6fc0' },
+    rogue: { ...base, hat: 'cap', hair: '#2a2a30', cap: '#3a3f4a', capSh: '#2a2e36', shirt: '#454b58', shirtSh: '#343944', pants: '#2f333c' },
+    priestess: { ...base, hat: 'kerchief', hair: '#c9a46a', shirt: '#f4f1ea', shirtSh: '#d8d2c4', dress: '#f4f1ea', pants: '#f4f1ea' },
+    heroF: { ...base, hat: 'none', longHair: true, hair: '#b0503a', hairLt: '#d0705a', shirt: '#b0463a', shirtSh: '#8a342a', pants: '#5a4a3a', shield: '#c24a4a', shieldRim: '#d9b24a', blade: '#d6dce6' },
   };
   const npcs = {};
   for (const [name, pal] of Object.entries(looks)) npcs[name] = Sprites.makePerson(pal);

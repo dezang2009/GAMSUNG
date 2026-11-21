@@ -68,43 +68,93 @@ const Sprites = (() => {
     return c;
   }
 
-  // ---- 플레이어 (12x16) ----
+  // ---- 사람 스프라이트 (12x16): 플레이어/NPC/동료 공용 ----
+  // 색상표(pal)와 옵션으로 모습이 달라진다.
+  //   hat   : 'cap'(기본) | 'none'(머리카락) | 'crown' | 'witch' | 'kerchief'
+  //   longHair, beard(색), dress(치마/로브 색), apron(색), shield/shieldRim, blade(검)
   function drawPlayer(ctx, ox, oy, dir, legs, pal) {
-    const P = pal || C; // 색상표: 생략하면 플레이어, NPC 는 자기 색상표를 넘긴다
+    const P = pal || C; // 색상표: 생략하면 기본 색, NPC 는 자기 색상표를 넘긴다
     const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
-    const leg = (x, bottom) => {
-      r(x, 13, 2, bottom - 13, P.pants);
-      r(x, bottom, 2, 1, P.shoe);
+    const hat = P.hat || 'cap';
+    const leg = P.dress
+      ? (x, bottom) => r(x, bottom, 2, 1, P.shoe)
+      : (x, bottom) => { r(x, 13, 2, bottom - 13, P.pants); r(x, bottom, 2, 1, P.shoe); };
+
+    const headTop = (x, w) => {
+      if (hat === 'cap') {
+        r(x, 0, w, 3, P.cap);
+      } else if (hat === 'none') {
+        r(x, 0, w, 3, P.hair);
+        r(x + 1, 0, 2, 1, P.hairLt || P.hair);
+      } else if (hat === 'crown') {
+        r(x, 2, w, 1, P.hair);
+        r(x, 1, w, 1, '#f2c744');
+        for (let i = 0; i < w; i += 2) r(x + i, 0, 1, 1, '#f2c744');
+        r(x + (w >> 1), 1, 1, 1, '#c0392b');
+      } else if (hat === 'witch') {
+        r(x - 1, 2, w + 2, 1, P.cap);
+        r(x + 1, 0, w - 2, 2, P.cap);
+        r(x + 1, 1, w - 2, 1, '#d9b24a');
+      } else if (hat === 'kerchief') {
+        r(x, 0, w, 2, '#ffffff');
+        r(x, 2, w, 1, P.hair);
+      }
     };
 
     if (dir === 'side') {
-      r(3, 2, 2, 6, P.hair);            // 뒤통수
-      r(3, 0, 7, 3, P.cap);             // 모자
-      r(4, 3, 5, 5, P.skin);            // 얼굴
-      r(7, 5, 1, 2, P.eye);             // 눈
-      r(4, 8, 5, 5, P.shirt);           // 몸통
-      r(4, 9, 1, 4, P.shirtSh);         // 뒤팔
+      r(3, 2, 2, P.longHair ? 8 : 6, P.hair);   // 뒤통수(긴 머리는 아래까지)
+      headTop(3, 7);
+      r(4, 3, 5, 5, P.skin);                    // 얼굴
+      r(7, 5, 1, 2, P.eye);                     // 눈
+      if (P.beard) r(6, 7, 3, 2, P.beard);
+      if (P.blade) r(2, 4, 1, 8, P.blade);      // 등 뒤의 검
+      r(4, 8, 5, 5, P.shirt);                   // 몸통
+      r(4, 9, 1, 4, P.shirtSh);                 // 뒤팔
+      if (P.dress) r(4, 12, 5, 3, P.dress);
+      if (P.apron) r(6, 9, 2, 4, P.apron);
       leg(4, legs[0]);
       leg(6, legs[1]);
-      r(6, 9, 2, 4, P.shirt);           // 앞팔
-      r(6, 12, 2, 1, P.skin);           // 손
+      r(6, 9, 2, 4, P.shirt);                   // 앞팔
+      r(6, 12, 2, 1, P.skin);                   // 손
+      if (P.shield) { r(7, 9, 3, 5, P.shieldRim); r(8, 10, 1, 3, P.shield); }
       return;
     }
 
-    r(3, 0, 6, 3, P.cap);               // 모자
+    headTop(3, 6);
     r(3, 3, 6, 5, dir === 'up' ? P.hair : P.skin);
     if (dir === 'down') {
       r(4, 5, 1, 2, P.eye);
       r(7, 5, 1, 2, P.eye);
+      if (P.beard) { r(4, 7, 4, 2, P.beard); r(5, 6, 2, 1, P.beard); }
+      if (P.longHair) { r(2, 3, 1, 7, P.hair); r(9, 3, 1, 7, P.hair); }
     }
-    r(3, 8, 6, 5, P.shirt);             // 몸통
-    r(2, 8, 1, 4, P.shirt);             // 왼팔
-    r(9, 8, 1, 4, P.shirt);             // 오른팔
+    if (P.blade) {
+      if (dir === 'down') { r(1, 4, 1, 7, P.blade); r(0, 10, 3, 1, '#d9b24a'); r(1, 11, 1, 2, '#7a5a3a'); }
+      else r(10, 3, 1, 7, P.blade);
+    }
+    r(3, 8, 6, 5, P.shirt);                     // 몸통
+    r(2, 8, 1, 4, P.shirt);                     // 왼팔
+    r(9, 8, 1, 4, P.shirt);                     // 오른팔
     r(2, 12, 1, 1, P.skin);
     r(9, 12, 1, 1, P.skin);
+    if (P.dress) r(3, 12, 6, 3, P.dress);
+    if (P.apron && dir === 'down') r(4, 9, 4, 5, P.apron);
+    if (P.longHair && dir === 'up') r(3, 8, 6, 3, P.hair);
+    if (P.shield) {
+      if (dir === 'down') { r(10, 8, 2, 5, P.shieldRim); r(10, 9, 2, 3, P.shield); }
+      else { r(0, 8, 2, 5, P.shieldRim); r(0, 9, 2, 3, P.shield); }
+    }
     leg(3, legs[0]);
     leg(7, legs[1]);
   }
+
+  // 주인공 (용사): 갈색 머리, 파란 튜닉, 방패와 검
+  const HERO = {
+    skin: '#f4c99b', skinSh: '#d9a074', eye: '#231c2e', shoe: '#2d211b',
+    hat: 'none', hair: '#6b4226', hairLt: '#8c5a35',
+    shirt: '#3f6fb5', shirtSh: '#2d5088', pants: '#5a4a3a',
+    shield: '#4a78c2', shieldRim: '#d9b24a', blade: '#d6dce6',
+  };
 
   // ---- 나무 (18x26 + 외곽선) ----
   function makeTree(radius) {
@@ -277,9 +327,8 @@ const Sprites = (() => {
     return { down: mk('down'), up: mk('up'), right: side, left: side.map(flip) };
   }
 
-  const playerFront = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'down', legs)));
-  const playerBack = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'up', legs)));
-  const playerSide = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'side', legs)));
+  const heroSet = makePerson(HERO);
+  const playerFront = heroSet.down, playerBack = heroSet.up, playerSide = heroSet.right;
 
   return {
     // player.dir 별 [걷기1, 걷기2, 정지] 프레임

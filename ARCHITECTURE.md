@@ -8,8 +8,8 @@ HTML/CSS/JavaScript만 사용한다. 빌드 도구 없이 `index.html`의 `<scri
 | 폴더 | 역할 |
 | --- | --- |
 | `js/core/` | `Events`(이벤트 버스), `GameState`(상태 저장소), `Game`(시스템 등록소) |
-| `js/data/` | 데이터만 둔다: 장소(`regions.js`), 몬스터(`monster-data.js`) |
-| `js/gfx/` | 코드로 그리는 픽셀 스프라이트 (`sprites.js`, `village-sprites.js`) |
+| `js/data/` | 데이터만 둔다: 장소(`regions.js`), 몬스터(`monster-data.js`), 몬스터 기획 목록(`monster-roster.js`) |
+| `js/gfx/` | 코드로 그리는 픽셀 스프라이트: 인물/기본(`sprites.js`), 건물·NPC·동료(`village-sprites.js`), 필드 몬스터(`monster-sprites.js`) |
 | `js/world/` | 월드 구현: 지형/충돌(`world.js`), 몬스터 출현(`monsters.js`), 마을 NPC(`npcs.js`) |
 | `js/systems/` | 게임 시스템. 지금은 12개 모두 등록만 된 뼈대 (아래 표) |
 | `js/ui/` | 화면: 조이스틱(`input.js`), 하단 컨트롤(`controls.js`), 메뉴 화면 전환(`screens.js`), 대화창(`dialog.js`), HUD(`hud.js`), 탐험 화면(`explore-screen.js`) |

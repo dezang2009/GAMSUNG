@@ -53,9 +53,13 @@ const Regions = [
       // NPC: role 은 추후 상호작용 시스템(상점/제작/의뢰 등)이 사용한다. look 은 Sprites.npcs 의 키
       npcs: [
         { id: 'merchant', name: '상인 모모', role: 'shop', look: 'merchant', tx: 9, ty: 14, lines: ['어서 오세요! 솔빛 마을 상점이에요.', '물건은 곧 들여올 예정이니 조금만 기다려 주세요.'] },
+        { id: 'shopkeeper', name: '상점 주인 도라', role: 'shop', look: 'shopF', tx: 3, ty: 15, lines: ['남편이 또 물건을 쌓아 두네요.', '필요한 게 있으면 말씀하세요.'] },
         { id: 'innkeeper', name: '여관 주인 하나', role: 'inn', look: 'innkeeper', tx: 22, ty: 14, lines: ['여관에 오신 걸 환영해요. 푹 쉬고 가세요.', '따뜻한 차도 준비해 둘게요.'] },
+        { id: 'maid', name: '여관 일꾼 미나', role: 'villager', look: 'maid', tx: 28, ty: 15, lines: ['어서 오세요! 방은 늘 깨끗해요.'] },
         { id: 'smith', name: '대장장이 쿠로', role: 'crafting', look: 'smith', tx: 9, ty: 24, lines: ['쿵쿵! 지금 한창 망치질 중이야.', '나중에 장비 제작과 강화는 나한테 맡겨.'] },
         { id: 'clerk', name: '의뢰소 직원 리코', role: 'quest', look: 'clerk', tx: 22, ty: 24, lines: ['의뢰소에 오셨군요!', '의뢰는 아직 준비 중이에요. 조금만 기다려 주세요.'] },
+        { id: 'witch', name: '마녀 루나', role: 'villager', look: 'witch', tx: 28, ty: 25, lines: ['후후, 숲에는 신기한 것이 많단다.', '달빛 여우를 만나면 행운이 따른다지.'] },
+        { id: 'elder', name: '촌장 할아버지', role: 'villager', look: 'elder', tx: 20, ty: 17, lines: ['솔빛 마을에 잘 왔네, 젊은 모험가.', '북쪽 게이트 너머가 초록숲이라네.'] },
         { id: 'kid', name: '꼬마 콩이', role: 'villager', look: 'kid', tx: 13, ty: 22, lines: ['안녕! 나는 콩이야.', '게이트 너머 초록숲에는 슬라임이 살아!'] },
         { id: 'guard', name: '문지기 도리', role: 'guard', look: 'guard', tx: 18, ty: 5, lines: ['여기는 탐험 게이트다.', '초록숲으로 가려면 이 문을 지나가라. 조심해서 다녀와!'] },
       ],
@@ -83,7 +87,7 @@ const Regions = [
       flowers: 80,
     },
     monsters: {
-      target: 6,              // 필드에 유지할 몬스터 수
+      target: 7,              // 필드에 유지할 몬스터 수
       respawn: [5, 9],        // 빈자리가 생긴 뒤 새로 출현하기까지 걸리는 시간(초)
       minSpawnDist: 80,       // 플레이어와 최소 거리(px)
       lifetime: [40, 80],     // 몬스터가 필드에 머무는 시간(초)

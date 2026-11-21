@@ -872,43 +872,93 @@ const Sprites = (() => {
     return c;
   }
 
-  // ---- 플레이어 (12x16) ----
+  // ---- 사람 스프라이트 (12x16): 플레이어/NPC/동료 공용 ----
+  // 색상표(pal)와 옵션으로 모습이 달라진다.
+  //   hat   : 'cap'(기본) | 'none'(머리카락) | 'crown' | 'witch' | 'kerchief'
+  //   longHair, beard(색), dress(치마/로브 색), apron(색), shield/shieldRim, blade(검)
   function drawPlayer(ctx, ox, oy, dir, legs, pal) {
-    const P = pal || C; // 색상표: 생략하면 플레이어, NPC 는 자기 색상표를 넘긴다
+    const P = pal || C; // 색상표: 생략하면 기본 색, NPC 는 자기 색상표를 넘긴다
     const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
-    const leg = (x, bottom) => {
-      r(x, 13, 2, bottom - 13, P.pants);
-      r(x, bottom, 2, 1, P.shoe);
+    const hat = P.hat || 'cap';
+    const leg = P.dress
+      ? (x, bottom) => r(x, bottom, 2, 1, P.shoe)
+      : (x, bottom) => { r(x, 13, 2, bottom - 13, P.pants); r(x, bottom, 2, 1, P.shoe); };
+
+    const headTop = (x, w) => {
+      if (hat === 'cap') {
+        r(x, 0, w, 3, P.cap);
+      } else if (hat === 'none') {
+        r(x, 0, w, 3, P.hair);
+        r(x + 1, 0, 2, 1, P.hairLt || P.hair);
+      } else if (hat === 'crown') {
+        r(x, 2, w, 1, P.hair);
+        r(x, 1, w, 1, '#f2c744');
+        for (let i = 0; i < w; i += 2) r(x + i, 0, 1, 1, '#f2c744');
+        r(x + (w >> 1), 1, 1, 1, '#c0392b');
+      } else if (hat === 'witch') {
+        r(x - 1, 2, w + 2, 1, P.cap);
+        r(x + 1, 0, w - 2, 2, P.cap);
+        r(x + 1, 1, w - 2, 1, '#d9b24a');
+      } else if (hat === 'kerchief') {
+        r(x, 0, w, 2, '#ffffff');
+        r(x, 2, w, 1, P.hair);
+      }
     };
 
     if (dir === 'side') {
-      r(3, 2, 2, 6, P.hair);            // 뒤통수
-      r(3, 0, 7, 3, P.cap);             // 모자
-      r(4, 3, 5, 5, P.skin);            // 얼굴
-      r(7, 5, 1, 2, P.eye);             // 눈
-      r(4, 8, 5, 5, P.shirt);           // 몸통
-      r(4, 9, 1, 4, P.shirtSh);         // 뒤팔
+      r(3, 2, 2, P.longHair ? 8 : 6, P.hair);   // 뒤통수(긴 머리는 아래까지)
+      headTop(3, 7);
+      r(4, 3, 5, 5, P.skin);                    // 얼굴
+      r(7, 5, 1, 2, P.eye);                     // 눈
+      if (P.beard) r(6, 7, 3, 2, P.beard);
+      if (P.blade) r(2, 4, 1, 8, P.blade);      // 등 뒤의 검
+      r(4, 8, 5, 5, P.shirt);                   // 몸통
+      r(4, 9, 1, 4, P.shirtSh);                 // 뒤팔
+      if (P.dress) r(4, 12, 5, 3, P.dress);
+      if (P.apron) r(6, 9, 2, 4, P.apron);
       leg(4, legs[0]);
       leg(6, legs[1]);
-      r(6, 9, 2, 4, P.shirt);           // 앞팔
-      r(6, 12, 2, 1, P.skin);           // 손
+      r(6, 9, 2, 4, P.shirt);                   // 앞팔
+      r(6, 12, 2, 1, P.skin);                   // 손
+      if (P.shield) { r(7, 9, 3, 5, P.shieldRim); r(8, 10, 1, 3, P.shield); }
       return;
     }
 
-    r(3, 0, 6, 3, P.cap);               // 모자
+    headTop(3, 6);
     r(3, 3, 6, 5, dir === 'up' ? P.hair : P.skin);
     if (dir === 'down') {
       r(4, 5, 1, 2, P.eye);
       r(7, 5, 1, 2, P.eye);
+      if (P.beard) { r(4, 7, 4, 2, P.beard); r(5, 6, 2, 1, P.beard); }
+      if (P.longHair) { r(2, 3, 1, 7, P.hair); r(9, 3, 1, 7, P.hair); }
     }
-    r(3, 8, 6, 5, P.shirt);             // 몸통
-    r(2, 8, 1, 4, P.shirt);             // 왼팔
-    r(9, 8, 1, 4, P.shirt);             // 오른팔
+    if (P.blade) {
+      if (dir === 'down') { r(1, 4, 1, 7, P.blade); r(0, 10, 3, 1, '#d9b24a'); r(1, 11, 1, 2, '#7a5a3a'); }
+      else r(10, 3, 1, 7, P.blade);
+    }
+    r(3, 8, 6, 5, P.shirt);                     // 몸통
+    r(2, 8, 1, 4, P.shirt);                     // 왼팔
+    r(9, 8, 1, 4, P.shirt);                     // 오른팔
     r(2, 12, 1, 1, P.skin);
     r(9, 12, 1, 1, P.skin);
+    if (P.dress) r(3, 12, 6, 3, P.dress);
+    if (P.apron && dir === 'down') r(4, 9, 4, 5, P.apron);
+    if (P.longHair && dir === 'up') r(3, 8, 6, 3, P.hair);
+    if (P.shield) {
+      if (dir === 'down') { r(10, 8, 2, 5, P.shieldRim); r(10, 9, 2, 3, P.shield); }
+      else { r(0, 8, 2, 5, P.shieldRim); r(0, 9, 2, 3, P.shield); }
+    }
     leg(3, legs[0]);
     leg(7, legs[1]);
   }
+
+  // 주인공 (용사): 갈색 머리, 파란 튜닉, 방패와 검
+  const HERO = {
+    skin: '#f4c99b', skinSh: '#d9a074', eye: '#231c2e', shoe: '#2d211b',
+    hat: 'none', hair: '#6b4226', hairLt: '#8c5a35',
+    shirt: '#3f6fb5', shirtSh: '#2d5088', pants: '#5a4a3a',
+    shield: '#4a78c2', shieldRim: '#d9b24a', blade: '#d6dce6',
+  };
 
   // ---- 나무 (18x26 + 외곽선) ----
   function makeTree(radius) {
@@ -1081,9 +1131,8 @@ const Sprites = (() => {
     return { down: mk('down'), up: mk('up'), right: side, left: side.map(flip) };
   }
 
-  const playerFront = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'down', legs)));
-  const playerBack = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'up', legs)));
-  const playerSide = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'side', legs)));
+  const heroSet = makePerson(HERO);
+  const playerFront = heroSet.down, playerBack = heroSet.up, playerSide = heroSet.right;
 
   return {
     // player.dir 별 [걷기1, 걷기2, 정지] 프레임
@@ -1243,15 +1292,27 @@ const Sprites = (() => {
     r(29, 3, 6, 5, '#ffd24a');
   });
 
-  // ---- NPC (플레이어와 같은 12x16 몸, 색만 다름) ----
+  // ---- 인물 (플레이어와 같은 12x16 몸. 색과 모자/수염/치마 같은 옵션으로 구분) ----
   const base = { skin: '#f4c99b', skinSh: '#d9a074', eye: '#231c2e', shoe: '#2d211b' };
   const looks = {
-    merchant: { ...base, hair: '#6b4a2e', cap: '#c98a3f', capSh: '#a66f2c', shirt: '#4f9a8a', shirtSh: '#3b7a6c', pants: '#5a4a7a' },
-    innkeeper: { ...base, hair: '#8a4b2d', cap: '#c27a8a', capSh: '#9d5c6b', shirt: '#fffaf0', shirtSh: '#e6dccb', pants: '#7a6cc4' },
-    smith: { ...base, hair: '#2f2a33', cap: '#6b7385', capSh: '#4e5565', shirt: '#c25b3a', shirtSh: '#9c4529', pants: '#3b3f63' },
-    clerk: { ...base, hair: '#3d2a55', cap: '#7f6a9e', capSh: '#5f4d7a', shirt: '#e3dae9', shirtSh: '#c7bad2', pants: '#4a4466' },
-    kid: { ...base, hair: '#b3702f', cap: '#d4b04a', capSh: '#aa8a30', shirt: '#c26a58', shirtSh: '#9d5042', pants: '#506c9b' },
-    guard: { ...base, hair: '#4a3a2e', cap: '#8f97a8', capSh: '#6d7586', shirt: '#506c9b', shirtSh: '#3d557f', pants: '#3b3f63' },
+    // 마을 사람
+    merchant: { ...base, hat: 'none', hair: '#7a5a3a', hairLt: '#9a7a54', shirt: '#c98a3f', shirtSh: '#a66f2c', pants: '#5a4a7a', apron: '#8a5a3c' },
+    shopF: { ...base, hat: 'none', longHair: true, hair: '#6b4226', hairLt: '#8c5a35', shirt: '#8a68b8', shirtSh: '#6b4d98', dress: '#8a68b8', pants: '#8a68b8' },
+    innkeeper: { ...base, hat: 'none', longHair: true, hair: '#8a4b2d', hairLt: '#a8643f', shirt: '#5f9a7a', shirtSh: '#487a5e', dress: '#5f9a7a', pants: '#5f9a7a', apron: '#f4efe2' },
+    maid: { ...base, hat: 'kerchief', hair: '#6b4a2e', shirt: '#5f9aa0', shirtSh: '#487a80', dress: '#5f9aa0', pants: '#5f9aa0', apron: '#ffffff' },
+    smith: { ...base, hat: 'none', hair: '#2f2a33', hairLt: '#4a4450', beard: '#3a3030', shirt: '#8a5a3c', shirtSh: '#6d4529', pants: '#3b3f63', apron: '#4a4a52' },
+    elder: { ...base, hat: 'none', hair: '#e8e8ea', hairLt: '#ffffff', beard: '#e8e8ea', shirt: '#7a7f90', shirtSh: '#5d6272', dress: '#7a7f90', pants: '#7a7f90' },
+    kid: { ...base, hat: 'cap', hair: '#b3702f', cap: '#d4b04a', capSh: '#aa8a30', shirt: '#c26a58', shirtSh: '#9d5042', pants: '#506c9b' },
+    // 의뢰/관리
+    guard: { ...base, hat: 'cap', hair: '#4a3a2e', cap: '#2f4f8a', capSh: '#223a68', shirt: '#3a5fa0', shirtSh: '#2b4879', pants: '#2f333c' },
+    clerk: { ...base, hat: 'none', hair: '#3d2a55', hairLt: '#5a4478', shirt: '#e3dae9', shirtSh: '#c7bad2', pants: '#4a4466' },
+    witch: { ...base, hat: 'witch', cap: '#6b4a8a', longHair: true, hair: '#2a2236', shirt: '#6b4a8a', shirtSh: '#523870', dress: '#6b4a8a', pants: '#6b4a8a' },
+    king: { ...base, hat: 'crown', hair: '#8a6a3a', beard: '#8a6a3a', shirt: '#b03a3a', shirtSh: '#8a2a2a', dress: '#b03a3a', pants: '#b03a3a' },
+    // 동료 후보 (추후 동료 시스템에서 사용)
+    mage: { ...base, hat: 'witch', cap: '#4f6fc0', longHair: true, hair: '#c9c2f0', shirt: '#4f6fc0', shirtSh: '#3b559a', dress: '#4f6fc0', pants: '#4f6fc0' },
+    rogue: { ...base, hat: 'cap', hair: '#2a2a30', cap: '#3a3f4a', capSh: '#2a2e36', shirt: '#454b58', shirtSh: '#343944', pants: '#2f333c' },
+    priestess: { ...base, hat: 'kerchief', hair: '#c9a46a', shirt: '#f4f1ea', shirtSh: '#d8d2c4', dress: '#f4f1ea', pants: '#f4f1ea' },
+    heroF: { ...base, hat: 'none', longHair: true, hair: '#b0503a', hairLt: '#d0705a', shirt: '#b0463a', shirtSh: '#8a342a', pants: '#5a4a3a', shield: '#c24a4a', shieldRim: '#d9b24a', blade: '#d6dce6' },
   };
   const npcs = {};
   for (const [name, pal] of Object.entries(looks)) npcs[name] = Sprites.makePerson(pal);
@@ -1259,6 +1320,99 @@ const Sprites = (() => {
   Sprites.buildings = buildings;
   Sprites.props = { fountain, lamp, gate };
   Sprites.npcs = npcs;
+})();
+</script>
+  <script>
+// 필드 몬스터 스프라이트 (Sprites.monsters 에 추가). 슬라임/버섯/여우는 sprites.js 에 있다.
+(() => {
+  const { build, rect, flip } = Sprites.tools;
+
+  const set = (make) => {
+    const right = [make(0), make(1)];
+    return { right, left: right.map(flip) };
+  };
+
+  // 타원을 채우되 빛(위쪽)과 그림자(아래쪽)로 입체감을 준다
+  function blob(ctx, ox, oy, cx, cy, rx, ry, light, mid, dark) {
+    for (let y = 0; y < Math.ceil(cy + ry + 1); y++) {
+      for (let x = 0; x < Math.ceil(cx + rx + 1); x++) {
+        const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry;
+        if (nx * nx + ny * ny > 1) continue;
+        rect(ctx, ox + x, oy + y, 1, 1, ny < -0.35 ? light : ny > 0.4 ? dark : mid);
+      }
+    }
+  }
+
+  // 들쥐 (16x9, 오른쪽을 봄)
+  const rat = set((step) => build(16, 9, (ctx, ox, oy) => {
+    const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
+    r(0, 5, 1, 1, '#d8a0a0'); r(1, 6, 2, 1, '#d8a0a0'); r(3, 6, 1, 1, '#d8a0a0');
+    blob(ctx, ox, oy, 8, 5, 5.5, 3, '#c4b5a2', '#9a8a78', '#6f6256');
+    blob(ctx, ox, oy, 13, 5, 2.8, 2.2, '#c4b5a2', '#a89886', '#7d6f60');
+    r(12, 2, 2, 2, '#d8a8a8');
+    r(15, 5, 1, 1, '#e08a8a');
+    r(13, 4, 1, 1, '#1b1b1b');
+    r(5 + step, 8, 2, 1, '#6f6256');
+    r(10 - step, 8, 2, 1, '#6f6256');
+  }));
+
+  // 박쥐 (18x12): 날개를 퍼덕인다
+  const bat = set((step) => build(18, 12, (ctx, ox, oy) => {
+    const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
+    for (let c = 0; c < 7; c++) {
+      const y0 = step ? 6 + Math.round(c * 0.5) : 5 - Math.round(c * 0.8);
+      const h = step ? 3 : 4 + (c % 2 ? 0 : 1);
+      r(6 - c + 0, y0, 1, h, c === 6 ? '#3b2e4a' : '#5c4a72');
+      r(11 + c, y0, 1, h, c === 6 ? '#3b2e4a' : '#5c4a72');
+    }
+    blob(ctx, ox, oy, 9, 6, 2.6, 3.2, '#7a6894', '#55456c', '#3b2e4a');
+    r(7, 2, 1, 2, '#55456c'); r(10, 2, 1, 2, '#55456c');
+    r(8, 4, 1, 1, '#ff6b6b'); r(10, 4, 1, 1, '#ff6b6b');
+    r(8, 7, 2, 1, '#e8e0f0');
+  }));
+
+  // 고블린 (14x16)
+  const goblin = set((step) => build(14, 16, (ctx, ox, oy) => {
+    const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
+    const g1 = '#9ad665', g2 = '#7fbf4a', g3 = '#5d9a36';
+    r(0, 3, 3, 1, g2); r(11, 3, 3, 1, g2);
+    blob(ctx, ox, oy, 7, 4, 3.4, 3.1, g1, g2, g3);
+    r(5, 4, 1, 1, '#ffd24a'); r(8, 4, 1, 1, '#ffd24a');
+    r(6, 6, 2, 1, '#3b2a20'); r(6, 6, 1, 1, '#ffffff');
+    r(4, 7, 6, 5, '#8a5a3c'); r(4, 10, 6, 1, '#5a3a22'); r(4, 7, 6, 1, '#a8744e');
+    r(3, 7, 1, 4, g2); r(10, 7, 1, 4, g2);
+    r(11, 7, 1, 5, '#c9ced6'); r(10, 11, 3, 1, '#8a5a3c');
+    r(5, 12, 2, step ? 3 : 4, g3); r(8, 12, 2, step ? 4 : 3, g3);
+    r(5, step ? 15 : 16 - 1, 2, 1, '#4a3322'); r(8, step ? 15 : 14, 2, 1, '#4a3322');
+  }));
+
+  // 늑대 (20x12, 오른쪽을 봄)
+  const wolf = set((step) => build(20, 12, (ctx, ox, oy) => {
+    const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
+    r(0, 3, 4, 2, '#8a8f9c'); r(0, 2, 2, 2, '#a8adb8');
+    blob(ctx, ox, oy, 9, 6, 6.5, 3.2, '#b5bac6', '#8a8f9c', '#5d616e');
+    blob(ctx, ox, oy, 16, 5, 3, 2.6, '#b5bac6', '#8a8f9c', '#6d7180');
+    r(18, 5, 2, 2, '#c9ced8'); r(19, 5, 1, 1, '#1b1b1b');
+    r(15, 1, 2, 3, '#6d7180'); r(16, 2, 1, 1, '#d8a0a0');
+    r(16, 4, 1, 1, '#ffd24a');
+    r(4, 9, 2, step ? 2 : 3, '#5d616e'); r(7, 9, 2, step ? 3 : 2, '#5d616e');
+    r(12, 9, 2, step ? 3 : 2, '#5d616e'); r(15, 9, 2, step ? 2 : 3, '#5d616e');
+  }));
+
+  // 거미 (14x10)
+  const spider = set((step) => build(14, 10, (ctx, ox, oy) => {
+    const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
+    for (let i = 0; i < 4; i++) {
+      r(2 + i * 2, step ? 1 : 2, 1, 3, '#2a2236');
+      r(2 + i * 2, step ? 6 : 7, 1, 3, '#2a2236');
+    }
+    blob(ctx, ox, oy, 5, 5, 3.2, 2.8, '#52456a', '#2f2740', '#1f1a2c');
+    r(5, 4, 1, 2, '#c0392b');
+    blob(ctx, ox, oy, 9.5, 5, 2, 2, '#62547c', '#4a3d5e', '#2f2740');
+    r(10, 4, 1, 1, '#ff5a5a'); r(10, 6, 1, 1, '#ff5a5a');
+  }));
+
+  Object.assign(Sprites.monsters, { rat, bat, goblin, wolf, spider });
 })();
 </script>
   <script>
@@ -1317,9 +1471,13 @@ const Regions = [
       // NPC: role 은 추후 상호작용 시스템(상점/제작/의뢰 등)이 사용한다. look 은 Sprites.npcs 의 키
       npcs: [
         { id: 'merchant', name: '상인 모모', role: 'shop', look: 'merchant', tx: 9, ty: 14, lines: ['어서 오세요! 솔빛 마을 상점이에요.', '물건은 곧 들여올 예정이니 조금만 기다려 주세요.'] },
+        { id: 'shopkeeper', name: '상점 주인 도라', role: 'shop', look: 'shopF', tx: 3, ty: 15, lines: ['남편이 또 물건을 쌓아 두네요.', '필요한 게 있으면 말씀하세요.'] },
         { id: 'innkeeper', name: '여관 주인 하나', role: 'inn', look: 'innkeeper', tx: 22, ty: 14, lines: ['여관에 오신 걸 환영해요. 푹 쉬고 가세요.', '따뜻한 차도 준비해 둘게요.'] },
+        { id: 'maid', name: '여관 일꾼 미나', role: 'villager', look: 'maid', tx: 28, ty: 15, lines: ['어서 오세요! 방은 늘 깨끗해요.'] },
         { id: 'smith', name: '대장장이 쿠로', role: 'crafting', look: 'smith', tx: 9, ty: 24, lines: ['쿵쿵! 지금 한창 망치질 중이야.', '나중에 장비 제작과 강화는 나한테 맡겨.'] },
         { id: 'clerk', name: '의뢰소 직원 리코', role: 'quest', look: 'clerk', tx: 22, ty: 24, lines: ['의뢰소에 오셨군요!', '의뢰는 아직 준비 중이에요. 조금만 기다려 주세요.'] },
+        { id: 'witch', name: '마녀 루나', role: 'villager', look: 'witch', tx: 28, ty: 25, lines: ['후후, 숲에는 신기한 것이 많단다.', '달빛 여우를 만나면 행운이 따른다지.'] },
+        { id: 'elder', name: '촌장 할아버지', role: 'villager', look: 'elder', tx: 20, ty: 17, lines: ['솔빛 마을에 잘 왔네, 젊은 모험가.', '북쪽 게이트 너머가 초록숲이라네.'] },
         { id: 'kid', name: '꼬마 콩이', role: 'villager', look: 'kid', tx: 13, ty: 22, lines: ['안녕! 나는 콩이야.', '게이트 너머 초록숲에는 슬라임이 살아!'] },
         { id: 'guard', name: '문지기 도리', role: 'guard', look: 'guard', tx: 18, ty: 5, lines: ['여기는 탐험 게이트다.', '초록숲으로 가려면 이 문을 지나가라. 조심해서 다녀와!'] },
       ],
@@ -1347,7 +1505,7 @@ const Regions = [
       flowers: 80,
     },
     monsters: {
-      target: 6,              // 필드에 유지할 몬스터 수
+      target: 7,              // 필드에 유지할 몬스터 수
       respawn: [5, 9],        // 빈자리가 생긴 뒤 새로 출현하기까지 걸리는 시간(초)
       minSpawnDist: 80,       // 플레이어와 최소 거리(px)
       lifetime: [40, 80],     // 몬스터가 필드에 머무는 시간(초)
@@ -1392,45 +1550,85 @@ const MonsterRarities = {
 
 const MonsterData = [
   {
-    id: 'blue_slime',
-    name: '푸른 슬라임',
-    rarity: 'normal',
-    regions: ['greenforest'],
-    spawnChance: 50,
-    maxCount: 4,
-    stats: { hp: 20, atk: 4, def: 2, spd: 3 },
-    moveSpeed: 16,
-    detectRange: 56,
-    sprite: 'slime',
-    wanderRadius: 36,
+    id: 'blue_slime', name: '푸른 슬라임', rarity: 'normal', regions: ['greenforest'],
+    spawnChance: 50, maxCount: 3, stats: { hp: 20, atk: 4, def: 2, spd: 3 },
+    moveSpeed: 16, detectRange: 56, sprite: 'slime', wanderRadius: 36,
   },
   {
-    id: 'mushroom_kid',
-    name: '버섯돌이',
-    rarity: 'normal',
-    regions: ['greenforest'],
-    spawnChance: 35,
-    maxCount: 3,
-    stats: { hp: 28, atk: 6, def: 3, spd: 2 },
-    moveSpeed: 13,
-    detectRange: 48,
-    sprite: 'mushroom',
-    wanderRadius: 44,
+    id: 'forest_rat', name: '들쥐', rarity: 'normal', regions: ['greenforest'],
+    spawnChance: 40, maxCount: 3, stats: { hp: 14, atk: 3, def: 1, spd: 8 },
+    moveSpeed: 24, detectRange: 52, sprite: 'rat', wanderRadius: 48,
   },
   {
-    id: 'moon_fox',
-    name: '달빛 여우',
-    rarity: 'rare',
-    regions: ['greenforest'],
-    spawnChance: 4,
-    maxCount: 1,
-    stats: { hp: 45, atk: 9, def: 4, spd: 9 },
-    moveSpeed: 26,
-    detectRange: 72,
-    sprite: 'fox',
-    wanderRadius: 60,
-    lifetime: [30, 50],
+    id: 'mushroom_kid', name: '버섯돌이', rarity: 'normal', regions: ['greenforest'],
+    spawnChance: 35, maxCount: 2, stats: { hp: 28, atk: 6, def: 3, spd: 2 },
+    moveSpeed: 13, detectRange: 48, sprite: 'mushroom', wanderRadius: 44,
   },
+  {
+    id: 'cave_bat', name: '박쥐', rarity: 'normal', regions: ['greenforest'],
+    spawnChance: 28, maxCount: 2, stats: { hp: 16, atk: 5, def: 1, spd: 10 },
+    moveSpeed: 30, detectRange: 64, sprite: 'bat', wanderRadius: 60,
+  },
+  {
+    id: 'black_spider', name: '독거미', rarity: 'normal', regions: ['greenforest'],
+    spawnChance: 20, maxCount: 2, stats: { hp: 22, atk: 7, def: 2, spd: 6 },
+    moveSpeed: 20, detectRange: 50, sprite: 'spider', wanderRadius: 40,
+  },
+  {
+    id: 'goblin', name: '고블린', rarity: 'normal', regions: ['greenforest'],
+    spawnChance: 18, maxCount: 2, stats: { hp: 32, atk: 8, def: 3, spd: 5 },
+    moveSpeed: 18, detectRange: 60, sprite: 'goblin', wanderRadius: 44,
+  },
+  {
+    id: 'gray_wolf', name: '회색 늑대', rarity: 'normal', regions: ['greenforest'],
+    spawnChance: 10, maxCount: 1, stats: { hp: 40, atk: 10, def: 4, spd: 9 },
+    moveSpeed: 28, detectRange: 78, sprite: 'wolf', wanderRadius: 64,
+  },
+  {
+    id: 'moon_fox', name: '달빛 여우', rarity: 'rare', regions: ['greenforest'],
+    spawnChance: 4, maxCount: 1, stats: { hp: 45, atk: 9, def: 4, spd: 9 },
+    moveSpeed: 26, detectRange: 72, sprite: 'fox', wanderRadius: 60, lifetime: [30, 50],
+  },
+];
+</script>
+  <script>
+// 몬스터 로스터(기획 목록): 앞으로 지역별로 추가할 몬스터 후보. 아직 스프라이트/능력치가 없는 항목은 implemented:false.
+// 구현할 때는 monster-data.js 에 MonsterData 항목을 만들고 여기서 implemented 를 true 로 바꾼다.
+// tier: normal(일반) | rare(희귀) | elite(엘리트) | boss(필드/던전 보스)
+const MonsterRoster = [
+  // 구현됨 (초록숲)
+  { id: 'blue_slime', name: '푸른 슬라임', family: '슬라임', tier: 'normal', habitat: '초록숲', implemented: true },
+  { id: 'forest_rat', name: '들쥐', family: '짐승', tier: 'normal', habitat: '초록숲', implemented: true },
+  { id: 'mushroom_kid', name: '버섯돌이', family: '식물', tier: 'normal', habitat: '초록숲', implemented: true },
+  { id: 'cave_bat', name: '박쥐', family: '짐승', tier: 'normal', habitat: '초록숲', implemented: true },
+  { id: 'black_spider', name: '독거미', family: '벌레', tier: 'normal', habitat: '초록숲', implemented: true },
+  { id: 'goblin', name: '고블린', family: '고블린', tier: 'normal', habitat: '초록숲', implemented: true },
+  { id: 'gray_wolf', name: '회색 늑대', family: '짐승', tier: 'normal', habitat: '초록숲', implemented: true },
+  { id: 'moon_fox', name: '달빛 여우', family: '짐승', tier: 'rare', habitat: '초록숲', implemented: true },
+  // 기획: 늪지 / 동굴 / 바위산 / 던전 / 화산 / 설원
+  { id: 'skeleton', name: '스켈레톤', family: '언데드', tier: 'normal', habitat: '던전', implemented: false },
+  { id: 'zombie', name: '좀비', family: '언데드', tier: 'normal', habitat: '안개 늪지', implemented: false },
+  { id: 'treant', name: '숲의 정령', family: '식물', tier: 'elite', habitat: '초록숲', implemented: false },
+  { id: 'bandit', name: '산적', family: '인간', tier: 'normal', habitat: '붉은 바위산', implemented: false },
+  { id: 'orc', name: '오크', family: '오크', tier: 'elite', habitat: '붉은 바위산', implemented: false },
+  { id: 'ogre', name: '오거', family: '거인', tier: 'elite', habitat: '붉은 바위산', implemented: false },
+  { id: 'harpy', name: '하피', family: '비행', tier: 'normal', habitat: '붉은 바위산', implemented: false },
+  { id: 'fire_elemental', name: '불의 정령', family: '정령', tier: 'normal', habitat: '화산', implemented: false },
+  { id: 'stone_golem', name: '돌 골렘', family: '골렘', tier: 'elite', habitat: '동굴', implemented: false },
+  { id: 'lich', name: '리치', family: '언데드', tier: 'elite', habitat: '던전', implemented: false },
+  { id: 'minotaur', name: '미노타우로스', family: '야수', tier: 'boss', habitat: '던전', implemented: false },
+  { id: 'serpent', name: '독사', family: '뱀', tier: 'normal', habitat: '안개 늪지', implemented: false },
+  { id: 'naga', name: '나가', family: '뱀', tier: 'elite', habitat: '안개 늪지', implemented: false },
+  { id: 'dragon', name: '드래곤', family: '용', tier: 'boss', habitat: '화산', implemented: false },
+  { id: 'demon_lord', name: '마왕', family: '악마', tier: 'boss', habitat: '던전', implemented: false },
+  { id: 'beholder', name: '비홀더', family: '마안', tier: 'elite', habitat: '던전', implemented: false },
+  { id: 'dark_knight', name: '암흑 기사', family: '인간', tier: 'elite', habitat: '던전', implemented: false },
+  { id: 'griffin', name: '그리핀', family: '비행', tier: 'rare', habitat: '붉은 바위산', implemented: false },
+  { id: 'hydra', name: '히드라', family: '용', tier: 'boss', habitat: '안개 늪지', implemented: false },
+  { id: 'vampire', name: '뱀파이어', family: '언데드', tier: 'elite', habitat: '던전', implemented: false },
+  { id: 'ancient_mage', name: '고대 마법사', family: '인간', tier: 'boss', habitat: '던전', implemented: false },
+  { id: 'ice_golem', name: '얼음 결정체', family: '골렘', tier: 'elite', habitat: '설원', implemented: false },
+  { id: 'lava_golem', name: '용암 골렘', family: '골렘', tier: 'elite', habitat: '화산', implemented: false },
 ];
 </script>
   <script>
