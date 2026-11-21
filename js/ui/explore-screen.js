@@ -32,10 +32,8 @@
 
   function card(region, here) {
     const li = document.createElement('li');
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'region-card' + (region.locked ? ' locked' : '') + (here ? ' is-here' : '');
-    btn.disabled = !!region.locked;
+    const box = document.createElement('div'); // 터치로 직접 누르지 않고 하단 컨트롤로 고른다
+    box.className = 'region-card' + (region.locked ? ' locked' : '') + (here ? ' is-here' : '');
 
     const text = document.createElement('div');
     text.innerHTML = '<h3></h3><p></p><span class="badge"></span>';
@@ -44,15 +42,18 @@
     text.querySelector('.badge').textContent =
       region.locked ? '준비 중' : here ? '현재 위치' : region.type === 'village' ? '마을로 이동' : '입장 가능';
 
-    btn.append(makeThumb(region), text);
-    if (!region.locked) {
-      btn.addEventListener('click', () => {
-        Screens.close();
-        if (!here) Events.emit('location:request', { id: region.id });
-      });
-    }
-    li.appendChild(btn);
+    box.append(makeThumb(region), text);
+    li.appendChild(box);
     return li;
+  }
+
+  let items = [];     // 카드 요소
+  let selected = 0;   // 커서 위치
+
+  function select(i) {
+    selected = (i + items.length) % items.length;
+    items.forEach((el, n) => el.classList.toggle('is-selected', n === selected));
+    items[selected].scrollIntoView({ block: 'nearest' });
   }
 
   Screens.register('explore', {
@@ -60,12 +61,29 @@
     render(body) {
       const hint = document.createElement('p');
       hint.className = 'explore-hint';
-      hint.textContent = '이동할 장소를 골라 주세요.';
+      hint.textContent = '▲▼ 로 장소를 고르고 확인을 눌러요.';
       const list = document.createElement('ul');
       list.className = 'region-list';
       const here = GameState.get('location').id;
-      for (const region of Regions) list.appendChild(card(region, region.id === here));
+      items = [];
+      Regions.forEach((region) => {
+        const li = card(region, region.id === here);
+        list.appendChild(li);
+        items.push(li.firstChild);
+      });
       body.append(hint, list);
+      select(Math.max(0, Regions.findIndex((r) => r.id === here)));
+    },
+    onNav(dir) {
+      if (dir === 'up') select(selected - 1);
+      else if (dir === 'down') select(selected + 1);
+    },
+    onConfirm() {
+      const region = Regions[selected];
+      if (region.locked) return;
+      const here = region.id === GameState.get('location').id;
+      Screens.close();
+      if (!here) Events.emit('location:request', { id: region.id });
     },
   });
 })();

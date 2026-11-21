@@ -303,11 +303,44 @@ body {
   box-shadow: 0 3px 8px rgba(255, 122, 107, 0.45);
 }
 
-#act-btn {
+/* 오른쪽 버튼 묶음: 확인(대화/다음)은 항상 같은 자리에 있다 */
+#act-cluster {
   position: absolute;
-  right: 22px;
+  right: 20px;
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+#back-btn {
+  width: calc(var(--joy) * 0.58);
+  height: calc(var(--joy) * 0.58);
+  margin: 0 0 4px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--white);
+  box-shadow: 0 3px 0 var(--line);
+  color: var(--ink);
+  font: 800 13px/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+#back-btn[hidden] {
+  display: none;
+}
+
+#back-btn:active {
+  transform: translateY(3px);
+  box-shadow: none;
+}
+
+#act-btn {
+  position: relative;
+  flex: none;
   width: calc(var(--joy) * 0.82);
   height: calc(var(--joy) * 0.82);
   display: flex;
@@ -337,7 +370,7 @@ body {
 }
 
 #act-btn:active {
-  transform: translateY(calc(-50% + 3px));
+  transform: translateY(3px);
   box-shadow: 0 1px 0 #cf8a10, 0 3px 8px rgba(242, 169, 32, 0.4);
 }
 
@@ -356,8 +389,64 @@ body {
   stroke-linejoin: round;
 }
 
-/* ---------- NPC 대화창 ---------- */
+/* 방향 버튼: 메뉴 화면에서 조이스틱 자리에 나타난다 */
+#dpad {
+  display: none;
+  flex: none;
+  width: calc(var(--joy) + 40px);
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+#pad[data-mode="screen"] #dpad {
+  display: grid;
+  grid-template-columns: repeat(3, calc((var(--joy) + 30px) / 3));
+  grid-template-rows: repeat(3, calc((var(--joy) + 30px) / 3));
+  place-content: center;
+}
+
+#pad[data-mode="screen"] #joy-zone,
+#pad[data-mode="dialog"] #joy-zone {
+  display: none;
+}
+
+.dp {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: var(--white);
+  box-shadow: 0 2px 0 var(--line);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.dp svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dp:active {
+  background: #fff3d6;
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.dp-up { grid-area: 1 / 2; border-radius: 12px 12px 4px 4px; }
+.dp-left { grid-area: 2 / 1; border-radius: 12px 4px 4px 12px; }
+.dp-right { grid-area: 2 / 3; border-radius: 4px 12px 12px 4px; }
+.dp-down { grid-area: 3 / 2; border-radius: 4px 4px 12px 12px; }
+
+/* ---------- NPC 대화창 (보여 주기만 함: 조작은 하단 컨트롤) ---------- */
 #dialog {
+  pointer-events: none;
   position: absolute;
   left: 12px;
   right: 12px;
@@ -375,7 +464,6 @@ body {
   border-radius: var(--radius-lg);
   background: rgba(255, 252, 244, 0.98);
   box-shadow: var(--shadow-float);
-  cursor: pointer;
 }
 
 .dialog-name {
@@ -399,24 +487,17 @@ body {
   line-height: 1.5;
 }
 
-#dialog-next {
-  display: block;
-  margin: 0 0 0 auto;
-  height: 34px;
-  padding: 0 18px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--amber);
-  box-shadow: 0 2px 0 #cf8a10;
-  color: #fff;
-  font: 800 13px/1 var(--font);
-  cursor: pointer;
-  touch-action: manipulation;
+.dialog-more {
+  position: absolute;
+  right: 16px;
+  bottom: 10px;
+  color: var(--amber);
+  font-size: 13px;
+  animation: dialog-blink 0.9s ease-in-out infinite;
 }
 
-#dialog-next:active {
-  transform: translateY(2px);
-  box-shadow: none;
+@keyframes dialog-blink {
+  50% { opacity: 0.25; transform: translateY(2px); }
 }
 
 /* ---------- 메뉴 화면 (필드 위에 덮임) ---------- */
@@ -428,7 +509,7 @@ body {
   flex-direction: column;
   background: var(--cream);
   color: var(--ink);
-  touch-action: pan-y;
+  pointer-events: none; /* 조작은 모두 하단 컨트롤로 한다 */
 }
 
 #screen[hidden] {
@@ -442,27 +523,6 @@ body {
   justify-content: center;
   min-height: calc(env(safe-area-inset-top, 0px) + 58px);
   padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
-}
-
-#screen-back {
-  position: absolute;
-  left: 12px;
-  bottom: 9px;
-  height: 38px;
-  padding: 0 16px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--white);
-  box-shadow: 0 2px 0 var(--line);
-  color: inherit;
-  font: 800 14px/1 var(--font);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-#screen-back:active {
-  transform: translateY(2px);
-  box-shadow: none;
 }
 
 #screen-title {
@@ -552,13 +612,11 @@ body {
   color: inherit;
   font: inherit;
   text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
-.region-card:active:not(:disabled) {
-  transform: translateY(2px);
-  box-shadow: none;
+.region-card.is-selected {
+  outline: 3px solid var(--amber);
+  outline-offset: 1px;
 }
 
 .region-card .thumb {
@@ -601,7 +659,6 @@ body {
 .region-card.locked {
   background: #f6efe0;
   box-shadow: none;
-  cursor: not-allowed;
 }
 
 .region-card.locked h3,

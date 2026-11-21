@@ -12,7 +12,7 @@ HTML/CSS/JavaScript만 사용한다. 빌드 도구 없이 `index.html`의 `<scri
 | `js/gfx/` | 코드로 그리는 픽셀 스프라이트 (`sprites.js`, `village-sprites.js`) |
 | `js/world/` | 월드 구현: 지형/충돌(`world.js`), 몬스터 출현(`monsters.js`), 마을 NPC(`npcs.js`) |
 | `js/systems/` | 게임 시스템. 지금은 12개 모두 등록만 된 뼈대 (아래 표) |
-| `js/ui/` | 화면: 조이스틱(`input.js`), 메뉴 화면 전환(`screens.js`), HUD(`hud.js`), 탐험 화면(`explore-screen.js`) |
+| `js/ui/` | 화면: 조이스틱(`input.js`), 하단 컨트롤(`controls.js`), 메뉴 화면 전환(`screens.js`), 대화창(`dialog.js`), HUD(`hud.js`), 탐험 화면(`explore-screen.js`) |
 | `js/main.js` | 게임 루프(이동, 카메라, 렌더링)와 장소 이동 |
 
 ## 화면 구성
@@ -27,7 +27,8 @@ HTML/CSS/JavaScript만 사용한다. 빌드 도구 없이 `index.html`의 `<scri
 2. 시스템끼리의 협력은 이벤트로만 한다. 예: 전투 종료 → `battle:end` → 인벤토리/캐릭터가 각자 처리.
 3. 화면(ui)은 이벤트를 듣고 `GameState`를 읽어 그린다. 화면이 시스템 내부를 바꾸지 않는다.
 4. 장소 이동은 `Events.emit('location:request', { id })` 로 요청한다.
-5. 상호작용: `main.js` 가 가까운 대상을 찾아 `interact:target` 을 보내면 대화 버튼이 나타나고, 버튼을 누르면 `npc:interact { npc }` 가 발생한다. 지금은 `ui/dialog.js` 가 임시 대사를 보여 주며, 추후 Shop/Crafting/Quest 가 같은 이벤트를 듣고 `npc.role` 에 따라 처리한다.
+5. **터치는 하단에서만**: 위쪽(필드/메뉴 화면/대화창)은 보여 주기만 한다. 모든 조작은 `ui/controls.js` 의 하단 컨트롤이 받는다 — 필드: 조이스틱 + 대화, 메뉴 화면: 방향 + 확인/뒤로, 대화: 다음/닫기. 새 화면은 `Screens.register(id, { onNav, onConfirm, onBack })` 로 이 버튼들에 반응한다.
+6. 상호작용: `main.js` 가 가까운 대상을 찾아 `interact:target` 을 보내면 대화 버튼이 나타나고, 버튼을 누르면 `npc:interact { npc }` 가 발생한다. 지금은 `ui/dialog.js` 가 임시 대사를 보여 주며, 추후 Shop/Crafting/Quest 가 같은 이벤트를 듣고 `npc.role` 에 따라 처리한다.
 
 ## 시스템
 

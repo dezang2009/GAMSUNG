@@ -1,5 +1,6 @@
 // 메인 메뉴 화면 전환. 마을/탐험 필드(게임 상태)는 건드리지 않고 그 위에 화면만 덮는다.
-// 실제 기능을 붙일 때는 Screens.register(id, { render(body), onOpen(), onClose() }) 로 교체하면 된다.
+// 실제 기능을 붙일 때는 Screens.register(id, { render(body), onOpen(), onClose(), onNav(dir), onConfirm(), onBack() }) 로 교체하면 된다.
+// 모든 조작은 하단 컨트롤(ui/controls.js)의 방향/확인/뒤로 버튼으로 들어온다. 화면 위쪽은 보여 주기만 한다.
 const Screens = (() => {
   const overlay = document.getElementById('screen');
   const titleEl = document.getElementById('screen-title');
@@ -54,6 +55,7 @@ const Screens = (() => {
     setCurrent(id);
     if (def.onOpen) def.onOpen();
     listeners.forEach((fn) => fn(current));
+    Events.emit('ui:changed');
   }
 
   function close() {
@@ -65,14 +67,32 @@ const Screens = (() => {
     setCurrent(null);
     if (def.onClose) def.onClose();
     listeners.forEach((fn) => fn(null));
+    Events.emit('ui:changed');
   }
 
-  dockButtons.forEach((b) => b.addEventListener('click', () => open(b.dataset.menu)));
-  document.getElementById('screen-back').addEventListener('click', close);
+  // 하단 메뉴 버튼: 다른 화면으로 전환하고, 열려 있는 화면의 버튼을 다시 누르면 닫는다
+  dockButtons.forEach((b) => b.addEventListener('click', () => (current === b.dataset.menu ? close() : open(b.dataset.menu))));
+
+  // 하단 컨트롤에서 들어오는 조작을 현재 화면에 전달한다
+  function nav(dir) {
+    const def = current && defs[current];
+    if (def && def.onNav) def.onNav(dir);
+  }
+  function confirm() {
+    const def = current && defs[current];
+    if (def && def.onConfirm) def.onConfirm();
+  }
+  function back() {
+    const def = current && defs[current];
+    if (def && def.onBack) def.onBack(); else close();
+  }
 
   return {
     open,
     close,
+    nav,
+    confirm,
+    back,
     get current() { return current; },
     onChange: (fn) => listeners.push(fn),
     // 실제 기능 구현 시 화면 정의를 덮어쓴다

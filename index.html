@@ -32,14 +32,13 @@
         <div class="dialog-card">
           <span class="dialog-name" id="dialog-name"></span>
           <p id="dialog-text"></p>
-          <button id="dialog-next" type="button">다음</button>
+          <span class="dialog-more" id="dialog-more" aria-hidden="true">▼</span>
         </div>
       </section>
 
       <!-- 메뉴 화면: 필드 위에 덮인다 -->
       <section id="screen" hidden>
         <header class="screen-bar">
-          <button id="screen-back" type="button">‹ 뒤로</button>
           <h2 id="screen-title"></h2>
         </header>
         <div id="screen-body"></div>
@@ -74,16 +73,26 @@
           <span class="dock-label">캐릭터</span>
         </button>
       </div>
-      <div id="pad">
+      <div id="pad" data-mode="field">
         <!-- 왼쪽: 고정 조이스틱 -->
         <div id="joy-zone" aria-label="조이스틱">
           <div id="joy-base"><div id="joy-knob"></div></div>
         </div>
-        <!-- 오른쪽: 상호작용 대상 옆에 있을 때만 나타나는 대화 버튼 -->
-        <button id="act-btn" type="button" hidden>
-          <span class="act-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-          <span class="act-label">대화</span>
-        </button>
+        <!-- 화면/목록을 조작할 때 조이스틱 대신 나오는 방향 버튼 -->
+        <div id="dpad" aria-label="방향 버튼">
+          <button class="dp dp-up" type="button" data-nav="up" aria-label="위"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
+          <button class="dp dp-left" type="button" data-nav="left" aria-label="왼쪽"><svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
+          <button class="dp dp-right" type="button" data-nav="right" aria-label="오른쪽"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+          <button class="dp dp-down" type="button" data-nav="down" aria-label="아래"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+        </div>
+        <!-- 오른쪽 버튼: 대화(대상 옆에서만) / 다음 / 확인, 그리고 뒤로 -->
+        <div id="act-cluster">
+          <button id="back-btn" type="button" hidden>뒤로</button>
+          <button id="act-btn" type="button" hidden>
+            <span class="act-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+            <span class="act-label">대화</span>
+          </button>
+        </div>
       </div>
     </nav>
   </div>
@@ -114,8 +123,8 @@
   <script src="js/ui/screens.js"></script>
   <script src="js/ui/hud.js"></script>
   <script src="js/ui/explore-screen.js"></script>
-  <script src="js/ui/interact.js"></script>
   <script src="js/ui/dialog.js"></script>
+  <script src="js/ui/controls.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
