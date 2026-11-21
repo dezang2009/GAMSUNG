@@ -69,13 +69,33 @@ const Controls = (() => {
 
   act.addEventListener('click', pressConfirm);
   back.addEventListener('click', pressBack);
-  pad.querySelectorAll('[data-nav]').forEach((b) =>
-    b.addEventListener('click', () => {
-      if (BattleUI.active) BattleUI.nav(b.dataset.nav);
-      else if (ForgeUI.active) ForgeUI.nav(b.dataset.nav);
-      else if (ShopUI.active) ShopUI.nav(b.dataset.nav);
-      else if (Screens.current && !Dialog.isOpen()) Screens.nav(b.dataset.nav);
-    }));
+  // 방향 버튼: 누르는 즉시 입력되고, 꾹 누르고 있으면 계속 반복된다 (목록을 빠르게 넘길 때 편하다)
+  function fireNav(dir) {
+    if (BattleUI.active) BattleUI.nav(dir);
+    else if (ForgeUI.active) ForgeUI.nav(dir);
+    else if (ShopUI.active) ShopUI.nav(dir);
+    else if (Screens.current && !Dialog.isOpen()) Screens.nav(dir);
+  }
+
+  pad.querySelectorAll('[data-nav]').forEach((b) => {
+    let delay = 0;
+    let rep = 0;
+    const stop = () => {
+      clearTimeout(delay);
+      clearInterval(rep);
+      b.classList.remove('is-held');
+    };
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      b.setPointerCapture(e.pointerId);
+      b.classList.add('is-held');
+      fireNav(b.dataset.nav);
+      delay = setTimeout(() => { rep = setInterval(() => fireNav(b.dataset.nav), 140); }, 380);
+    });
+    b.addEventListener('pointerup', stop);
+    b.addEventListener('pointercancel', stop);
+    b.addEventListener('lostpointercapture', stop);
+  });
 
   Events.on('interact:target', (t) => { target = t; refresh(); });
   Events.on('ui:changed', refresh);
