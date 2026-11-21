@@ -39,19 +39,14 @@
 
   // 플레이어를 중심에 두되, 맵 밖은 보이지 않도록 제한
   function cameraTarget() {
-    const tx = player.x - view.w / 2;
-    const ty = player.y - 8 - view.h / 2;
+    // 화면에 그려지는 플레이어 좌표(반올림)를 기준으로 정수 카메라를 만든다.
+    // 플레이어와 월드가 같은 정수 기준으로 움직여 상대 위치가 흔들리지 않는다.
+    const tx = Math.round(player.x) - Math.floor(view.w / 2);
+    const ty = Math.round(player.y) - 8 - Math.floor(view.h / 2);
     return {
-      x: MAP_W <= view.w ? (MAP_W - view.w) / 2 : clamp(tx, 0, MAP_W - view.w),
-      y: MAP_H <= view.h ? (MAP_H - view.h) / 2 : clamp(ty, 0, MAP_H - view.h),
+      x: MAP_W <= view.w ? Math.round((MAP_W - view.w) / 2) : clamp(tx, 0, MAP_W - view.w),
+      y: MAP_H <= view.h ? Math.round((MAP_H - view.h) / 2) : clamp(ty, 0, MAP_H - view.h),
     };
-  }
-
-  function updateCamera(dt) {
-    const t = cameraTarget();
-    const k = 1 - Math.exp(-dt * 9);
-    cam.x += (t.x - cam.x) * k;
-    cam.y += (t.y - cam.y) * k;
   }
 
   // 한 축으로 이동. 1px 이하 단위로 나눠 전진하며, 막히면 그 축 속도만 0으로 만든다
@@ -107,7 +102,7 @@
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, view.w, view.h);
 
-    const ox = Math.round(cam.x), oy = Math.round(cam.y);
+    const ox = cam.x, oy = cam.y;
     if (World.ground) ctx.drawImage(World.ground, -ox, -oy);
 
     // 오브젝트는 기준선(baseY) 순서로 그리고, 플레이어와 깊이 순서를 맞춘다
@@ -117,19 +112,25 @@
         drawPlayer(ox, oy);
         playerDrawn = true;
       }
-      const sx = Math.round(o.x - ox), sy = Math.round(o.y - oy);
+      const sx = o.x - ox, sy = o.y - oy;
       if (sx > view.w || sy > view.h || sx + o.w < 0 || sy + o.h < 0) continue;
       ctx.drawImage(o.img, sx, sy);
     }
     if (!playerDrawn) drawPlayer(ox, oy);
   }
 
+  const STEP = 1 / 120;
+  let acc = 0;
   let last = performance.now();
   function frame(now) {
-    const dt = Math.min(0.05, (now - last) / 1000);
+    // 고정 시간 간격으로 갱신해 프레임 간격이 불규칙해도 이동량이 일정하다
+    acc += Math.min(0.1, (now - last) / 1000);
     last = now;
-    update(dt);
-    updateCamera(dt);
+    while (acc >= STEP) {
+      update(STEP);
+      acc -= STEP;
+    }
+    Object.assign(cam, cameraTarget());
     render();
     requestAnimationFrame(frame);
   }
