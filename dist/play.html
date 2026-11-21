@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>픽셀 탐험</title>
+  <style>
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #1c2b1f;
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#game {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* 가상 조이스틱: 화면 하단 왼쪽, 터치/마우스 모두 지원 */
+#joy {
+  position: fixed;
+  left: calc(env(safe-area-inset-left, 0px) + 12px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  width: 150px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  cursor: pointer;
+  z-index: 2;
+}
+
+#joy-base {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(18, 30, 20, 0.32);
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.18);
+}
+
+#joy-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  background: rgba(255, 255, 255, 0.75);
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+  pointer-events: none;
+}
+</style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="joy" aria-label="가상 조이스틱">
+    <div id="joy-base">
+      <div id="joy-knob"></div>
+    </div>
+  </div>
+
+  <script>
+// 외부 이미지 없이 Canvas 픽셀 단위로 그리는 스프라이트 모음
+const Sprites = (() => {
+  const OUTLINE = [42, 34, 51];
+
+  const C = {
+    skin: '#f4c99b', skinSh: '#d9a074', hair: '#4a2f22',
+    cap: '#e0503c', capSh: '#b33b2c',
+    shirt: '#3f83d6', shirtSh: '#2c5fa6', pants: '#3b3f63',
+    shoe: '#2d211b', eye: '#231c2e',
+    trunk: '#7b4f2e', trunkSh: '#5c3a22',
+    leafL: '#72cc5e', leafM: '#42a04a', leafD: '#2b7535', leafRim: '#1f5427',
+    rockL: '#c3c7cf', rockM: '#8f95a1', rockD: '#5d6371',
+    bushL: '#5cc053', bushM: '#3a9040', bushD: '#276a2f', berry: '#e4505c',
+  };
+
+  // 발 모양 프레임: [왼쪽 다리 바닥 행, 오른쪽 다리 바닥 행]
+  const LEGS = [[15, 14], [14, 15], [15, 15]]; // 걷기1, 걷기2, 정지
+
+  function rect(ctx, x, y, w, h, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+  }
+
+  // 투명 픽셀 중 색 있는 픽셀과 맞닿은 곳에 외곽선을 그린다
+  function addOutline(canvas) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const s = ctx.getImageData(0, 0, w, h).data;
+    const out = new Uint8ClampedArray(s);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        if (s[i + 3]) continue;
+        const near = (x > 0 && s[i - 1]) || (x < w - 1 && s[i + 7]) ||
+                     (y > 0 && s[i - w * 4 + 3]) || (y < h - 1 && s[i + w * 4 + 3]);
+        if (near) {
+          out[i] = OUTLINE[0]; out[i + 1] = OUTLINE[1]; out[i + 2] = OUTLINE[2]; out[i + 3] = 255;
+        }
+      }
+    }
+    ctx.putImageData(new ImageData(out, w, h), 0, 0);
+  }
+
+  // 내용 영역 w x h 에 draw 를 실행하고, 외곽선용 1px 여백을 더해 반환
+  function build(w, h, draw) {
+    const c = document.createElement('canvas');
+    c.width = w + 2;
+    c.height = h + 2;
+    draw(c.getContext('2d'), 1, 1);
+    addOutline(c);
+    return c;
+  }
+
+  function flip(src) {
+    const c = document.createElement('canvas');
+    c.width = src.width;
+    c.height = src.height;
+    const ctx = c.getContext('2d');
+    ctx.translate(c.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(src, 0, 0);
+    return c;
+  }
+
+  // ---- 플레이어 (12x16) ----
+  function drawPlayer(ctx, ox, oy, dir, legs) {
+    const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
+    const leg = (x, bottom) => {
+      r(x, 13, 2, bottom - 13, C.pants);
+      r(x, bottom, 2, 1, C.shoe);
+    };
+
+    if (dir === 'side') {
+      r(3, 2, 2, 6, C.hair);            // 뒤통수
+      r(3, 0, 7, 3, C.cap);             // 모자
+      r(4, 3, 5, 5, C.skin);            // 얼굴
+      r(7, 5, 1, 2, C.eye);             // 눈
+      r(4, 8, 5, 5, C.shirt);           // 몸통
+      r(4, 9, 1, 4, C.shirtSh);         // 뒤팔
+      leg(4, legs[0]);
+      leg(6, legs[1]);
+      r(6, 9, 2, 4, C.shirt);           // 앞팔
+      r(6, 12, 2, 1, C.skin);           // 손
+      return;
+    }
+
+    r(3, 0, 6, 3, C.cap);               // 모자
+    r(3, 3, 6, 5, dir === 'up' ? C.hair : C.skin);
+    if (dir === 'down') {
+      r(4, 5, 1, 2, C.eye);
+      r(7, 5, 1, 2, C.eye);
+    }
+    r(3, 8, 6, 5, C.shirt);             // 몸통
+    r(2, 8, 1, 4, C.shirt);             // 왼팔
+    r(9, 8, 1, 4, C.shirt);             // 오른팔
+    r(2, 12, 1, 1, C.skin);
+    r(9, 12, 1, 1, C.skin);
+    leg(3, legs[0]);
+    leg(7, legs[1]);
+  }
+
+  // ---- 나무 (18x26 + 외곽선) ----
+  function makeTree(radius) {
+    return build(18, 26, (ctx, ox, oy) => {
+      rect(ctx, ox + 7, oy + 16, 4, 10, C.trunk);
+      rect(ctx, ox + 10, oy + 16, 1, 10, C.trunkSh);
+      for (let y = 0; y < 18; y++) {
+        for (let x = 0; x < 18; x++) {
+          const dx = x + 0.5 - 9, dy = y + 0.5 - 9;
+          const d = Math.hypot(dx, dy);
+          if (d > radius + 0.5) continue;
+          let col;
+          if (d > radius - 0.9) {
+            col = C.leafRim;
+          } else {
+            const l = (-dx - dy) / (radius * 1.4); // 왼쪽 위에서 빛이 온다고 가정
+            col = l > 0.35 ? C.leafL : l < -0.4 ? C.leafD : C.leafM;
+          }
+          rect(ctx, ox + x, oy + y, 1, 1, col);
+        }
+      }
+      // 잎 질감
+      for (let y = 2; y < 16; y++) {
+        for (let x = 2; x < 16; x++) {
+          if ((x * 5 + y * 3) % 13 === 0 && Math.hypot(x - 9, y - 9) < radius - 2) {
+            rect(ctx, ox + x, oy + y, 1, 1, C.leafL);
+          }
+        }
+      }
+    });
+  }
+
+  // ---- 바위 (14x10) ----
+  function makeRock(seed) {
+    return build(14, 10, (ctx, ox, oy) => {
+      for (let y = 0; y < 10; y++) {
+        for (let x = 0; x < 14; x++) {
+          const nx = (x + 0.5 - 7) / 7, ny = (y + 0.5 - 5) / 5;
+          if (nx * nx + ny * ny > 1) continue;
+          let col;
+          if (ny < -0.35) col = C.rockL;
+          else if (ny > 0.35 && nx > -0.5) col = C.rockD;
+          else col = C.rockM;
+          if ((x * 3 + y * 7 + seed) % 11 === 0 && ny < 0) col = C.rockL;
+          rect(ctx, ox + x, oy + y, 1, 1, col);
+        }
+      }
+    });
+  }
+
+  // ---- 덤불 (14x11) ----
+  function makeBush(seed) {
+    const blobs = [[4, 6, 3.2], [9.5, 6, 3.2], [7, 4, 3.5]];
+    return build(14, 11, (ctx, ox, oy) => {
+      for (let y = 0; y < 11; y++) {
+        for (let x = 0; x < 14; x++) {
+          const inside = blobs.some(([cx, cy, r]) => Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= r);
+          if (!inside) continue;
+          let col = y < 4 ? C.bushL : y > 7 ? C.bushD : C.bushM;
+          if ((x * 3 + y * 5 + seed) % 17 === 0 && y > 2) col = C.berry;
+          rect(ctx, ox + x, oy + y, 1, 1, col);
+        }
+      }
+    });
+  }
+
+  const playerFront = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'down', legs)));
+  const playerBack = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'up', legs)));
+  const playerSide = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'side', legs)));
+
+  return {
+    // player.dir 별 [걷기1, 걷기2, 정지] 프레임
+    player: {
+      down: playerFront,
+      up: playerBack,
+      right: playerSide,
+      left: playerSide.map(flip),
+    },
+    trees: [makeTree(8.5), makeTree(7.4)],
+    rocks: [makeRock(0), makeRock(4), makeRock(8)],
+    bushes: [makeBush(0), makeBush(7)],
+  };
+})();
+</script>
+  <script>
+// 타일 기반 탐험 맵: 지형 생성, 장애물 배치, 바닥 렌더링, 충돌 판정
+const World = (() => {
+  const TILE = 16;
+  const COLS = 60;
+  const ROWS = 60;
+  const SPAWN = { tx: 30, ty: 54 };
+
+  const GRASS = 0;
+  const PATH = 1;
+  const TALL = 2; // 걸을 수 있는 풀숲
+
+  const GRASS_C = [[108, 186, 76], [100, 178, 70], [122, 200, 90], [86, 160, 62]];
+  const TALL_C = [[78, 150, 56], [70, 140, 50]];
+  const TALL_BLADE = [104, 180, 74];
+  const PATH_C = [[218, 188, 126], [208, 176, 114], [226, 202, 146], [190, 156, 100]];
+  const FLOWER_COLORS = ['#fff6e0', '#ffd84a', '#ff8fb1', '#b3a6ff'];
+
+  const kind = new Uint8Array(COLS * ROWS);
+  const solid = new Uint8Array(COLS * ROWS);
+  const objects = [];
+  const flowers = [];
+  let ground = null;
+
+  const idx = (tx, ty) => ty * COLS + tx;
+  const inMap = (tx, ty) => tx >= 0 && ty >= 0 && tx < COLS && ty < ROWS;
+
+  // 같은 시드면 항상 같은 맵이 나오는 난수기 (mulberry32)
+  function mulberry32(a) {
+    return function () {
+      let t = (a += 0x6d2b79f5);
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const rand = mulberry32(20260);
+
+  function hash(x, y, s) {
+    let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(s, 2246822519);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  }
+
+  function nearSpawn(tx, ty) {
+    return Math.hypot(tx - SPAWN.tx, ty - SPAWN.ty) <= 4;
+  }
+
+  function canPlace(tx, ty) {
+    return inMap(tx, ty) && kind[idx(tx, ty)] !== PATH && !solid[idx(tx, ty)] && !nearSpawn(tx, ty);
+  }
+
+  function addObject(img, x, y, shadow, tx, ty) {
+    solid[idx(tx, ty)] = 1;
+    objects.push({ img, x, y, w: img.width, h: img.height, baseY: (ty + 1) * TILE, shadow });
+  }
+
+  function placeTree(tx, ty) {
+    const img = Sprites.trees[Math.floor(rand() * Sprites.trees.length)];
+    const cx = tx * TILE + TILE / 2;
+    const by = (ty + 1) * TILE;
+    addObject(img, cx - img.width / 2, by - 26, { cx, cy: by - 2, rx: 7, ry: 3 }, tx, ty);
+  }
+
+  function placeRock(tx, ty) {
+    const img = Sprites.rocks[Math.floor(rand() * Sprites.rocks.length)];
+    const cx = tx * TILE + TILE / 2;
+    const by = (ty + 1) * TILE;
+    addObject(img, tx * TILE, by - 12, { cx, cy: by - 2, rx: 6, ry: 2.5 }, tx, ty);
+  }
+
+  function placeBush(tx, ty) {
+    const img = Sprites.bushes[Math.floor(rand() * Sprites.bushes.length)];
+    const cx = tx * TILE + TILE / 2;
+    const by = (ty + 1) * TILE;
+    addObject(img, tx * TILE, by - 13, { cx, cy: by - 2, rx: 6, ry: 2.5 }, tx, ty);
+  }
+
+  // 길: 웨이포인트를 이어 폭 2타일로 파낸다 (중간점을 살짝 흔들어 자연스럽게)
+  function setPath(x, y) {
+    if (x > 1 && y > 1 && x < COLS - 2 && y < ROWS - 2) kind[idx(x, y)] = PATH;
+  }
+  function carve(ax, ay, bx, by) {
+    const steps = Math.max(Math.abs(bx - ax), Math.abs(by - ay), 1);
+    for (let i = 0; i <= steps; i++) {
+      const x = Math.round(ax + ((bx - ax) * i) / steps);
+      const y = Math.round(ay + ((by - ay) * i) / steps);
+      setPath(x, y); setPath(x + 1, y); setPath(x, y + 1); setPath(x + 1, y + 1);
+    }
+  }
+
+  function generatePath() {
+    const pts = [[30, 55], [30, 44], [15, 39], [15, 24], [30, 16], [45, 24], [45, 40], [30, 44]];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, ay] = pts[i];
+      const [bx, by] = pts[i + 1];
+      const mx = Math.round((ax + bx) / 2 + rand() * 6 - 3);
+      const my = Math.round((ay + by) / 2 + rand() * 6 - 3);
+      carve(ax, ay, mx, my);
+      carve(mx, my, bx, by);
+    }
+  }
+
+  function generateObstacles() {
+    // 맵 가장자리는 나무 벽
+    for (let ty = 0; ty < ROWS; ty++) {
+      for (let tx = 0; tx < COLS; tx++) {
+        const edge = tx < 2 || ty < 2 || tx >= COLS - 2 || ty >= ROWS - 2;
+        if (edge && !solid[idx(tx, ty)]) placeTree(tx, ty);
+      }
+    }
+
+    // 숲 덩어리
+    for (let b = 0; b < 8; b++) {
+      const cx = 5 + rand() * (COLS - 10);
+      const cy = 5 + rand() * (ROWS - 10);
+      const r = 3 + rand() * 3;
+      for (let ty = Math.floor(cy - r - 1); ty <= cy + r + 1; ty++) {
+        for (let tx = Math.floor(cx - r - 1); tx <= cx + r + 1; tx++) {
+          if (Math.hypot(tx - cx, ty - cy) < r * (0.75 + rand() * 0.35) && canPlace(tx, ty) && rand() < 0.75) {
+            placeTree(tx, ty);
+          }
+        }
+      }
+    }
+
+    // 바위 무리
+    for (let c = 0; c < 10; c++) {
+      const cx = 3 + Math.floor(rand() * (COLS - 6));
+      const cy = 3 + Math.floor(rand() * (ROWS - 6));
+      const count = 1 + Math.floor(rand() * 3);
+      for (let i = 0; i < count; i++) {
+        const tx = cx + Math.floor(rand() * 3) - 1;
+        const ty = cy + Math.floor(rand() * 3) - 1;
+        if (canPlace(tx, ty)) placeRock(tx, ty);
+      }
+    }
+
+    // 덤불
+    for (let i = 0; i < 90; i++) {
+      const tx = 2 + Math.floor(rand() * (COLS - 4));
+      const ty = 2 + Math.floor(rand() * (ROWS - 4));
+      if (canPlace(tx, ty) && kind[idx(tx, ty)] === GRASS) placeBush(tx, ty);
+    }
+  }
+
+  function generateTallGrass() {
+    for (let b = 0; b < 16; b++) {
+      const cx = 3 + rand() * (COLS - 6);
+      const cy = 3 + rand() * (ROWS - 6);
+      const r = 2 + rand() * 2;
+      for (let ty = Math.floor(cy - r); ty <= cy + r; ty++) {
+        for (let tx = Math.floor(cx - r); tx <= cx + r; tx++) {
+          if (!inMap(tx, ty) || solid[idx(tx, ty)] || kind[idx(tx, ty)] !== GRASS) continue;
+          if (Math.hypot(tx - cx, ty - cy) < r && rand() < 0.85) kind[idx(tx, ty)] = TALL;
+        }
+      }
+    }
+  }
+
+  function generateFlowers() {
+    for (let i = 0; i < 160; i++) {
+      const tx = Math.floor(rand() * COLS);
+      const ty = Math.floor(rand() * ROWS);
+      if (!inMap(tx, ty) || solid[idx(tx, ty)] || kind[idx(tx, ty)] !== GRASS) continue;
+      flowers.push({
+        x: tx * TILE + 3 + Math.floor(rand() * 10),
+        y: ty * TILE + 3 + Math.floor(rand() * 10),
+        c: FLOWER_COLORS[Math.floor(rand() * FLOWER_COLORS.length)],
+      });
+    }
+  }
+
+  // 길 타일 가장자리는 풀과 섞이도록 픽셀을 일부 풀색으로 바꾼다
+  function edgeOfPath(tx, ty, lx, ly) {
+    const isPath = (x, y) => !inMap(x, y) || kind[idx(x, y)] === PATH;
+    return (lx < 2 && !isPath(tx - 1, ty)) || (lx > 13 && !isPath(tx + 1, ty)) ||
+           (ly < 2 && !isPath(tx, ty - 1)) || (ly > 13 && !isPath(tx, ty + 1));
+  }
+
+  function renderGround() {
+    const W = COLS * TILE, H = ROWS * TILE;
+    const cvs = document.createElement('canvas');
+    cvs.width = W;
+    cvs.height = H;
+    const g = cvs.getContext('2d');
+    const img = g.createImageData(W, H);
+    const d = img.data;
+
+    for (let py = 0; py < H; py++) {
+      for (let px = 0; px < W; px++) {
+        const tx = px >> 4, ty = py >> 4, lx = px & 15, ly = py & 15;
+        let k = kind[idx(tx, ty)];
+        if (k === PATH && edgeOfPath(tx, ty, lx, ly) && hash(px, py, 9) < 0.5) k = GRASS;
+
+        let c;
+        if (k === PATH) {
+          const n = hash(px >> 1, py >> 1, 4);
+          c = n < 0.55 ? PATH_C[0] : n < 0.8 ? PATH_C[1] : n < 0.92 ? PATH_C[2] : PATH_C[3];
+        } else if (k === TALL) {
+          c = hash(px >> 1, py >> 1, 6) < 0.6 ? TALL_C[0] : TALL_C[1];
+          if (hash(px, py, 7) > 0.93) c = TALL_BLADE;
+        } else {
+          const n = hash(px >> 1, py >> 1, 3);
+          c = n < 0.55 ? GRASS_C[0] : n < 0.8 ? GRASS_C[1] : n < 0.93 ? GRASS_C[2] : GRASS_C[3];
+        }
+
+        const i = (py * W + px) * 4;
+        d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+      }
+    }
+    g.putImageData(img, 0, 0);
+
+    // 꽃
+    for (const f of flowers) {
+      g.fillStyle = f.c;
+      g.fillRect(f.x - 1, f.y, 1, 1);
+      g.fillRect(f.x + 1, f.y, 1, 1);
+      g.fillRect(f.x, f.y - 1, 1, 1);
+      g.fillRect(f.x, f.y + 1, 1, 1);
+      g.fillStyle = '#f5b93a';
+      g.fillRect(f.x, f.y, 1, 1);
+    }
+
+    // 오브젝트 그림자
+    g.fillStyle = 'rgba(20, 52, 24, 0.3)';
+    for (const o of objects) {
+      const s = o.shadow;
+      g.beginPath();
+      g.ellipse(s.cx, s.cy, s.rx, s.ry, 0, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    ground = cvs;
+  }
+
+  function generate() {
+    generatePath();
+    generateObstacles();
+    generateTallGrass();
+    generateFlowers();
+    objects.sort((a, b) => a.baseY - b.baseY);
+    renderGround();
+  }
+
+  // 사각형 영역(픽셀 단위, x1/y1 제외)이 막혀 있는지 검사
+  function blocked(x0, y0, x1, y1) {
+    const tx0 = Math.floor(x0 / TILE), tx1 = Math.floor((x1 - 1e-6) / TILE);
+    const ty0 = Math.floor(y0 / TILE), ty1 = Math.floor((y1 - 1e-6) / TILE);
+    for (let ty = ty0; ty <= ty1; ty++) {
+      for (let tx = tx0; tx <= tx1; tx++) {
+        if (!inMap(tx, ty) || solid[idx(tx, ty)]) return true;
+      }
+    }
+    return false;
+  }
+
+  generate();
+
+  return {
+    TILE,
+    COLS,
+    ROWS,
+    SPAWN,
+    objects,
+    blocked,
+    get ground() { return ground; },
+  };
+})();
+</script>
+  <script>
+// 가상 조이스틱: 터치와 마우스를 Pointer Events로 함께 처리
+const Input = (() => {
+  const DEAD_ZONE = 0.12;
+  const state = { x: 0, y: 0, active: false };
+
+  const joy = document.getElementById('joy');
+  const base = document.getElementById('joy-base');
+  const knob = document.getElementById('joy-knob');
+  let pointerId = null;
+  let cx = 0, cy = 0;
+
+  function update(clientX, clientY) {
+    const dx = clientX - cx;
+    const dy = clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    const maxR = base.clientWidth * 0.3; // 노브가 움직일 수 있는 최대 거리
+    const travel = Math.min(dist, maxR);
+    const nx = dist > 0 ? dx / dist : 0;
+    const ny = dist > 0 ? dy / dist : 0;
+
+    knob.style.transform = `translate(${nx * travel}px, ${ny * travel}px)`;
+
+    const mag = travel / maxR;
+    if (mag < DEAD_ZONE) {
+      state.x = 0; state.y = 0; state.active = false;
+      return;
+    }
+    state.x = nx * mag;
+    state.y = ny * mag;
+    state.active = true;
+  }
+
+  function release() {
+    pointerId = null;
+    state.x = 0; state.y = 0; state.active = false;
+    knob.style.transform = '';
+  }
+
+  joy.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    pointerId = e.pointerId;
+    joy.setPointerCapture(e.pointerId);
+    const r = base.getBoundingClientRect();
+    cx = r.left + r.width / 2;
+    cy = r.top + r.height / 2;
+    update(e.clientX, e.clientY);
+  });
+
+  joy.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== pointerId) return;
+    e.preventDefault();
+    update(e.clientX, e.clientY);
+  });
+
+  const end = (e) => {
+    if (e.pointerId !== pointerId) return;
+    release();
+  };
+  joy.addEventListener('pointerup', end);
+  joy.addEventListener('pointercancel', end);
+  joy.addEventListener('lostpointercapture', end);
+
+  window.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  return {
+    get: () => state,
+  };
+})();
+</script>
+  <script>
+// 게임 루프: 플레이어 이동/충돌, 카메라, 렌더링
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  const SPEED = 46;                  // 최대 이동 속도 (논리 픽셀/초)
+  const HALF_W = 3;                  // 발 판정 박스 반너비
+  const HEIGHT_FEET = 3;             // 발 판정 박스 높이
+  const BG = '#1c2b1f';
+  const MAP_W = World.COLS * World.TILE;
+  const MAP_H = World.ROWS * World.TILE;
+
+  const view = { w: 0, h: 0, zoom: 1 };
+  const cam = { x: 0, y: 0 };
+  const player = {
+    x: World.SPAWN.tx * World.TILE + World.TILE / 2,
+    y: World.SPAWN.ty * World.TILE + 12,   // 발 위치(스프라이트 하단)
+    vx: 0, vy: 0,
+    dir: 'down',
+    walkT: 0,
+    frame: 2,                              // 0,1: 걷기 / 2: 정지
+  };
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  // 화면 크기에 맞춰 정수 배율로 확대하고, 논리 해상도를 다시 계산
+  function fit() {
+    const cw = window.innerWidth, ch = window.innerHeight;
+    view.zoom = Math.max(1, Math.min(Math.floor(cw / 160), Math.floor(ch / 200)));
+    view.w = Math.floor(cw / view.zoom);
+    view.h = Math.floor(ch / view.zoom);
+    canvas.width = view.w;
+    canvas.height = view.h;
+    canvas.style.width = view.w * view.zoom + 'px';
+    canvas.style.height = view.h * view.zoom + 'px';
+    ctx.imageSmoothingEnabled = false;
+    Object.assign(cam, cameraTarget());
+  }
+
+  // 플레이어를 중심에 두되, 맵 밖은 보이지 않도록 제한
+  function cameraTarget() {
+    const tx = player.x - view.w / 2;
+    const ty = player.y - 8 - view.h / 2;
+    return {
+      x: MAP_W <= view.w ? (MAP_W - view.w) / 2 : clamp(tx, 0, MAP_W - view.w),
+      y: MAP_H <= view.h ? (MAP_H - view.h) / 2 : clamp(ty, 0, MAP_H - view.h),
+    };
+  }
+
+  function updateCamera(dt) {
+    const t = cameraTarget();
+    const k = 1 - Math.exp(-dt * 9);
+    cam.x += (t.x - cam.x) * k;
+    cam.y += (t.y - cam.y) * k;
+  }
+
+  // 한 축으로 이동. 1px 이하 단위로 나눠 전진하며, 막히면 그 축 속도만 0으로 만든다
+  function moveAxis(axis, delta) {
+    if (delta === 0) return;
+    const steps = Math.ceil(Math.abs(delta) / 0.5);
+    const s = delta / steps;
+    for (let i = 0; i < steps; i++) {
+      const nx = axis === 'x' ? player.x + s : player.x;
+      const ny = axis === 'y' ? player.y + s : player.y;
+      if (World.blocked(nx - HALF_W, ny - HEIGHT_FEET, nx + HALF_W, ny + 1)) {
+        if (axis === 'x') player.vx = 0; else player.vy = 0;
+        return;
+      }
+      player.x = nx;
+      player.y = ny;
+    }
+  }
+
+  function update(dt) {
+    const inp = Input.get();
+    const tvx = inp.active ? inp.x * SPEED : 0;
+    const tvy = inp.active ? inp.y * SPEED : 0;
+
+    // 가속/감속을 나눠 부드럽게 움직이고 멈춘다
+    const k = 1 - Math.exp(-dt * (inp.active ? 16 : 24));
+    player.vx += (tvx - player.vx) * k;
+    player.vy += (tvy - player.vy) * k;
+    if (Math.abs(player.vx) < 0.01) player.vx = 0;
+    if (Math.abs(player.vy) < 0.01) player.vy = 0;
+
+    moveAxis('x', player.vx * dt);
+    moveAxis('y', player.vy * dt);
+
+    const speed = Math.hypot(player.vx, player.vy);
+    if (speed > 4) {
+      if (Math.abs(player.vx) > Math.abs(player.vy)) player.dir = player.vx > 0 ? 'right' : 'left';
+      else player.dir = player.vy > 0 ? 'down' : 'up';
+      player.walkT += dt * speed * 0.1;
+      player.frame = Math.floor(player.walkT) % 2;
+    } else {
+      player.walkT = 0;
+      player.frame = 2;
+    }
+  }
+
+  function drawPlayer(ox, oy) {
+    const img = Sprites.player[player.dir][player.frame];
+    ctx.drawImage(img, Math.round(player.x) - 7 - ox, Math.round(player.y) - 17 - oy);
+  }
+
+  function render() {
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, view.w, view.h);
+
+    const ox = Math.round(cam.x), oy = Math.round(cam.y);
+    if (World.ground) ctx.drawImage(World.ground, -ox, -oy);
+
+    // 오브젝트는 기준선(baseY) 순서로 그리고, 플레이어와 깊이 순서를 맞춘다
+    let playerDrawn = false;
+    for (const o of World.objects) {
+      if (!playerDrawn && o.baseY > player.y) {
+        drawPlayer(ox, oy);
+        playerDrawn = true;
+      }
+      const sx = Math.round(o.x - ox), sy = Math.round(o.y - oy);
+      if (sx > view.w || sy > view.h || sx + o.w < 0 || sy + o.h < 0) continue;
+      ctx.drawImage(o.img, sx, sy);
+    }
+    if (!playerDrawn) drawPlayer(ox, oy);
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    update(dt);
+    updateCamera(dt);
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', fit);
+  fit();
+  requestAnimationFrame(frame);
+
+  // 테스트용 참조
+  window.__game = { player, cam, view, World };
+})();
+</script>
+</body>
+</html>
