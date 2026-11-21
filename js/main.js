@@ -164,28 +164,40 @@
     }
   }
 
-  // 이름표는 기기 해상도로 그려 글자를 선명하게 유지한다. 멀어지면 서서히 사라진다
+  // 이름표: 기기 해상도로 그린 깔끔한 알약 모양. 멀어지면 서서히 사라진다
   const LABEL_FULL = 80, LABEL_HIDE = 115;
+  const FONT = '"Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif';
+  function pill(x, y, w, h) {
+    const r = h / 2;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
   function drawMonsterLabels() {
+    const d0 = view.dpr;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.font = `800 ${Math.round(11 * view.dpr)}px system-ui, -apple-system, "Noto Sans KR", sans-serif`;
+    ctx.font = `700 ${Math.round(11 * d0)}px ${FONT}`;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.lineJoin = 'round';
+    ctx.textBaseline = 'middle';
     for (const m of Monsters.entities) {
       const d = Math.hypot(m.x - player.x, m.y - player.y);
       if (d >= LABEL_HIDE) continue;
       const rarity = MonsterRarities[m.def.rarity];
       const img = Sprites.monsters[m.def.sprite].right[0];
-      const x = snapX(m.x - cam.x) * view.sx;
-      const y = snapY(m.y - (img.height - 1) - cam.y) * view.sy - 3 * view.dpr;
-      ctx.globalAlpha = Math.min(1, (LABEL_HIDE - d) / (LABEL_HIDE - LABEL_FULL)) * Math.max(0, m.fade);
+      const cx = snapX(m.x - cam.x) * view.sx;
+      const bottom = snapY(m.y - (img.height - 1) - cam.y) * view.sy - 3 * d0;
       const text = (rarity.mark ? rarity.mark + ' ' : '') + m.def.name;
-      ctx.lineWidth = 4 * view.dpr;
-      ctx.strokeStyle = 'rgba(20, 28, 22, 0.92)';
-      ctx.strokeText(text, x, y);
-      ctx.fillStyle = rarity.nameColor;
-      ctx.fillText(text, x, y);
+      const h = 18 * d0, w = ctx.measureText(text).width + 16 * d0;
+      ctx.globalAlpha = Math.min(1, (LABEL_HIDE - d) / (LABEL_HIDE - LABEL_FULL)) * Math.max(0, m.fade);
+      ctx.fillStyle = rarity.pillColor;
+      pill(cx - w / 2, bottom - h, w, h);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(text, cx, bottom - h / 2 + 0.5 * d0);
     }
     ctx.globalAlpha = 1;
   }
@@ -248,29 +260,17 @@
     const g = c.getContext('2d');
     g.drawImage(Sprites.makeGrassPattern(44, 44), 0, 0);
     if (region.locked) {
-      g.fillStyle = region.color;
+      g.fillStyle = '#e6e9f0';
       g.fillRect(0, 0, 44, 44);
       const r = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
-      r(15, 12, 14, 4, '#2a2233'); r(15, 12, 4, 12, '#2a2233'); r(25, 12, 4, 12, '#2a2233');
-      r(16, 13, 2, 11, '#d6dcd8'); r(26, 13, 2, 11, '#d6dcd8'); r(16, 13, 12, 2, '#d6dcd8');
-      r(11, 22, 22, 15, '#2a2233'); r(12, 23, 20, 13, '#c8d0cc'); r(12, 33, 20, 3, '#9aa5a0');
-      r(21, 27, 2, 5, '#2a2233');
+      r(15, 12, 14, 4, '#a2a8b5'); r(15, 12, 4, 12, '#a2a8b5'); r(25, 12, 4, 12, '#a2a8b5');
+      r(16, 13, 2, 11, '#f6f7fb'); r(26, 13, 2, 11, '#f6f7fb'); r(16, 13, 12, 2, '#f6f7fb');
+      r(11, 22, 22, 15, '#a2a8b5'); r(12, 23, 20, 13, '#c9cfdb'); r(12, 33, 20, 3, '#b3bac9');
+      r(21, 27, 2, 5, '#8a91a1');
     } else {
       for (const [key, i, x, y] of region.thumb || []) g.drawImage(resolveSprite(key, i), x, y);
     }
     return c;
-  }
-
-  // 메뉴 배너 그림: 플레이어와 몬스터가 있는 작은 장면
-  function drawHero() {
-    const c = document.getElementById('hero');
-    const g = c.getContext('2d');
-    g.drawImage(Sprites.makeGrassPattern(96, 36), 0, 0);
-    g.drawImage(Sprites.trees[0], 2, 6);
-    g.drawImage(Sprites.trees[1], 74, 8);
-    g.drawImage(Sprites.monsters.mushroom.right[0], 54, 17);
-    g.drawImage(Sprites.monsters.slime.right[0], 38, 22);
-    g.drawImage(Sprites.player.right[2], 22, 16);
   }
 
   function buildMenu() {
@@ -297,8 +297,6 @@
 
   document.getElementById('exit-btn').addEventListener('click', exitRegion);
   window.addEventListener('resize', fit);
-  document.getElementById('menu').style.backgroundImage = `url(${Sprites.makeGrassPattern(64, 64).toDataURL()})`;
-  drawHero();
   buildMenu();
 
   // 테스트용 참조

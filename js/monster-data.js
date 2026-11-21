@@ -12,8 +12,8 @@
 
 // 등급 정의. 엘리트/필드 보스는 여기에 항목을 추가하는 방식으로 확장한다.
 const MonsterRarities = {
-  normal: { label: '일반', nameColor: '#ffffff', mark: '' },
-  rare: { label: '희귀', nameColor: '#ffd84a', mark: '★', sparkle: true },
+  normal: { label: '일반', pillColor: 'rgba(23, 26, 35, 0.7)', mark: '' },
+  rare: { label: '희귀', pillColor: 'rgba(224, 154, 18, 0.96)', mark: '★', sparkle: true },
   // elite: { label: '엘리트', ... },
   // boss:  { label: '필드 보스', ... },
 };
