@@ -41,9 +41,27 @@
       <!-- 메뉴 화면: 필드 위에 덮인다 -->
       <section id="screen" hidden>
         <header class="screen-bar">
+          <button id="screen-back" type="button">‹ 뒤로</button>
           <h2 id="screen-title"></h2>
         </header>
         <div id="screen-body"></div>
+      </section>
+
+      <!-- 전투 화면 (포켓몬 스타일): 필드 전체를 덮는다 -->
+      <section id="battle" hidden>
+        <div class="bt-box bt-box-e">
+          <div class="bt-row"><span class="bt-name" id="bt-e-name"></span><span class="bt-lv" id="bt-e-lv"></span></div>
+          <div class="bt-hp" id="bt-e-bar"><i></i></div>
+        </div>
+        <div class="bt-slot bt-slot-e"><div class="bt-plat"></div><canvas id="bt-enemy" class="bt-sprite"></canvas></div>
+        <div class="bt-slot bt-slot-h"><div class="bt-plat"></div><canvas id="bt-hero" class="bt-sprite"></canvas></div>
+        <div class="bt-box bt-box-h">
+          <div class="bt-row"><span class="bt-name" id="bt-h-name"></span><span class="bt-lv" id="bt-h-lv"></span></div>
+          <div class="bt-hp" id="bt-h-bar"><i></i></div>
+          <div class="bt-num" id="bt-h-num"></div>
+          <div class="bt-hp bt-mp" id="bt-h-mpbar"><i></i></div>
+        </div>
+        <div class="bt-msg" id="bt-msg"><span id="bt-text"></span><span class="bt-more">▼</span></div>
       </section>
     </section>
 
@@ -75,6 +93,9 @@
           <span class="dock-label">캐릭터</span>
         </button>
       </div>
+      <!-- 전투 중에는 메인 메뉴 대신 전투 명령이 나온다 -->
+      <div id="battle-cmds" hidden></div>
+
       <div id="pad" data-mode="field">
         <!-- 왼쪽: 고정 조이스틱 -->
         <div id="joy-zone" aria-label="조이스틱">
@@ -133,6 +154,7 @@
   <script src="js/ui/dialog.js"></script>
   <script src="js/ui/toast.js"></script>
   <script src="js/ui/bag-screen.js"></script>
+  <script src="js/ui/battle-screen.js"></script>
   <script src="js/ui/controls.js"></script>
   <script src="js/main.js"></script>
 </body>

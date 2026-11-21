@@ -1,4 +1,4 @@
-// 필드 몬스터: 출현 / 소멸 / 행동(대기·배회·추적·복귀) / 충돌
+// 필드 몬스터: 출현 / 소멸 / 행동(대기·배회·추적·복귀) / 충돌 / 접촉(전투 시작 판정) / 중간보스
 const Monsters = (() => {
   const HALF_W = 4;          // 몬스터 발 판정 박스
   const FEET_H = 3;
@@ -6,17 +6,19 @@ const Monsters = (() => {
   const R_MONSTER = 9;       // 몬스터끼리 유지할 최소 간격
   const STOP_DIST = 13;      // 추적 중 이 거리 안이면 멈춘다
   const FADE_TIME = 0.8;
+  const CONTACT_DIST = 13;   // 이 거리 안으로 닿으면 전투가 시작된다
 
   const entities = [];
   let region = null;
   let rules = null;
   let respawnTimer = 0;
+  let bossTimer = 0;         // 중간보스가 쓰러진 뒤 다시 나타나기까지 남은 시간(초)
 
   const rnd = (a, b) => a + Math.random() * (b - a);
   const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
 
   function defsFor() {
-    return MonsterData.filter((d) => d.regions.includes(region.id));
+    return MonsterData.filter((d) => d.regions.includes(region.id) && d.rarity !== 'boss');
   }
 
   function countOf(id) {
@@ -57,19 +59,33 @@ const Monsters = (() => {
     return null;
   }
 
+  const normals = () => entities.filter((m) => !m.boss).length;
+
+  function makeEntity(def, x, y, extra) {
+    const life = def.lifetime || rules.lifetime;
+    return Object.assign({
+      def, x, y, home: { x, y }, level: def.level[0] + Math.floor(Math.random() * (def.level[1] - def.level[0] + 1)),
+      state: 'idle', timer: rnd(0.5, 2.5), tx: 0, ty: 0, wanderT: 0,
+      dir: Math.random() < 0.5 ? 1 : -1, animT: Math.random() * 3, frame: 0, moving: false,
+      life: rnd(life[0], life[1]), fading: false, fade: 1, alert: 0, dead: false, cooldown: 0, boss: false,
+    }, extra);
+  }
+
+  // 맵 위쪽의 정해진 자리에 중간보스를 세운다
+  function spawnBoss() {
+    const cfg = rules.boss;
+    if (!cfg) return;
+    const def = MonsterData.find((d) => d.id === cfg.id);
+    entities.push(makeEntity(def, cfg.tx * World.TILE + 8, cfg.ty * World.TILE + 12, { boss: true, life: Infinity }));
+  }
+
   function spawnOne(player, rect) {
-    if (entities.length >= rules.target) return false;
+    if (normals() >= rules.target) return false;
     const def = rollDef();
     if (!def) return false;
     const pt = findSpawnPoint(player, rect);
     if (!pt) return false;
-    const life = def.lifetime || rules.lifetime;
-    entities.push({
-      def, x: pt.x, y: pt.y, home: { x: pt.x, y: pt.y },
-      state: 'idle', timer: rnd(0.5, 2.5), tx: 0, ty: 0, wanderT: 0,
-      dir: Math.random() < 0.5 ? 1 : -1, animT: Math.random() * 3, frame: 0, moving: false,
-      life: rnd(life[0], life[1]), fading: false, fade: 1, alert: 0, dead: false,
-    });
+    entities.push(makeEntity(def, pt.x, pt.y));
     return true;
   }
 
@@ -128,7 +144,12 @@ const Monsters = (() => {
       return;
     }
 
-    const d = dist(m.x, m.y, player.x, player.y);
+    let d = dist(m.x, m.y, player.x, player.y);
+    if (m.cooldown > 0) {            // 도망친 직후에는 잠시 쫓아오지 않는다
+      m.cooldown -= dt;
+      d = Infinity;
+      if (m.state === 'chase') m.state = 'return';
+    }
 
     // 감지 / 추적 해제
     if (m.state !== 'chase' && d < def.detectRange) {
@@ -176,7 +197,11 @@ const Monsters = (() => {
   function update(dt, player, rect) {
     if (!rules) return; // 몬스터가 없는 장소(마을)
     // 비어 있으면 일정 시간 뒤에 새 몬스터 출현
-    if (entities.length >= rules.target) {
+    if (rules.boss && !entities.some((m) => m.boss)) {
+      bossTimer -= dt;
+      if (bossTimer <= 0) spawnBoss();
+    }
+    if (normals() >= rules.target) {
       respawnTimer = rnd(rules.respawn[0], rules.respawn[1]);
     } else {
       respawnTimer -= dt;
@@ -198,10 +223,34 @@ const Monsters = (() => {
     return false;
   }
 
+  // 몬스터에게 닿았는지 (전투 시작 조건). 닿은 몬스터를 돌려준다
+  function contact(player) {
+    for (const m of entities) {
+      if (m.fading || m.cooldown > 0) continue;
+      if (dist(m.x, m.y, player.x, player.y) < CONTACT_DIST) return m;
+    }
+    return null;
+  }
+
+  // 전투 결과 반영
+  function defeat(m) {
+    m.dead = true;
+    if (m.boss) bossTimer = rules && rules.boss ? rules.boss.respawn : 120;
+    const i = entities.indexOf(m);
+    if (i >= 0) entities.splice(i, 1);
+  }
+
+  function flee(m) {
+    m.cooldown = 4;
+    m.state = 'return';
+  }
+
   function init(reg, player, rect) {
     region = reg;
     rules = reg.monsters;
     entities.length = 0;
+    bossTimer = 0;
+    spawnBoss();
     respawnTimer = rnd(rules.respawn[0], rules.respawn[1]);
     for (let i = 0; i < rules.target; i++) spawnOne(player, rect);
   }
@@ -211,5 +260,5 @@ const Monsters = (() => {
     rules = null;
   }
 
-  return { entities, init, clear, update, blocksPlayer, rollDef };
+  return { entities, init, clear, update, blocksPlayer, rollDef, contact, defeat, flee };
 })();

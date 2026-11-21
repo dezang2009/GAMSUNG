@@ -363,13 +363,18 @@ const World = (() => {
     const village = region.type === 'village';
     cfg = village ? region.village : region.gen;
     grassC = (region.palette && region.palette.grass) || GRASS_C;
-    reserved = null;
     triggers.length = 0;
     COLS = region.cols;
     ROWS = region.rows;
     SPAWN = region.spawn;
     kind = new Uint8Array(COLS * ROWS);
     solid = new Uint8Array(COLS * ROWS);
+    reserved = new Uint8Array(COLS * ROWS);
+    // 탐험 필드: 중간보스 자리 주변에는 나무/바위를 심지 않는다
+    if (!village && region.monsters && region.monsters.boss) {
+      const bs = region.monsters.boss;
+      reserveRect(bs.tx - 3, bs.ty - 3, 7, 6);
+    }
     objects.length = 0;
     flowers.length = 0;
     rand = mulberry32(cfg.seed);

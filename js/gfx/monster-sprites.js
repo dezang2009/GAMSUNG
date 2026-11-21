@@ -47,19 +47,24 @@
   }));
 
   // 고블린 (14x16)
-  const goblin = set((step) => build(14, 16, (ctx, ox, oy) => {
+  const makeGoblin = (step, chief) => build(14, 16, (ctx, ox, oy) => {
     const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
     const g1 = '#9ad665', g2 = '#7fbf4a', g3 = '#5d9a36';
     r(0, 3, 3, 1, g2); r(11, 3, 3, 1, g2);
     blob(ctx, ox, oy, 7, 4, 3.4, 3.1, g1, g2, g3);
     r(5, 4, 1, 1, '#ffd24a'); r(8, 4, 1, 1, '#ffd24a');
     r(6, 6, 2, 1, '#3b2a20'); r(6, 6, 1, 1, '#ffffff');
-    r(4, 7, 6, 5, '#8a5a3c'); r(4, 10, 6, 1, '#5a3a22'); r(4, 7, 6, 1, '#a8744e');
+    r(4, 7, 6, 5, chief ? '#8a3a34' : '#8a5a3c'); r(4, 10, 6, 1, chief ? '#d9b24a' : '#5a3a22'); r(4, 7, 6, 1, chief ? '#a8504a' : '#a8744e');
+    if (chief) {  // 뿔 달린 투구
+      r(4, 0, 6, 2, '#8d939f'); r(3, 0, 1, 2, '#e8e2d0'); r(10, 0, 1, 2, '#e8e2d0'); r(6, 0, 2, 1, '#b8bec9');
+    }
     r(3, 7, 1, 4, g2); r(10, 7, 1, 4, g2);
     r(11, 7, 1, 5, '#c9ced6'); r(10, 11, 3, 1, '#8a5a3c');
     r(5, 12, 2, step ? 3 : 4, g3); r(8, 12, 2, step ? 4 : 3, g3);
     r(5, step ? 15 : 16 - 1, 2, 1, '#4a3322'); r(8, step ? 15 : 14, 2, 1, '#4a3322');
-  }));
+  });
+  const goblin = set((step) => makeGoblin(step, false));
+  const goblinChief = set((step) => makeGoblin(step, true));
 
   // 늑대 (20x12, 오른쪽을 봄)
   const wolf = set((step) => build(20, 12, (ctx, ox, oy) => {
@@ -87,5 +92,5 @@
     r(10, 4, 1, 1, '#ff5a5a'); r(10, 6, 1, 1, '#ff5a5a');
   }));
 
-  Object.assign(Sprites.monsters, { rat, bat, goblin, wolf, spider });
+  Object.assign(Sprites.monsters, { rat, bat, goblin, goblinChief, wolf, spider });
 })();

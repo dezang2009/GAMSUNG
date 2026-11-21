@@ -27,7 +27,7 @@ HTML/CSS/JavaScript만 사용한다. 빌드 도구 없이 `index.html`의 `<scri
 2. 시스템끼리의 협력은 이벤트로만 한다. 예: 전투 종료 → `battle:end` → 인벤토리/캐릭터가 각자 처리.
 3. 화면(ui)은 이벤트를 듣고 `GameState`를 읽어 그린다. 화면이 시스템 내부를 바꾸지 않는다.
 4. 장소 이동은 `Events.emit('location:request', { id })` 로 요청한다.
-5. **터치는 하단에서만**: 위쪽(필드/메뉴 화면/대화창)은 보여 주기만 한다. 모든 조작은 `ui/controls.js` 의 하단 컨트롤이 받는다 — 필드: 조이스틱 + 대화, 메뉴 화면: 방향 + 확인/뒤로, 대화: 다음/닫기. 새 화면은 `Screens.register(id, { onNav, onConfirm, onBack })` 로 이 버튼들에 반응한다.
+5. **하단만으로 모든 조작이 가능**해야 한다(위쪽 화면 직접 터치도 허용). 하단 컨트롤(`ui/controls.js`)은 모드에 따라 바뀐다 — 필드: 조이스틱 + 대화, 메뉴 화면: 방향 + 확인/뒤로, 대화: 다음/닫기, 전투: 방향 + 확인/뒤로 + 전투 명령. 새 화면은 `Screens.register(id, { onNav, onConfirm, onBack })` 로 이 버튼들에 반응한다.
 6. 상호작용: `main.js` 가 가까운 대상을 찾아 `interact:target` 을 보내면 대화 버튼이 나타나고, 버튼을 누르면 `npc:interact { npc }` 가 발생한다. 지금은 `ui/dialog.js` 가 임시 대사를 보여 주며, 추후 Shop/Crafting/Quest 가 같은 이벤트를 듣고 `npc.role` 에 따라 처리한다.
 
 ## 시스템
@@ -36,15 +36,17 @@ HTML/CSS/JavaScript만 사용한다. 빌드 도구 없이 `index.html`의 `<scri
 | --- | --- | --- |
 | World | `systems/world.js` → `world/world.js`, `world/npcs.js` | 구현됨 (마을/필드 맵) |
 | Exploration | `systems/exploration.js` → `world/monsters.js` | 몬스터 출현 구현됨. 채집/보물/던전은 추후 |
+| Battle | `systems/battle.js` + `ui/battle-screen.js` | 구현됨: 턴제 전투(공격/물약/도망). 규칙은 시스템, 연출은 UI |
 | Inventory | `systems/inventory.js` (+ `data/items.js`, `ui/bag-screen.js`) | 구현됨: 아이템 보유, 꾸러미 열기 |
 | Starter | `systems/starter.js` | 구현됨: NPC `gift` 설정으로 처음 한 번 지급 (촌장 → 초보자 패키지) |
-| Battle, Character, Companion, Equipment, Economy, Shop, Crafting, Collection, Quest | `systems/<이름>.js` | 뼈대만 있음 |
+| Character, Companion, Equipment, Economy, Shop, Crafting, Collection, Quest | `systems/<이름>.js` | 뼈대만 있음 |
 
 ## 확장 방법
 
 - **새 탐험 지역**: `data/regions.js` 에 항목 추가 (`gen`, `monsters` 규칙). 몬스터는 `data/monster-data.js`.
 - **새 몬스터/등급**: `MonsterData` 항목 추가, 등급은 `MonsterRarities`에 추가 (엘리트/보스 확장 지점).
 - **새 건물/NPC**: `regions.js` 마을 블록의 `buildings`/`npcs` 추가, 스프라이트는 `gfx/village-sprites.js`.
+- **전투 시작/종료**: 필드에서 몬스터에게 닿으면 `battle:request` → 시스템이 `battle:start`/`battle:steps`(연출 단계) 를 보내고, UI 가 끝나면 `battle:finish` → `battle:end { outcome, monster }` 로 월드가 결과를 반영한다.
 - **새 아이템**: `data/items.js` 에 항목 추가, 아이콘은 `gfx/item-sprites.js`. 획득은 `Events.emit('item:gain', { id, count })`.
 - **처음 한 번 주는 선물**: NPC 데이터에 `gift { flag, lines, items, toast }` 를 넣는다.
 - **새 메뉴 화면 기능**: `Screens.register('bag', { render(body) { ... } })` 로 임시 화면을 교체.

@@ -1,6 +1,6 @@
 // 메인 메뉴 화면 전환. 마을/탐험 필드(게임 상태)는 건드리지 않고 그 위에 화면만 덮는다.
 // 실제 기능을 붙일 때는 Screens.register(id, { render(body), onOpen(), onClose(), onNav(dir), onConfirm(), onBack() }) 로 교체하면 된다.
-// 모든 조작은 하단 컨트롤(ui/controls.js)의 방향/확인/뒤로 버튼으로 들어온다. 화면 위쪽은 보여 주기만 한다.
+// 조작은 하단 컨트롤(ui/controls.js)의 방향/확인/뒤로 버튼으로 모두 할 수 있고, 위쪽 화면을 직접 터치해도 된다.
 const Screens = (() => {
   const overlay = document.getElementById('screen');
   const titleEl = document.getElementById('screen-title');
@@ -72,6 +72,9 @@ const Screens = (() => {
 
   // 하단 메뉴 버튼: 다른 화면으로 전환하고, 열려 있는 화면의 버튼을 다시 누르면 닫는다
   dockButtons.forEach((b) => b.addEventListener('click', () => (current === b.dataset.menu ? close() : open(b.dataset.menu))));
+
+  // 위쪽 화면의 뒤로 버튼 (하단 컨트롤의 뒤로와 같은 동작)
+  document.getElementById('screen-back').addEventListener('click', () => back());
 
   // 하단 컨트롤에서 들어오는 조작을 현재 화면에 전달한다
   function nav(dir) {

@@ -371,22 +371,22 @@ body {
 #dpad {
   display: none;
   flex: none;
-  width: calc(var(--joy) + 32px);
-  height: 100%;
-  align-items: center;
-  justify-content: center;
+  margin-left: 14px;
+  height: calc(100% - 12px);
+  max-height: calc(var(--joy) + 64px);
+  aspect-ratio: 1;
 }
 
-#pad[data-mode="screen"] #dpad {
+#pad[data-mode="screen"] #dpad,
+#pad[data-mode="battle"] #dpad {
   display: grid;
-  grid-template-columns: repeat(3, calc((var(--joy) + 24px) / 3));
-  grid-template-rows: repeat(3, calc((var(--joy) + 24px) / 3));
-  place-content: center;
-  align-items: stretch;
-  justify-items: stretch;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 2px;
 }
 
 #pad[data-mode="screen"] #joy-zone,
+#pad[data-mode="battle"] #joy-zone,
 #pad[data-mode="dialog"] #joy-zone {
   display: none;
 }
@@ -403,11 +403,11 @@ body {
 }
 
 .dp svg {
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
   fill: none;
   stroke: var(--ink);
-  stroke-width: 2.6;
+  stroke-width: 2.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -423,7 +423,6 @@ body {
 
 /* ---------- NPC 대화창 (보여 주기만 함: 조작은 하단 컨트롤) ---------- */
 #dialog {
-  pointer-events: none;
   position: absolute;
   left: 10px;
   right: 10px;
@@ -437,6 +436,7 @@ body {
 
 .dialog-card {
   position: relative;
+  cursor: pointer;
   padding: 20px 14px 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -487,7 +487,6 @@ body {
   flex-direction: column;
   background: var(--bg);
   color: var(--ink);
-  pointer-events: none; /* 조작은 모두 하단 컨트롤로 한다 */
 }
 
 #screen[hidden] {
@@ -495,12 +494,32 @@ body {
 }
 
 .screen-bar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: calc(env(safe-area-inset-top, 0px) + 48px);
   padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
   border-bottom: 1px solid var(--line);
+}
+
+#screen-back {
+  position: absolute;
+  left: 10px;
+  bottom: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 13px/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+#screen-back:active {
+  background: var(--surface-2);
 }
 
 #screen-title {
@@ -778,3 +797,210 @@ body {
   font-size: 13px;
   text-align: center;
 }
+
+.bag-open {
+  display: block;
+  width: 100%;
+  height: 38px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font: 700 14px/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.bag-open:active {
+  background: #265b4a;
+}
+
+.bag-row,
+.region-card {
+  cursor: pointer;
+}
+
+/* ---------- 전투 화면 (포켓몬 스타일 구도) ---------- */
+#battle {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  overflow: hidden;
+  background: linear-gradient(#cfe9f5 0%, #eaf5e0 45%, #8fc46b 45%, #7ab25a 100%);
+}
+
+#battle[hidden] {
+  display: none;
+}
+
+#battle.intro {
+  animation: bt-in 0.55s ease-out;
+}
+
+@keyframes bt-in {
+  from { clip-path: circle(0% at 50% 50%); }
+  to { clip-path: circle(80% at 50% 50%); }
+}
+
+.bt-slot {
+  position: absolute;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bt-slot-e { right: 5%; top: 16%; width: 48%; height: 27%; }
+.bt-slot-h { left: 3%; bottom: 26%; width: 48%; height: 34%; }
+
+.bt-plat {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: -7%;
+  height: 32%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 40%, #c3e39c 0, #a6d07a 70%);
+  box-shadow: 0 3px 0 rgba(60, 90, 40, 0.3);
+}
+
+.bt-sprite {
+  position: relative;
+  image-rendering: pixelated;
+  margin-bottom: 6%;
+  animation: bt-bob 1.3s ease-in-out infinite;
+}
+
+@keyframes bt-bob { 50% { transform: translateY(-3px); } }
+
+.a-hero-attack { animation: bt-hero-atk 0.45s ease-out !important; }
+.a-enemy-attack { animation: bt-enemy-atk 0.45s ease-out !important; }
+.a-hit { animation: bt-blink 0.5s steps(2, start) 3 !important; }
+.a-faint { animation: bt-faint 0.7s forwards !important; }
+.a-heal { animation: bt-heal 0.7s !important; }
+.a-flee { animation: bt-flee 0.6s forwards !important; }
+.a-enter-e { animation: bt-enter-e 0.6s ease-out !important; }
+.a-enter-h { animation: bt-enter-h 0.6s ease-out !important; }
+
+@keyframes bt-hero-atk { 40% { transform: translate(36px, -20px); } }
+@keyframes bt-enemy-atk { 40% { transform: translate(-36px, 20px); } }
+@keyframes bt-blink { 50% { opacity: 0; } }
+@keyframes bt-faint { to { transform: translateY(46px); opacity: 0; } }
+@keyframes bt-heal { 50% { filter: brightness(1.7) saturate(1.5); } }
+@keyframes bt-flee { to { transform: translateX(-140px); opacity: 0; } }
+@keyframes bt-enter-e { from { transform: translateX(140px); opacity: 0; } }
+@keyframes bt-enter-h { from { transform: translateX(-140px); opacity: 0; } }
+
+.bt-box {
+  position: absolute;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow);
+}
+
+.bt-box-e { left: 10px; top: calc(env(safe-area-inset-top, 0px) + 12px); width: 52%; }
+.bt-box-h { right: 10px; bottom: 100px; width: 58%; }
+
+.bt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.bt-name { font-size: 14px; font-weight: 700; }
+.bt-lv { color: var(--ink-soft); font-size: 11px; font-weight: 600; }
+
+.bt-hp {
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 4px;
+  background: #e3dfd5;
+  overflow: hidden;
+}
+
+.bt-hp i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #4caf6a;
+  transition: width 0.5s, background 0.3s;
+}
+
+.bt-hp.low i { background: #d9a93a; }
+.bt-hp.crit i { background: var(--hp); }
+.bt-mp i { background: var(--mp) !important; }
+.bt-mp { height: 5px; }
+
+.bt-num {
+  margin-top: 3px;
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.bt-msg {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  min-height: 76px;
+  padding: 13px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: var(--shadow);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.bt-more {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  animation: dialog-blink 0.9s ease-in-out infinite;
+}
+
+/* 전투 중 하단: 메인 메뉴 대신 전투 명령 */
+#battle-cmds {
+  display: none;
+  flex: none;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: clamp(44px, 7vh, 54px);
+  gap: 6px;
+}
+
+#dock[data-mode="battle"] .dock-grid { display: none; }
+#dock[data-mode="battle"] #battle-cmds { display: grid; }
+#battle-cmds[hidden] { display: none !important; }
+
+.bt-cmd {
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 15px/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.bt-cmd.is-wide { grid-column: 1 / -1; }
+
+.bt-cmd.is-selected {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  background: var(--accent-soft);
+}
+
+.bt-cmd:disabled { opacity: 0.45; }
+#battle-cmds.is-busy .bt-cmd { opacity: 0.55; }
+#battle-cmds.is-items { grid-auto-rows: clamp(36px, 5.6vh, 44px); }

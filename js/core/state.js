@@ -3,7 +3,7 @@
 // 아직 실제 성장/경제 기능이 없으므로 값은 임시 초기값이다.
 const GameState = (() => {
   const data = {
-    player: { level: 1, hp: 100, maxHp: 100, mp: 30, maxMp: 30 },
+    player: { name: '용사', level: 1, hp: 100, maxHp: 100, mp: 30, maxMp: 30, atk: 10, def: 3, spd: 5 },
     wallet: { gold: 0 },
     location: { id: null, name: '', type: 'village' },
     inventory: { items: [] },   // [{ id, count }] — Inventory 시스템이 관리

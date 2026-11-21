@@ -1,5 +1,5 @@
 // 가방 화면: 보유 아이템 목록과 상세. 조작은 하단 컨트롤(방향/확인/뒤로)로만 한다.
-//   ▲▼ 아이템 선택, 확인: 꾸러미 열기 (다른 아이템의 사용/장착은 추후)
+//   ▲▼ 또는 직접 눌러 아이템 선택, 확인(또는 상세의 열기 버튼): 꾸러미 열기 (다른 아이템의 사용/장착은 추후)
 (() => {
   const bagBtn = document.querySelector('.dock-btn[data-menu="bag"]');
   let root = null;
@@ -16,7 +16,7 @@
     c.width = 16;
     c.height = 16;
     const g = c.getContext('2d');
-    g.drawImage(Sprites.items[def.icon], 1, 1);
+    g.drawImage(Sprites.items[def.icon], 0, 0); // 아이콘이 16x16(외곽선 포함)이라 잘리지 않게 0,0 에 그린다
     return c;
   }
 
@@ -51,8 +51,13 @@
     if (def.type === 'package') {
       const a = document.createElement('p');
       a.className = 'bag-action';
-      a.textContent = '확인 버튼으로 열어 볼 수 있어요.';
-      detail.appendChild(a);
+      a.textContent = '확인 버튼이나 아래 버튼으로 열어 볼 수 있어요.';
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'bag-open';
+      open.textContent = '열기';
+      open.addEventListener('click', () => Events.emit('inventory:use', { id: it.id }));
+      detail.append(a, open);
     }
   }
 
@@ -82,6 +87,8 @@
       const def = ItemData[it.id];
       const li = document.createElement('li');
       li.className = 'bag-row';
+      const idx = rows.length;
+      li.addEventListener('click', () => { if (result) { result = null; } select(idx); }); // 눌러서 선택
       const text = document.createElement('div');
       text.className = 'bag-name';
       text.textContent = def.name;

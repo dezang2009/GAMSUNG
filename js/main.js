@@ -153,12 +153,14 @@
   function drawMonster(m) {
     const set = Sprites.monsters[m.def.sprite];
     const img = (m.dir < 0 ? set.left : set.right)[m.frame];
-    const x = snapX(m.x - img.width / 2 - cam.x);
-    const y = snapY(m.y - (img.height - 1) - cam.y);
+    const sc = m.def.scale || 1;
+    const w = img.width * sc, h = img.height * sc;
+    const x = snapX(m.x - w / 2 - cam.x);
+    const y = snapY(m.y - (h - sc) - cam.y);
     const rarity = MonsterRarities[m.def.rarity];
 
     ctx.globalAlpha = Math.max(0, m.fade);
-    ctx.drawImage(img, x, y);
+    ctx.drawImage(img, x, y, w, h);
     ctx.globalAlpha = 1;
 
     if (rarity.sparkle && !m.fading) {
@@ -166,8 +168,8 @@
       const t = performance.now() / 1000;
       for (let i = 0; i < 3; i++) {
         const a = t * 2 + i * 2.1;
-        const px = x + img.width / 2 + Math.cos(a) * (img.width * 0.65);
-        const py = y + img.height / 2 + Math.sin(a * 1.3) * (img.height * 0.55);
+        const px = x + w / 2 + Math.cos(a) * (w * 0.65);
+        const py = y + h / 2 + Math.sin(a * 1.3) * (h * 0.55);
         ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 6 + i * 2);
         ctx.fillStyle = i === 1 ? '#ffffff' : '#ffd84a';
         ctx.fillRect(snapX(px), snapY(py), 1, 1);
@@ -176,7 +178,7 @@
     }
 
     if (m.alert > 0) {
-      ctx.drawImage(Sprites.alert, snapX(x + img.width - 2), snapY(y - 8));
+      ctx.drawImage(Sprites.alert, snapX(x + w - 2), snapY(y - 8));
     }
   }
 
@@ -202,9 +204,10 @@
       if (d >= LABEL_HIDE) continue;
       const rarity = MonsterRarities[m.def.rarity];
       const img = Sprites.monsters[m.def.sprite].right[0];
+      const sc = m.def.scale || 1;
       out.push({
-        text: (rarity.mark ? rarity.mark + ' ' : '') + m.def.name, color: rarity.pillColor,
-        x: m.x, y: m.y - (img.height - 1), alpha: fade(d, LABEL_FULL, LABEL_HIDE) * Math.max(0, m.fade),
+        text: (rarity.mark ? rarity.mark + ' ' : '') + `Lv.${m.level} ${m.def.name}`, color: rarity.pillColor,
+        x: m.x, y: m.y - (img.height - 1) * sc, alpha: fade(d, LABEL_FULL, LABEL_HIDE) * Math.max(0, m.fade),
       });
     }
     for (const n of Npcs.entities) {
@@ -274,6 +277,8 @@
     Monsters.update(dt, player, { x: cam.x, y: cam.y, w: view.w, h: view.h });
     Npcs.update(dt, player);
     checkTrigger();
+    const touched = Monsters.contact(player);   // 몬스터에게 닿으면 전투 시작
+    if (touched) Events.emit('battle:request', { monster: touched });
     updateTarget();
     render();
     rafId = requestAnimationFrame(frame);
@@ -325,6 +330,10 @@
     paused = false;
 
     GameState.patch('location', { id: r.id, name: r.name, type: r.type || 'field' });
+    if (r.type === 'village') {        // 마을에서는 HP/MP 가 모두 회복된다
+      const p = GameState.get('player');
+      GameState.patch('player', { hp: p.maxHp, mp: p.maxMp });
+    }
     running = true;
     fit();
     updateCamera();
@@ -364,6 +373,23 @@
   Events.on('location:request', ({ id }) => {
     const r = Regions.find((x) => x.id === id);
     if (r && !r.locked) enterRegion(r);
+  });
+  // 전투: 시작하면 월드를 멈추고, 끝나면 결과를 월드에 반영한다
+  Events.on('battle:start', () => {
+    Screens.close();
+    Dialog.close();
+    setPauseLock('battle', true);
+  });
+  Events.on('battle:end', ({ outcome, monster }) => {
+    if (outcome === 'win') {
+      Monsters.defeat(monster);
+    } else if (outcome === 'flee') {
+      Monsters.flee(monster);
+    } else if (outcome === 'lose') {
+      enterRegion(Regions[0]);          // 쓰러지면 마을로 돌아가 회복한다
+      Events.emit('toast', { text: '쓰러져서 마을로 돌아왔어요.' });
+    }
+    setPauseLock('battle', false);
   });
   Events.on('trigger', (t) => {
     if (t.action === 'explore') Screens.open('explore');

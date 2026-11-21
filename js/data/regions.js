@@ -97,7 +97,9 @@ const Regions = [
       flowers: 80,
     },
     monsters: {
-      target: 7,              // 필드에 유지할 몬스터 수
+      target: 6,              // 필드에 유지할 일반 몬스터 수 (3종)
+      // 중간보스: 맵 가장 위쪽에 자리 잡고, 쓰러뜨리면 respawn 초 뒤에 다시 나타난다
+      boss: { id: 'goblin_chief', tx: 17, ty: 6, respawn: 120 },
       respawn: [5, 9],        // 빈자리가 생긴 뒤 새로 출현하기까지 걸리는 시간(초)
       minSpawnDist: 80,       // 플레이어와 최소 거리(px)
       lifetime: [40, 80],     // 몬스터가 필드에 머무는 시간(초)

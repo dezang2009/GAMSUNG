@@ -2,7 +2,8 @@
 //   type     : 'package'(열면 다른 아이템이 나옴) | 'weapon' | 'armor' | 'potion'
 //   icon     : Sprites.items 의 키
 //   contents : 꾸러미(package)를 열었을 때 나오는 아이템 목록
-// 능력치/회복량 같은 실제 효과는 장비·사용 기능을 만들 때 추가한다.
+//   use      : 물약을 쓸 때의 효과 { hp, mp } (현재는 전투 중에만 사용)
+// 장비 능력치 같은 효과는 장비 기능을 만들 때 추가한다.
 const ItemData = {
   starter_package: {
     id: 'starter_package', name: '초보자 패키지', type: 'package', icon: 'package',
@@ -24,11 +25,13 @@ const ItemData = {
   },
   hp_potion: {
     id: 'hp_potion', name: 'HP 회복물약', type: 'potion', icon: 'hpPotion',
-    desc: '붉은 약초를 달인 물약. 마시면 체력이 회복된다.',
+    desc: '붉은 약초를 달인 물약. 마시면 체력이 회복된다. (HP +50)',
+    use: { hp: 50 },
   },
   mp_potion: {
     id: 'mp_potion', name: 'MP 회복물약', type: 'potion', icon: 'mpPotion',
-    desc: '푸른 이슬을 모아 만든 물약. 마시면 마력이 회복된다.',
+    desc: '푸른 이슬을 모아 만든 물약. 마시면 마력이 회복된다. (MP +20)',
+    use: { mp: 20 },
   },
 };
 

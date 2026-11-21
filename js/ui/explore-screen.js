@@ -30,10 +30,11 @@
     return c;
   }
 
-  function card(region, here) {
+  function card(region, here, onTap) {
     const li = document.createElement('li');
-    const box = document.createElement('div'); // 터치로 직접 누르지 않고 하단 컨트롤로 고른다
+    const box = document.createElement('div'); // 한 번 누르면 선택, 선택된 카드를 다시 누르면 이동
     box.className = 'region-card' + (region.locked ? ' locked' : '') + (here ? ' is-here' : '');
+    box.addEventListener('click', onTap);
 
     const text = document.createElement('div');
     text.innerHTML = '<h3></h3><p></p><span class="badge"></span>';
@@ -61,13 +62,14 @@
     render(body) {
       const hint = document.createElement('p');
       hint.className = 'explore-hint';
-      hint.textContent = '▲▼ 로 장소를 고르고 확인을 눌러요.';
+      hint.textContent = '장소를 눌러 고르고, 한 번 더 누르거나 확인 버튼으로 이동해요.';
       const list = document.createElement('ul');
       list.className = 'region-list';
       const here = GameState.get('location').id;
       items = [];
       Regions.forEach((region) => {
-        const li = card(region, region.id === here);
+        const idx = items.length;
+        const li = card(region, region.id === here, () => (idx === selected ? confirm() : select(idx)));
         list.appendChild(li);
         items.push(li.firstChild);
       });
@@ -78,12 +80,14 @@
       if (dir === 'up') select(selected - 1);
       else if (dir === 'down') select(selected + 1);
     },
-    onConfirm() {
+    onConfirm: confirm,
+  });
+
+  function confirm() {
       const region = Regions[selected];
       if (region.locked) return;
       const here = region.id === GameState.get('location').id;
       Screens.close();
       if (!here) Events.emit('location:request', { id: region.id });
-    },
-  });
+  }
 })();

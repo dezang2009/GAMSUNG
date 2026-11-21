@@ -379,22 +379,22 @@ body {
 #dpad {
   display: none;
   flex: none;
-  width: calc(var(--joy) + 32px);
-  height: 100%;
-  align-items: center;
-  justify-content: center;
+  margin-left: 14px;
+  height: calc(100% - 12px);
+  max-height: calc(var(--joy) + 64px);
+  aspect-ratio: 1;
 }
 
-#pad[data-mode="screen"] #dpad {
+#pad[data-mode="screen"] #dpad,
+#pad[data-mode="battle"] #dpad {
   display: grid;
-  grid-template-columns: repeat(3, calc((var(--joy) + 24px) / 3));
-  grid-template-rows: repeat(3, calc((var(--joy) + 24px) / 3));
-  place-content: center;
-  align-items: stretch;
-  justify-items: stretch;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 2px;
 }
 
 #pad[data-mode="screen"] #joy-zone,
+#pad[data-mode="battle"] #joy-zone,
 #pad[data-mode="dialog"] #joy-zone {
   display: none;
 }
@@ -411,11 +411,11 @@ body {
 }
 
 .dp svg {
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
   fill: none;
   stroke: var(--ink);
-  stroke-width: 2.6;
+  stroke-width: 2.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -431,7 +431,6 @@ body {
 
 /* ---------- NPC 대화창 (보여 주기만 함: 조작은 하단 컨트롤) ---------- */
 #dialog {
-  pointer-events: none;
   position: absolute;
   left: 10px;
   right: 10px;
@@ -445,6 +444,7 @@ body {
 
 .dialog-card {
   position: relative;
+  cursor: pointer;
   padding: 20px 14px 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -495,7 +495,6 @@ body {
   flex-direction: column;
   background: var(--bg);
   color: var(--ink);
-  pointer-events: none; /* 조작은 모두 하단 컨트롤로 한다 */
 }
 
 #screen[hidden] {
@@ -503,12 +502,32 @@ body {
 }
 
 .screen-bar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: calc(env(safe-area-inset-top, 0px) + 48px);
   padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
   border-bottom: 1px solid var(--line);
+}
+
+#screen-back {
+  position: absolute;
+  left: 10px;
+  bottom: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 13px/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+#screen-back:active {
+  background: var(--surface-2);
 }
 
 #screen-title {
@@ -786,6 +805,213 @@ body {
   font-size: 13px;
   text-align: center;
 }
+
+.bag-open {
+  display: block;
+  width: 100%;
+  height: 38px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font: 700 14px/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.bag-open:active {
+  background: #265b4a;
+}
+
+.bag-row,
+.region-card {
+  cursor: pointer;
+}
+
+/* ---------- 전투 화면 (포켓몬 스타일 구도) ---------- */
+#battle {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  overflow: hidden;
+  background: linear-gradient(#cfe9f5 0%, #eaf5e0 45%, #8fc46b 45%, #7ab25a 100%);
+}
+
+#battle[hidden] {
+  display: none;
+}
+
+#battle.intro {
+  animation: bt-in 0.55s ease-out;
+}
+
+@keyframes bt-in {
+  from { clip-path: circle(0% at 50% 50%); }
+  to { clip-path: circle(80% at 50% 50%); }
+}
+
+.bt-slot {
+  position: absolute;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bt-slot-e { right: 5%; top: 16%; width: 48%; height: 27%; }
+.bt-slot-h { left: 3%; bottom: 26%; width: 48%; height: 34%; }
+
+.bt-plat {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: -7%;
+  height: 32%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 40%, #c3e39c 0, #a6d07a 70%);
+  box-shadow: 0 3px 0 rgba(60, 90, 40, 0.3);
+}
+
+.bt-sprite {
+  position: relative;
+  image-rendering: pixelated;
+  margin-bottom: 6%;
+  animation: bt-bob 1.3s ease-in-out infinite;
+}
+
+@keyframes bt-bob { 50% { transform: translateY(-3px); } }
+
+.a-hero-attack { animation: bt-hero-atk 0.45s ease-out !important; }
+.a-enemy-attack { animation: bt-enemy-atk 0.45s ease-out !important; }
+.a-hit { animation: bt-blink 0.5s steps(2, start) 3 !important; }
+.a-faint { animation: bt-faint 0.7s forwards !important; }
+.a-heal { animation: bt-heal 0.7s !important; }
+.a-flee { animation: bt-flee 0.6s forwards !important; }
+.a-enter-e { animation: bt-enter-e 0.6s ease-out !important; }
+.a-enter-h { animation: bt-enter-h 0.6s ease-out !important; }
+
+@keyframes bt-hero-atk { 40% { transform: translate(36px, -20px); } }
+@keyframes bt-enemy-atk { 40% { transform: translate(-36px, 20px); } }
+@keyframes bt-blink { 50% { opacity: 0; } }
+@keyframes bt-faint { to { transform: translateY(46px); opacity: 0; } }
+@keyframes bt-heal { 50% { filter: brightness(1.7) saturate(1.5); } }
+@keyframes bt-flee { to { transform: translateX(-140px); opacity: 0; } }
+@keyframes bt-enter-e { from { transform: translateX(140px); opacity: 0; } }
+@keyframes bt-enter-h { from { transform: translateX(-140px); opacity: 0; } }
+
+.bt-box {
+  position: absolute;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow);
+}
+
+.bt-box-e { left: 10px; top: calc(env(safe-area-inset-top, 0px) + 12px); width: 52%; }
+.bt-box-h { right: 10px; bottom: 100px; width: 58%; }
+
+.bt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.bt-name { font-size: 14px; font-weight: 700; }
+.bt-lv { color: var(--ink-soft); font-size: 11px; font-weight: 600; }
+
+.bt-hp {
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 4px;
+  background: #e3dfd5;
+  overflow: hidden;
+}
+
+.bt-hp i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #4caf6a;
+  transition: width 0.5s, background 0.3s;
+}
+
+.bt-hp.low i { background: #d9a93a; }
+.bt-hp.crit i { background: var(--hp); }
+.bt-mp i { background: var(--mp) !important; }
+.bt-mp { height: 5px; }
+
+.bt-num {
+  margin-top: 3px;
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.bt-msg {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  min-height: 76px;
+  padding: 13px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: var(--shadow);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.bt-more {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  animation: dialog-blink 0.9s ease-in-out infinite;
+}
+
+/* 전투 중 하단: 메인 메뉴 대신 전투 명령 */
+#battle-cmds {
+  display: none;
+  flex: none;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: clamp(44px, 7vh, 54px);
+  gap: 6px;
+}
+
+#dock[data-mode="battle"] .dock-grid { display: none; }
+#dock[data-mode="battle"] #battle-cmds { display: grid; }
+#battle-cmds[hidden] { display: none !important; }
+
+.bt-cmd {
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 15px/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.bt-cmd.is-wide { grid-column: 1 / -1; }
+
+.bt-cmd.is-selected {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  background: var(--accent-soft);
+}
+
+.bt-cmd:disabled { opacity: 0.45; }
+#battle-cmds.is-busy .bt-cmd { opacity: 0.55; }
+#battle-cmds.is-items { grid-auto-rows: clamp(36px, 5.6vh, 44px); }
 </style>
 </head>
 <body>
@@ -822,9 +1048,27 @@ body {
       <!-- 메뉴 화면: 필드 위에 덮인다 -->
       <section id="screen" hidden>
         <header class="screen-bar">
+          <button id="screen-back" type="button">‹ 뒤로</button>
           <h2 id="screen-title"></h2>
         </header>
         <div id="screen-body"></div>
+      </section>
+
+      <!-- 전투 화면 (포켓몬 스타일): 필드 전체를 덮는다 -->
+      <section id="battle" hidden>
+        <div class="bt-box bt-box-e">
+          <div class="bt-row"><span class="bt-name" id="bt-e-name"></span><span class="bt-lv" id="bt-e-lv"></span></div>
+          <div class="bt-hp" id="bt-e-bar"><i></i></div>
+        </div>
+        <div class="bt-slot bt-slot-e"><div class="bt-plat"></div><canvas id="bt-enemy" class="bt-sprite"></canvas></div>
+        <div class="bt-slot bt-slot-h"><div class="bt-plat"></div><canvas id="bt-hero" class="bt-sprite"></canvas></div>
+        <div class="bt-box bt-box-h">
+          <div class="bt-row"><span class="bt-name" id="bt-h-name"></span><span class="bt-lv" id="bt-h-lv"></span></div>
+          <div class="bt-hp" id="bt-h-bar"><i></i></div>
+          <div class="bt-num" id="bt-h-num"></div>
+          <div class="bt-hp bt-mp" id="bt-h-mpbar"><i></i></div>
+        </div>
+        <div class="bt-msg" id="bt-msg"><span id="bt-text"></span><span class="bt-more">▼</span></div>
       </section>
     </section>
 
@@ -856,6 +1100,9 @@ body {
           <span class="dock-label">캐릭터</span>
         </button>
       </div>
+      <!-- 전투 중에는 메인 메뉴 대신 전투 명령이 나온다 -->
+      <div id="battle-cmds" hidden></div>
+
       <div id="pad" data-mode="field">
         <!-- 왼쪽: 고정 조이스틱 -->
         <div id="joy-zone" aria-label="조이스틱">
@@ -911,7 +1158,7 @@ const Events = (() => {
 // 아직 실제 성장/경제 기능이 없으므로 값은 임시 초기값이다.
 const GameState = (() => {
   const data = {
-    player: { level: 1, hp: 100, maxHp: 100, mp: 30, maxMp: 30 },
+    player: { name: '용사', level: 1, hp: 100, maxHp: 100, mp: 30, maxMp: 30, atk: 10, def: 3, spd: 5 },
     wallet: { gold: 0 },
     location: { id: null, name: '', type: 'village' },
     inventory: { items: [] },   // [{ id, count }] — Inventory 시스템이 관리
@@ -1525,19 +1772,24 @@ const Sprites = (() => {
   }));
 
   // 고블린 (14x16)
-  const goblin = set((step) => build(14, 16, (ctx, ox, oy) => {
+  const makeGoblin = (step, chief) => build(14, 16, (ctx, ox, oy) => {
     const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
     const g1 = '#9ad665', g2 = '#7fbf4a', g3 = '#5d9a36';
     r(0, 3, 3, 1, g2); r(11, 3, 3, 1, g2);
     blob(ctx, ox, oy, 7, 4, 3.4, 3.1, g1, g2, g3);
     r(5, 4, 1, 1, '#ffd24a'); r(8, 4, 1, 1, '#ffd24a');
     r(6, 6, 2, 1, '#3b2a20'); r(6, 6, 1, 1, '#ffffff');
-    r(4, 7, 6, 5, '#8a5a3c'); r(4, 10, 6, 1, '#5a3a22'); r(4, 7, 6, 1, '#a8744e');
+    r(4, 7, 6, 5, chief ? '#8a3a34' : '#8a5a3c'); r(4, 10, 6, 1, chief ? '#d9b24a' : '#5a3a22'); r(4, 7, 6, 1, chief ? '#a8504a' : '#a8744e');
+    if (chief) {  // 뿔 달린 투구
+      r(4, 0, 6, 2, '#8d939f'); r(3, 0, 1, 2, '#e8e2d0'); r(10, 0, 1, 2, '#e8e2d0'); r(6, 0, 2, 1, '#b8bec9');
+    }
     r(3, 7, 1, 4, g2); r(10, 7, 1, 4, g2);
     r(11, 7, 1, 5, '#c9ced6'); r(10, 11, 3, 1, '#8a5a3c');
     r(5, 12, 2, step ? 3 : 4, g3); r(8, 12, 2, step ? 4 : 3, g3);
     r(5, step ? 15 : 16 - 1, 2, 1, '#4a3322'); r(8, step ? 15 : 14, 2, 1, '#4a3322');
-  }));
+  });
+  const goblin = set((step) => makeGoblin(step, false));
+  const goblinChief = set((step) => makeGoblin(step, true));
 
   // 늑대 (20x12, 오른쪽을 봄)
   const wolf = set((step) => build(20, 12, (ctx, ox, oy) => {
@@ -1565,7 +1817,7 @@ const Sprites = (() => {
     r(10, 4, 1, 1, '#ff5a5a'); r(10, 6, 1, 1, '#ff5a5a');
   }));
 
-  Object.assign(Sprites.monsters, { rat, bat, goblin, wolf, spider });
+  Object.assign(Sprites.monsters, { rat, bat, goblin, goblinChief, wolf, spider });
 })();
 </script>
   <script>
@@ -1736,7 +1988,9 @@ const Regions = [
       flowers: 80,
     },
     monsters: {
-      target: 7,              // 필드에 유지할 몬스터 수
+      target: 6,              // 필드에 유지할 일반 몬스터 수 (3종)
+      // 중간보스: 맵 가장 위쪽에 자리 잡고, 쓰러뜨리면 respawn 초 뒤에 다시 나타난다
+      boss: { id: 'goblin_chief', tx: 17, ty: 6, respawn: 120 },
       respawn: [5, 9],        // 빈자리가 생긴 뒤 새로 출현하기까지 걸리는 시간(초)
       minSpawnDist: 80,       // 플레이어와 최소 거리(px)
       lifetime: [40, 80],     // 몬스터가 필드에 머무는 시간(초)
@@ -1761,7 +2015,9 @@ const Regions = [
   <script>
 // 몬스터 데이터. 새 몬스터는 MonsterData 에 항목만 추가하면 된다.
 //   rarity       : MonsterRarities 의 키
-//   regions      : 등장 지역 id 목록
+//   regions      : 등장 지역 id 목록 (한 지역에는 일반 몬스터 3종 + 중간보스 1종을 배치한다)
+//   level        : [최소, 최대] 레벨. 스탯은 stats 기준이며 레벨이 오를수록 조금씩 강해진다
+//   scale        : 필드에서 그리는 배율(정수, 생략 시 1)
 //   spawnChance  : 출현 가중치 (클수록 자주, 지역 내 후보끼리 비교)
 //   maxCount     : 동시에 필드에 존재할 수 있는 최대 수
 //   stats        : 기본 능력치 (전투 구현 시 사용)
@@ -1775,48 +2031,57 @@ const Regions = [
 const MonsterRarities = {
   normal: { label: '일반', pillColor: 'rgba(42, 41, 38, 0.82)', mark: '' },
   rare: { label: '희귀', pillColor: 'rgba(176, 120, 20, 0.95)', mark: '★', sparkle: true },
+  boss: { label: '중간보스', pillColor: 'rgba(140, 40, 40, 0.92)', mark: '◆' },
   // elite: { label: '엘리트', ... },
   // boss:  { label: '필드 보스', ... },
 };
 
 const MonsterData = [
+  // ---- 초록숲: 일반 3종 ----
   {
-    id: 'blue_slime', name: '푸른 슬라임', rarity: 'normal', regions: ['greenforest'],
-    spawnChance: 50, maxCount: 3, stats: { hp: 20, atk: 4, def: 2, spd: 3 },
+    id: 'blue_slime', name: '푸른 슬라임', rarity: 'normal', regions: ['greenforest'], level: [1, 2],
+    spawnChance: 50, maxCount: 3, stats: { hp: 18, atk: 4, def: 1, spd: 3 },
     moveSpeed: 16, detectRange: 56, sprite: 'slime', wanderRadius: 36,
   },
   {
-    id: 'forest_rat', name: '들쥐', rarity: 'normal', regions: ['greenforest'],
-    spawnChance: 40, maxCount: 3, stats: { hp: 14, atk: 3, def: 1, spd: 8 },
+    id: 'forest_rat', name: '들쥐', rarity: 'normal', regions: ['greenforest'], level: [1, 3],
+    spawnChance: 40, maxCount: 3, stats: { hp: 14, atk: 5, def: 0, spd: 8 },
     moveSpeed: 24, detectRange: 52, sprite: 'rat', wanderRadius: 48,
   },
   {
-    id: 'mushroom_kid', name: '버섯돌이', rarity: 'normal', regions: ['greenforest'],
-    spawnChance: 35, maxCount: 2, stats: { hp: 28, atk: 6, def: 3, spd: 2 },
+    id: 'mushroom_kid', name: '버섯돌이', rarity: 'normal', regions: ['greenforest'], level: [2, 3],
+    spawnChance: 35, maxCount: 2, stats: { hp: 26, atk: 6, def: 2, spd: 2 },
     moveSpeed: 13, detectRange: 48, sprite: 'mushroom', wanderRadius: 44,
   },
+  // ---- 초록숲: 중간보스 (맵 가장 위쪽에 자리 잡고 있다) ----
   {
-    id: 'cave_bat', name: '박쥐', rarity: 'normal', regions: ['greenforest'],
+    id: 'goblin_chief', name: '고블린 대장', rarity: 'boss', regions: ['greenforest'], level: [6, 6],
+    spawnChance: 0, maxCount: 1, stats: { hp: 90, atk: 12, def: 4, spd: 6 },
+    moveSpeed: 18, detectRange: 56, sprite: 'goblinChief', wanderRadius: 24, scale: 2,
+  },
+  // ---- 다른 지역용 (아직 배치하지 않음) ----
+  {
+    id: 'cave_bat', name: '박쥐', rarity: 'normal', regions: [], level: [2, 4],
     spawnChance: 28, maxCount: 2, stats: { hp: 16, atk: 5, def: 1, spd: 10 },
     moveSpeed: 30, detectRange: 64, sprite: 'bat', wanderRadius: 60,
   },
   {
-    id: 'black_spider', name: '독거미', rarity: 'normal', regions: ['greenforest'],
+    id: 'black_spider', name: '독거미', rarity: 'normal', regions: [], level: [3, 5],
     spawnChance: 20, maxCount: 2, stats: { hp: 22, atk: 7, def: 2, spd: 6 },
     moveSpeed: 20, detectRange: 50, sprite: 'spider', wanderRadius: 40,
   },
   {
-    id: 'goblin', name: '고블린', rarity: 'normal', regions: ['greenforest'],
+    id: 'goblin', name: '고블린', rarity: 'normal', regions: [], level: [3, 5],
     spawnChance: 18, maxCount: 2, stats: { hp: 32, atk: 8, def: 3, spd: 5 },
     moveSpeed: 18, detectRange: 60, sprite: 'goblin', wanderRadius: 44,
   },
   {
-    id: 'gray_wolf', name: '회색 늑대', rarity: 'normal', regions: ['greenforest'],
+    id: 'gray_wolf', name: '회색 늑대', rarity: 'normal', regions: [], level: [4, 6],
     spawnChance: 10, maxCount: 1, stats: { hp: 40, atk: 10, def: 4, spd: 9 },
     moveSpeed: 28, detectRange: 78, sprite: 'wolf', wanderRadius: 64,
   },
   {
-    id: 'moon_fox', name: '달빛 여우', rarity: 'rare', regions: ['greenforest'],
+    id: 'moon_fox', name: '달빛 여우', rarity: 'rare', regions: [], level: [4, 5],
     spawnChance: 4, maxCount: 1, stats: { hp: 45, atk: 9, def: 4, spd: 9 },
     moveSpeed: 26, detectRange: 72, sprite: 'fox', wanderRadius: 60, lifetime: [30, 50],
   },
@@ -1867,7 +2132,8 @@ const MonsterRoster = [
 //   type     : 'package'(열면 다른 아이템이 나옴) | 'weapon' | 'armor' | 'potion'
 //   icon     : Sprites.items 의 키
 //   contents : 꾸러미(package)를 열었을 때 나오는 아이템 목록
-// 능력치/회복량 같은 실제 효과는 장비·사용 기능을 만들 때 추가한다.
+//   use      : 물약을 쓸 때의 효과 { hp, mp } (현재는 전투 중에만 사용)
+// 장비 능력치 같은 효과는 장비 기능을 만들 때 추가한다.
 const ItemData = {
   starter_package: {
     id: 'starter_package', name: '초보자 패키지', type: 'package', icon: 'package',
@@ -1889,11 +2155,13 @@ const ItemData = {
   },
   hp_potion: {
     id: 'hp_potion', name: 'HP 회복물약', type: 'potion', icon: 'hpPotion',
-    desc: '붉은 약초를 달인 물약. 마시면 체력이 회복된다.',
+    desc: '붉은 약초를 달인 물약. 마시면 체력이 회복된다. (HP +50)',
+    use: { hp: 50 },
   },
   mp_potion: {
     id: 'mp_potion', name: 'MP 회복물약', type: 'potion', icon: 'mpPotion',
-    desc: '푸른 이슬을 모아 만든 물약. 마시면 마력이 회복된다.',
+    desc: '푸른 이슬을 모아 만든 물약. 마시면 마력이 회복된다. (MP +20)',
+    use: { mp: 20 },
   },
 };
 
@@ -2271,13 +2539,18 @@ const World = (() => {
     const village = region.type === 'village';
     cfg = village ? region.village : region.gen;
     grassC = (region.palette && region.palette.grass) || GRASS_C;
-    reserved = null;
     triggers.length = 0;
     COLS = region.cols;
     ROWS = region.rows;
     SPAWN = region.spawn;
     kind = new Uint8Array(COLS * ROWS);
     solid = new Uint8Array(COLS * ROWS);
+    reserved = new Uint8Array(COLS * ROWS);
+    // 탐험 필드: 중간보스 자리 주변에는 나무/바위를 심지 않는다
+    if (!village && region.monsters && region.monsters.boss) {
+      const bs = region.monsters.boss;
+      reserveRect(bs.tx - 3, bs.ty - 3, 7, 6);
+    }
     objects.length = 0;
     flowers.length = 0;
     rand = mulberry32(cfg.seed);
@@ -2319,7 +2592,7 @@ const World = (() => {
 })();
 </script>
   <script>
-// 필드 몬스터: 출현 / 소멸 / 행동(대기·배회·추적·복귀) / 충돌
+// 필드 몬스터: 출현 / 소멸 / 행동(대기·배회·추적·복귀) / 충돌 / 접촉(전투 시작 판정) / 중간보스
 const Monsters = (() => {
   const HALF_W = 4;          // 몬스터 발 판정 박스
   const FEET_H = 3;
@@ -2327,17 +2600,19 @@ const Monsters = (() => {
   const R_MONSTER = 9;       // 몬스터끼리 유지할 최소 간격
   const STOP_DIST = 13;      // 추적 중 이 거리 안이면 멈춘다
   const FADE_TIME = 0.8;
+  const CONTACT_DIST = 13;   // 이 거리 안으로 닿으면 전투가 시작된다
 
   const entities = [];
   let region = null;
   let rules = null;
   let respawnTimer = 0;
+  let bossTimer = 0;         // 중간보스가 쓰러진 뒤 다시 나타나기까지 남은 시간(초)
 
   const rnd = (a, b) => a + Math.random() * (b - a);
   const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
 
   function defsFor() {
-    return MonsterData.filter((d) => d.regions.includes(region.id));
+    return MonsterData.filter((d) => d.regions.includes(region.id) && d.rarity !== 'boss');
   }
 
   function countOf(id) {
@@ -2378,19 +2653,33 @@ const Monsters = (() => {
     return null;
   }
 
+  const normals = () => entities.filter((m) => !m.boss).length;
+
+  function makeEntity(def, x, y, extra) {
+    const life = def.lifetime || rules.lifetime;
+    return Object.assign({
+      def, x, y, home: { x, y }, level: def.level[0] + Math.floor(Math.random() * (def.level[1] - def.level[0] + 1)),
+      state: 'idle', timer: rnd(0.5, 2.5), tx: 0, ty: 0, wanderT: 0,
+      dir: Math.random() < 0.5 ? 1 : -1, animT: Math.random() * 3, frame: 0, moving: false,
+      life: rnd(life[0], life[1]), fading: false, fade: 1, alert: 0, dead: false, cooldown: 0, boss: false,
+    }, extra);
+  }
+
+  // 맵 위쪽의 정해진 자리에 중간보스를 세운다
+  function spawnBoss() {
+    const cfg = rules.boss;
+    if (!cfg) return;
+    const def = MonsterData.find((d) => d.id === cfg.id);
+    entities.push(makeEntity(def, cfg.tx * World.TILE + 8, cfg.ty * World.TILE + 12, { boss: true, life: Infinity }));
+  }
+
   function spawnOne(player, rect) {
-    if (entities.length >= rules.target) return false;
+    if (normals() >= rules.target) return false;
     const def = rollDef();
     if (!def) return false;
     const pt = findSpawnPoint(player, rect);
     if (!pt) return false;
-    const life = def.lifetime || rules.lifetime;
-    entities.push({
-      def, x: pt.x, y: pt.y, home: { x: pt.x, y: pt.y },
-      state: 'idle', timer: rnd(0.5, 2.5), tx: 0, ty: 0, wanderT: 0,
-      dir: Math.random() < 0.5 ? 1 : -1, animT: Math.random() * 3, frame: 0, moving: false,
-      life: rnd(life[0], life[1]), fading: false, fade: 1, alert: 0, dead: false,
-    });
+    entities.push(makeEntity(def, pt.x, pt.y));
     return true;
   }
 
@@ -2449,7 +2738,12 @@ const Monsters = (() => {
       return;
     }
 
-    const d = dist(m.x, m.y, player.x, player.y);
+    let d = dist(m.x, m.y, player.x, player.y);
+    if (m.cooldown > 0) {            // 도망친 직후에는 잠시 쫓아오지 않는다
+      m.cooldown -= dt;
+      d = Infinity;
+      if (m.state === 'chase') m.state = 'return';
+    }
 
     // 감지 / 추적 해제
     if (m.state !== 'chase' && d < def.detectRange) {
@@ -2497,7 +2791,11 @@ const Monsters = (() => {
   function update(dt, player, rect) {
     if (!rules) return; // 몬스터가 없는 장소(마을)
     // 비어 있으면 일정 시간 뒤에 새 몬스터 출현
-    if (entities.length >= rules.target) {
+    if (rules.boss && !entities.some((m) => m.boss)) {
+      bossTimer -= dt;
+      if (bossTimer <= 0) spawnBoss();
+    }
+    if (normals() >= rules.target) {
       respawnTimer = rnd(rules.respawn[0], rules.respawn[1]);
     } else {
       respawnTimer -= dt;
@@ -2519,10 +2817,34 @@ const Monsters = (() => {
     return false;
   }
 
+  // 몬스터에게 닿았는지 (전투 시작 조건). 닿은 몬스터를 돌려준다
+  function contact(player) {
+    for (const m of entities) {
+      if (m.fading || m.cooldown > 0) continue;
+      if (dist(m.x, m.y, player.x, player.y) < CONTACT_DIST) return m;
+    }
+    return null;
+  }
+
+  // 전투 결과 반영
+  function defeat(m) {
+    m.dead = true;
+    if (m.boss) bossTimer = rules && rules.boss ? rules.boss.respawn : 120;
+    const i = entities.indexOf(m);
+    if (i >= 0) entities.splice(i, 1);
+  }
+
+  function flee(m) {
+    m.cooldown = 4;
+    m.state = 'return';
+  }
+
   function init(reg, player, rect) {
     region = reg;
     rules = reg.monsters;
     entities.length = 0;
+    bossTimer = 0;
+    spawnBoss();
     respawnTimer = rnd(rules.respawn[0], rules.respawn[1]);
     for (let i = 0; i < rules.target; i++) spawnOne(player, rect);
   }
@@ -2532,7 +2854,7 @@ const Monsters = (() => {
     rules = null;
   }
 
-  return { entities, init, clear, update, blocksPlayer, rollDef };
+  return { entities, init, clear, update, blocksPlayer, rollDef, contact, defeat, flee };
 })();
 </script>
   <script>
@@ -2593,12 +2915,127 @@ Game.register('exploration', {
 });
 </script>
   <script>
-// Battle(턴제 전투) 시스템 — 아직 구현하지 않음 (구조만 마련).
-// 담당: 전투 진행, 턴 처리, 결과 계산
-// 통신(예정): 수신 'battle:start' / 발신 'battle:end' { result, rewards }
+// Battle 시스템 — 턴제 전투 규칙. 화면은 모르고 이벤트로만 통신한다.
+//   수신 'battle:request' { monster }       필드에서 몬스터에게 닿음 -> 전투 시작
+//   수신 'battle:command' { type, id }      type: 'attack' | 'item' | 'flee'
+//   수신 'battle:finish'                    화면이 결과 연출을 마침 -> 전투 종료
+//   발신 'battle:start' { enemy, player, intro }
+//   발신 'battle:steps' { steps, outcome }  steps 를 차례로 보여 준다. outcome: null | 'win' | 'lose' | 'flee'
+//   발신 'battle:end' { outcome, monster }  월드가 결과를 반영한다 (몬스터 제거, 패배 시 마을 복귀 등)
+//   발신 'inventory:consume' { id }         물약 사용
+// 한 턴: 플레이어가 명령을 내리면 먼저 실행되고, 상대가 살아 있으면 상대가 한 번 공격한다.
 Game.register('battle', {
-  init(ctx) {
-    // 실제 기능을 구현할 때 ctx.Events / ctx.GameState 로만 다른 시스템과 연결한다.
+  init({ Events, GameState }) {
+    const GROWTH = 0.12;          // 몬스터 레벨이 최소 레벨보다 1 높을 때마다 스탯 +12%
+    const CRIT_CHANCE = 0.06;
+    let b = null;                 // 진행 중인 전투
+
+    const rand = (a, z) => a + Math.random() * (z - a);
+
+    // 받침 여부에 따라 조사를 붙인다: josa('들쥐', '이/가') -> '들쥐가'
+    function josa(word, pair) {
+      const [withJong, without] = pair.split('/');
+      const code = word.charCodeAt(word.length - 1) - 0xac00;
+      const hasJong = code >= 0 && code <= 11171 && code % 28 !== 0;
+      return word + (hasJong ? withJong : without);
+    }
+
+    function enemyStats(m) {
+      const d = m.def;
+      const k = 1 + GROWTH * (m.level - d.level[0]);
+      return { hp: Math.round(d.stats.hp * k), atk: Math.round(d.stats.atk * k), def: Math.round(d.stats.def * k), spd: d.stats.spd };
+    }
+
+    function damage(atk, def) {
+      const crit = Math.random() < CRIT_CHANCE;
+      const base = atk * rand(0.85, 1.15) - def * 0.5;
+      return { dmg: Math.max(1, Math.round(base * (crit ? 1.5 : 1))), crit };
+    }
+
+    const heroHp = () => ({ hero: { hp: GameState.get('player').hp, mp: GameState.get('player').mp } });
+
+    // 상대가 한 번 공격
+    function enemyTurn(steps) {
+      const p = GameState.get('player');
+      const { dmg, crit } = damage(b.enemy.atk, p.def);
+      const hp = Math.max(0, p.hp - dmg);
+      GameState.patch('player', { hp });
+      steps.push({ text: `${b.name}의 공격!`, anim: 'enemy-attack' });
+      steps.push({ text: `${josa(p.name, '은/는')} ${dmg}의 데미지를 입었다!${crit ? ' 급소에 맞았다!' : ''}`, anim: 'hero-hit', hp: heroHp() });
+      if (hp <= 0) {
+        steps.push({ text: `${josa(p.name, '은/는')} 쓰러졌다...`, anim: 'hero-faint' });
+        b.outcome = 'lose';
+      }
+    }
+
+    function resolve(cmd) {
+      const p = GameState.get('player');
+      const steps = [];
+
+      if (cmd.type === 'attack') {
+        const { dmg, crit } = damage(p.atk, b.enemy.def);
+        b.enemy.hp = Math.max(0, b.enemy.hp - dmg);
+        steps.push({ text: `${p.name}의 공격!`, anim: 'hero-attack' });
+        steps.push({ text: `${b.name}에게 ${dmg}의 데미지!${crit ? ' 급소에 맞았다!' : ''}`, anim: 'enemy-hit', hp: { enemy: { hp: b.enemy.hp } } });
+        if (b.enemy.hp <= 0) {
+          steps.push({ text: `${josa(b.name, '을/를')} 쓰러뜨렸다!`, anim: 'enemy-faint' });
+          b.outcome = 'win';
+        } else {
+          enemyTurn(steps);
+        }
+      } else if (cmd.type === 'item') {
+        const def = ItemData[cmd.id];
+        const held = GameState.get('inventory').items.find((it) => it.id === cmd.id);
+        if (!def || !def.use || !held) return;
+        Events.emit('inventory:consume', { id: cmd.id });
+        const hp = Math.min(p.maxHp, p.hp + (def.use.hp || 0));
+        const mp = Math.min(p.maxMp, p.mp + (def.use.mp || 0));
+        GameState.patch('player', { hp, mp });
+        steps.push({ text: `${josa(p.name, '은/는')} ${josa(def.name, '을/를')} 사용했다!`, anim: 'heal', hp: heroHp() });
+        enemyTurn(steps);
+      } else if (cmd.type === 'flee') {
+        if (b.boss) {
+          steps.push({ text: '이 상대에게서는 도망칠 수 없다!' });          // 턴을 쓰지 않는다
+        } else {
+          const chance = Math.max(0.25, Math.min(0.9, 0.6 + (p.spd - b.enemy.spd) * 0.03));
+          if (Math.random() < chance) {
+            steps.push({ text: '무사히 도망쳤다!', anim: 'flee' });
+            b.outcome = 'flee';
+          } else {
+            steps.push({ text: '도망치지 못했다!' });
+            enemyTurn(steps);
+          }
+        }
+      } else {
+        return;
+      }
+      Events.emit('battle:steps', { steps, outcome: b.outcome });
+    }
+
+    Events.on('battle:request', ({ monster }) => {
+      if (b) return;
+      const es = enemyStats(monster);
+      const boss = monster.def.rarity === 'boss';
+      b = { monster, boss, name: monster.def.name, enemy: { ...es, maxHp: es.hp }, outcome: null };
+      const p = GameState.get('player');
+      Events.emit('battle:start', {
+        enemy: { name: b.name, level: monster.level, hp: es.hp, maxHp: es.hp, sprite: monster.def.sprite, rarity: monster.def.rarity, boss },
+        player: { name: p.name, level: p.level, hp: p.hp, maxHp: p.maxHp, mp: p.mp, maxMp: p.maxMp },
+        intro: [{ text: boss ? `${josa(b.name, '이/가')} 길을 막아섰다!` : `야생의 ${josa(b.name, '이/가')} 나타났다!` }],
+      });
+    });
+
+    Events.on('battle:command', (cmd) => {
+      if (!b || b.outcome) return;
+      resolve(cmd);
+    });
+
+    Events.on('battle:finish', () => {
+      if (!b) return;
+      const { outcome, monster } = b;
+      b = null;
+      Events.emit('battle:end', { outcome: outcome || 'flee', monster });
+    });
   },
 });
 </script>
@@ -2626,7 +3063,8 @@ Game.register('companion', {
 // Inventory 시스템 — 아이템 보유와 꾸러미 열기.
 // 상태는 GameState.inventory 에 두고, 다른 곳과는 이벤트로만 통신한다.
 //   수신 'item:gain'      { id, count }  아이템 획득
-//   수신 'inventory:use'  { id }         꾸러미 열기 (물약/장비 사용은 추후)
+//   수신 'inventory:use'  { id }         꾸러미 열기
+//   수신 'inventory:consume' { id }      한 개 소모 (전투 중 물약 사용)
 //   발신 'inventory:changed'              가방 내용이 바뀜
 //   발신 'inventory:opened' { id, gained } 꾸러미를 열어 gained 를 얻음
 Game.register('inventory', {
@@ -2648,6 +3086,18 @@ Game.register('inventory', {
     }
 
     Events.on('item:gain', ({ id, count }) => gain([{ id, count: count || 1 }]));
+
+    // 한 개 소모 (전투 중 물약 사용 등)
+    Events.on('inventory:consume', ({ id }) => {
+      const items = GameState.get('inventory').items;
+      const held = items.find((it) => it.id === id);
+      if (!held) return;
+      const list = items.map((it) => ({ ...it })).filter((it) => it.id !== id || it.count > 1);
+      const left = list.find((it) => it.id === id);
+      if (left) left.count -= 1;
+      GameState.patch('inventory', { items: list });
+      Events.emit('inventory:changed');
+    });
 
     Events.on('inventory:use', ({ id }) => {
       const def = ItemData[id];
@@ -2822,7 +3272,7 @@ const Input = (() => {
   <script>
 // 메인 메뉴 화면 전환. 마을/탐험 필드(게임 상태)는 건드리지 않고 그 위에 화면만 덮는다.
 // 실제 기능을 붙일 때는 Screens.register(id, { render(body), onOpen(), onClose(), onNav(dir), onConfirm(), onBack() }) 로 교체하면 된다.
-// 모든 조작은 하단 컨트롤(ui/controls.js)의 방향/확인/뒤로 버튼으로 들어온다. 화면 위쪽은 보여 주기만 한다.
+// 조작은 하단 컨트롤(ui/controls.js)의 방향/확인/뒤로 버튼으로 모두 할 수 있고, 위쪽 화면을 직접 터치해도 된다.
 const Screens = (() => {
   const overlay = document.getElementById('screen');
   const titleEl = document.getElementById('screen-title');
@@ -2894,6 +3344,9 @@ const Screens = (() => {
 
   // 하단 메뉴 버튼: 다른 화면으로 전환하고, 열려 있는 화면의 버튼을 다시 누르면 닫는다
   dockButtons.forEach((b) => b.addEventListener('click', () => (current === b.dataset.menu ? close() : open(b.dataset.menu))));
+
+  // 위쪽 화면의 뒤로 버튼 (하단 컨트롤의 뒤로와 같은 동작)
+  document.getElementById('screen-back').addEventListener('click', () => back());
 
   // 하단 컨트롤에서 들어오는 조작을 현재 화면에 전달한다
   function nav(dir) {
@@ -2986,10 +3439,11 @@ const Hud = (() => {
     return c;
   }
 
-  function card(region, here) {
+  function card(region, here, onTap) {
     const li = document.createElement('li');
-    const box = document.createElement('div'); // 터치로 직접 누르지 않고 하단 컨트롤로 고른다
+    const box = document.createElement('div'); // 한 번 누르면 선택, 선택된 카드를 다시 누르면 이동
     box.className = 'region-card' + (region.locked ? ' locked' : '') + (here ? ' is-here' : '');
+    box.addEventListener('click', onTap);
 
     const text = document.createElement('div');
     text.innerHTML = '<h3></h3><p></p><span class="badge"></span>';
@@ -3017,13 +3471,14 @@ const Hud = (() => {
     render(body) {
       const hint = document.createElement('p');
       hint.className = 'explore-hint';
-      hint.textContent = '▲▼ 로 장소를 고르고 확인을 눌러요.';
+      hint.textContent = '장소를 눌러 고르고, 한 번 더 누르거나 확인 버튼으로 이동해요.';
       const list = document.createElement('ul');
       list.className = 'region-list';
       const here = GameState.get('location').id;
       items = [];
       Regions.forEach((region) => {
-        const li = card(region, region.id === here);
+        const idx = items.length;
+        const li = card(region, region.id === here, () => (idx === selected ? confirm() : select(idx)));
         list.appendChild(li);
         items.push(li.firstChild);
       });
@@ -3034,18 +3489,20 @@ const Hud = (() => {
       if (dir === 'up') select(selected - 1);
       else if (dir === 'down') select(selected + 1);
     },
-    onConfirm() {
+    onConfirm: confirm,
+  });
+
+  function confirm() {
       const region = Regions[selected];
       if (region.locked) return;
       const here = region.id === GameState.get('location').id;
       Screens.close();
       if (!here) Events.emit('location:request', { id: region.id });
-    },
-  });
+  }
 })();
 </script>
   <script>
-// NPC 대화창 (임시): 이름표 + 대사. 보여 주기만 하고, 넘기기/닫기는 하단 컨트롤(ui/controls.js)이 next()/close() 로 조작한다.
+// NPC 대화창 (임시): 이름표 + 대사. 넘기기/닫기는 하단 컨트롤(ui/controls.js)이나 대화창 터치로 한다.
 // 실제 상점/제작/의뢰 연결은 추후 'npc:interact' 를 듣는 시스템이 맡는다.
 const Dialog = (() => {
   const root = document.getElementById('dialog');
@@ -3103,6 +3560,7 @@ const Dialog = (() => {
   // 확인 버튼에 표시할 이름
   const confirmLabel = () => (isLast() ? '닫기' : '다음');
 
+  root.querySelector('.dialog-card').addEventListener('click', next); // 대화창을 직접 눌러도 넘어간다
   Events.on('npc:interact', ({ npc }) => open(npc));
 
   return { open, close, next, isOpen, confirmLabel, onChange: (fn) => listeners.push(fn) };
@@ -3130,7 +3588,7 @@ const Toast = (() => {
 </script>
   <script>
 // 가방 화면: 보유 아이템 목록과 상세. 조작은 하단 컨트롤(방향/확인/뒤로)로만 한다.
-//   ▲▼ 아이템 선택, 확인: 꾸러미 열기 (다른 아이템의 사용/장착은 추후)
+//   ▲▼ 또는 직접 눌러 아이템 선택, 확인(또는 상세의 열기 버튼): 꾸러미 열기 (다른 아이템의 사용/장착은 추후)
 (() => {
   const bagBtn = document.querySelector('.dock-btn[data-menu="bag"]');
   let root = null;
@@ -3147,7 +3605,7 @@ const Toast = (() => {
     c.width = 16;
     c.height = 16;
     const g = c.getContext('2d');
-    g.drawImage(Sprites.items[def.icon], 1, 1);
+    g.drawImage(Sprites.items[def.icon], 0, 0); // 아이콘이 16x16(외곽선 포함)이라 잘리지 않게 0,0 에 그린다
     return c;
   }
 
@@ -3182,8 +3640,13 @@ const Toast = (() => {
     if (def.type === 'package') {
       const a = document.createElement('p');
       a.className = 'bag-action';
-      a.textContent = '확인 버튼으로 열어 볼 수 있어요.';
-      detail.appendChild(a);
+      a.textContent = '확인 버튼이나 아래 버튼으로 열어 볼 수 있어요.';
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'bag-open';
+      open.textContent = '열기';
+      open.addEventListener('click', () => Events.emit('inventory:use', { id: it.id }));
+      detail.append(a, open);
     }
   }
 
@@ -3213,6 +3676,8 @@ const Toast = (() => {
       const def = ItemData[it.id];
       const li = document.createElement('li');
       li.className = 'bag-row';
+      const idx = rows.length;
+      li.addEventListener('click', () => { if (result) { result = null; } select(idx); }); // 눌러서 선택
       const text = document.createElement('div');
       text.className = 'bag-name';
       text.textContent = def.name;
@@ -3270,10 +3735,268 @@ const Toast = (() => {
 })();
 </script>
   <script>
+// 전투 화면 (포켓몬 스타일): 위쪽은 전투 장면, 아래쪽 메뉴는 전투 명령으로 바뀐다.
+// 규칙은 systems/battle.js 가 계산하고, 여기서는 그 결과(steps)를 차례로 보여 주기만 한다.
+//   명령 선택: 방향 버튼 + 확인/뒤로, 또는 명령 버튼을 직접 터치
+const BattleUI = (() => {
+  const $ = (id) => document.getElementById(id);
+  const root = $('battle');
+  const dock = $('dock');
+  const cmdBox = $('battle-cmds');
+  const textEl = $('bt-text');
+  const eCanvas = $('bt-enemy');
+  const hCanvas = $('bt-hero');
+
+  const STEP_MS = 1150;
+  const MAIN = [
+    { id: 'attack', label: '공격' },
+    { id: 'bag', label: '가방' },
+    { id: 'party', label: '동료' },
+    { id: 'flee', label: '도망' },
+  ];
+
+  let active = false;
+  let busy = false;       // 메시지/연출 재생 중이면 명령을 받지 않는다
+  let finishing = false;  // 전투가 끝나고 마무리 대기 중
+  let outcome = null;
+  let queue = [];
+  let timer = 0;
+  let view = 'main';      // 'main' | 'items'
+  let sel = 0;
+  let enemyMax = 1;
+  let heroMax = { hp: 1, mp: 1 };
+
+  // ---------- 그리기 보조 ----------
+  function drawSprite(canvas, img, scale) {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    canvas.style.width = img.width * scale + 'px';
+    canvas.style.height = img.height * scale + 'px';
+  }
+
+  function setBar(el, value, max) {
+    const pct = Math.max(0, Math.min(1, value / max));
+    el.firstElementChild.style.width = pct * 100 + '%';
+    el.classList.toggle('low', pct <= 0.5 && pct > 0.2);
+    el.classList.toggle('crit', pct <= 0.2);
+  }
+
+  function setHero(hp, mp) {
+    setBar($('bt-h-bar'), hp, heroMax.hp);
+    setBar($('bt-h-mpbar'), mp, heroMax.mp);
+    $('bt-h-num').textContent = `HP ${hp}/${heroMax.hp}  MP ${mp}/${heroMax.mp}`;
+  }
+
+  function playAnim(canvas, name) {
+    const cls = 'a-' + name;
+    canvas.classList.remove(cls);
+    void canvas.offsetWidth;
+    canvas.classList.add(cls);
+    if (!/faint|flee/.test(name)) setTimeout(() => canvas.classList.remove(cls), 1000);
+  }
+
+  const ANIM_TARGET = {
+    'hero-attack': [hCanvas, 'hero-attack'], 'enemy-attack': [eCanvas, 'enemy-attack'],
+    'enemy-hit': [eCanvas, 'hit'], 'hero-hit': [hCanvas, 'hit'],
+    'enemy-faint': [eCanvas, 'faint'], 'hero-faint': [hCanvas, 'faint'],
+    heal: [hCanvas, 'heal'], flee: [hCanvas, 'flee'],
+  };
+
+  // ---------- 메시지 재생 ----------
+  function play(steps) {
+    queue = steps.slice();
+    busy = true;
+    renderCmds();
+    Events.emit('ui:changed');
+    next();
+  }
+
+  function next() {
+    clearTimeout(timer);
+    if (!queue.length) return done();
+    const s = queue.shift();
+    textEl.textContent = s.text;
+    if (s.hp) {
+      if (s.hp.enemy) setBar($('bt-e-bar'), s.hp.enemy.hp, enemyMax);
+      if (s.hp.hero) setHero(s.hp.hero.hp, s.hp.hero.mp);
+    }
+    if (s.anim && ANIM_TARGET[s.anim]) playAnim(...ANIM_TARGET[s.anim]);
+    timer = setTimeout(next, STEP_MS);
+  }
+
+  function done() {
+    if (outcome) {
+      finishing = true;
+      timer = setTimeout(finish, 900);
+      return;
+    }
+    busy = false;
+    view = 'main';
+    sel = 0;
+    textEl.textContent = '어떻게 할까?';
+    renderCmds();
+    Events.emit('ui:changed');
+  }
+
+  function finish() {
+    clearTimeout(timer);
+    if (!active) return;
+    active = false;
+    busy = false;
+    finishing = false;
+    root.hidden = true;
+    dock.dataset.mode = '';
+    cmdBox.hidden = true;
+    Events.emit('ui:changed');
+    Events.emit('battle:finish');
+  }
+
+  // ---------- 하단 명령 ----------
+  function potions() {
+    return GameState.get('inventory').items.filter((it) => ItemData[it.id] && ItemData[it.id].use);
+  }
+
+  function entries() {
+    if (view === 'items') {
+      const list = potions().map((it) => ({ id: it.id, label: `${ItemData[it.id].name} ×${it.count}` }));
+      if (!list.length) list.push({ id: 'none', label: '쓸 수 있는 물약이 없어요', disabled: true });
+      list.push({ id: 'cancel', label: '취소', wide: true });
+      return list;
+    }
+    return MAIN;
+  }
+
+  function renderCmds() {
+    const list = entries();
+    sel = Math.min(sel, list.length - 1);
+    cmdBox.replaceChildren();
+    cmdBox.classList.toggle('is-busy', busy);
+    cmdBox.classList.toggle('is-items', view === 'items');
+    list.forEach((e, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'bt-cmd' + (i === sel && !busy ? ' is-selected' : '') + (e.wide ? ' is-wide' : '');
+      b.textContent = e.label;
+      b.disabled = !!e.disabled;
+      b.addEventListener('click', () => { if (busy) { skip(); return; } sel = i; run(e); });
+      cmdBox.appendChild(b);
+    });
+  }
+
+  function run(e) {
+    if (busy || e.disabled) return;
+    if (view === 'items') {
+      if (e.id === 'cancel') { view = 'main'; sel = 0; renderCmds(); Events.emit('ui:changed'); return; }
+      view = 'main';
+      Events.emit('battle:command', { type: 'item', id: e.id });
+      return;
+    }
+    if (e.id === 'attack') Events.emit('battle:command', { type: 'attack' });
+    else if (e.id === 'flee') Events.emit('battle:command', { type: 'flee' });
+    else if (e.id === 'bag') { view = 'items'; sel = 0; renderCmds(); Events.emit('ui:changed'); }
+    else if (e.id === 'party') Events.emit('toast', { text: '동료는 아직 없어요. (준비 중)' });
+  }
+
+  function skip() {
+    if (finishing) finish();
+    else if (busy) next();
+  }
+
+  // ---------- 하단 컨트롤에서 부르는 조작 ----------
+  function nav(dir) {
+    if (busy) return;
+    const n = entries().length;
+    if (view === 'main') {
+      const row = sel >> 1, col = sel & 1;
+      if (dir === 'left') sel = row * 2;
+      else if (dir === 'right') sel = row * 2 + 1;
+      else if (dir === 'up') sel = col;
+      else if (dir === 'down') sel = 2 + col;
+    } else {
+      if (dir === 'left' || dir === 'up') sel = (sel - 1 + n) % n;
+      else sel = (sel + 1) % n;
+    }
+    renderCmds();
+  }
+
+  function confirm() {
+    if (busy) { skip(); return; }
+    run(entries()[sel]);
+  }
+
+  function back() {
+    if (busy) { skip(); return; }
+    if (view === 'items') { view = 'main'; sel = 0; renderCmds(); Events.emit('ui:changed'); }
+  }
+
+  // ---------- 이벤트 ----------
+  Events.on('battle:start', (d) => {
+    active = true;
+    busy = true;
+    finishing = false;
+    outcome = null;
+    view = 'main';
+    sel = 0;
+    enemyMax = d.enemy.maxHp;
+    heroMax = { hp: d.player.maxHp, mp: d.player.maxMp };
+
+    $('bt-e-name').textContent = (d.enemy.boss ? '◆ ' : '') + d.enemy.name;
+    $('bt-e-lv').textContent = 'Lv.' + d.enemy.level;
+    setBar($('bt-e-bar'), d.enemy.hp, enemyMax);
+    $('bt-h-name').textContent = d.player.name;
+    $('bt-h-lv').textContent = 'Lv.' + d.player.level;
+    setHero(d.player.hp, d.player.mp);
+
+    const eImg = Sprites.monsters[d.enemy.sprite].left[0];
+    const fw = $('field').clientWidth, fh = $('field').clientHeight;
+    const eScale = Math.max(4, Math.min(12, Math.floor(Math.min(fw * 0.4, fh * 0.24) / Math.max(eImg.width, eImg.height * 1.1))) + (d.enemy.boss ? 1 : 0));
+    drawSprite(eCanvas, eImg, eScale);
+    drawSprite(hCanvas, Sprites.player.up[2], Math.max(4, Math.min(8, Math.floor(fh * 0.22 / 18))));
+    [eCanvas, hCanvas].forEach((c) => { c.className = 'bt-sprite'; });
+    playAnimEnter();
+
+    root.hidden = false;
+    root.classList.remove('intro');
+    void root.offsetWidth;
+    root.classList.add('intro');
+    dock.dataset.mode = 'battle';
+    cmdBox.hidden = false;
+    renderCmds();
+    Events.emit('ui:changed');
+    play(d.intro);
+  });
+
+  function playAnimEnter() {
+    eCanvas.classList.add('a-enter-e');
+    hCanvas.classList.add('a-enter-h');
+    setTimeout(() => { eCanvas.classList.remove('a-enter-e'); hCanvas.classList.remove('a-enter-h'); }, 800);
+  }
+
+  Events.on('battle:steps', (d) => {
+    outcome = d.outcome;
+    play(d.steps);
+  });
+
+  $('bt-msg').addEventListener('click', skip); // 메시지 상자를 눌러 빨리 넘긴다
+
+  return {
+    get active() { return active; },
+    confirmLabel: () => (busy ? '다음' : '확인'),
+    canBack: () => active && !busy && view === 'items',
+    nav,
+    confirm,
+    back,
+  };
+})();
+</script>
+  <script>
 // 하단 컨트롤: 거의 모든 터치가 이 영역에서 일어나도록 모드에 따라 바뀐다.
 //   field  : 왼쪽 조이스틱 + (대상 옆에서만) 오른쪽 대화 버튼
 //   screen : 왼쪽 방향 버튼 + 오른쪽 확인/뒤로 (메뉴 화면, 목록 선택 등)
 //   dialog : 오른쪽 다음(닫기)/뒤로 (NPC 대화)
+//   battle : 왼쪽 방향 버튼 + 오른쪽 확인(다음)/뒤로 (전투 명령 선택)
+// 위쪽 화면도 직접 터치할 수 있지만, 모든 조작은 이 하단 컨트롤만으로도 가능하다.
 // 확인 버튼은 항상 같은 자리(오른쪽 아래)에 있어 엄지가 움직이지 않는다.
 const Controls = (() => {
   const pad = document.getElementById('pad');
@@ -3284,6 +4007,7 @@ const Controls = (() => {
   let target = null;   // 대화할 수 있는 NPC (main.js 가 'interact:target' 으로 알려 준다)
 
   function mode() {
+    if (BattleUI.active) return 'battle';
     if (Dialog.isOpen()) return 'dialog';
     if (Screens.current) return 'screen';
     return 'field';
@@ -3293,11 +4017,12 @@ const Controls = (() => {
   function refresh() {
     const m = mode();
     pad.dataset.mode = m;
-    back.hidden = m === 'field';
+    back.hidden = m === 'field' || (m === 'battle' && !BattleUI.canBack());
     back.textContent = m === 'dialog' ? '닫기' : '뒤로';
 
     let label = null;
-    if (m === 'dialog') label = Dialog.confirmLabel();
+    if (m === 'battle') label = BattleUI.confirmLabel();
+    else if (m === 'dialog') label = Dialog.confirmLabel();
     else if (m === 'screen') label = '확인';
     else if (target) label = '대화';
 
@@ -3313,20 +4038,25 @@ const Controls = (() => {
   }
 
   function pressConfirm() {
-    if (Dialog.isOpen()) Dialog.next();
+    if (BattleUI.active) BattleUI.confirm();
+    else if (Dialog.isOpen()) Dialog.next();
     else if (Screens.current) Screens.confirm();
     else if (target) Events.emit('npc:interact', { npc: target.npc });
   }
 
   function pressBack() {
-    if (Dialog.isOpen()) Dialog.close();
+    if (BattleUI.active) BattleUI.back();
+    else if (Dialog.isOpen()) Dialog.close();
     else if (Screens.current) Screens.back();
   }
 
   act.addEventListener('click', pressConfirm);
   back.addEventListener('click', pressBack);
   pad.querySelectorAll('[data-nav]').forEach((b) =>
-    b.addEventListener('click', () => { if (Screens.current && !Dialog.isOpen()) Screens.nav(b.dataset.nav); }));
+    b.addEventListener('click', () => {
+      if (BattleUI.active) BattleUI.nav(b.dataset.nav);
+      else if (Screens.current && !Dialog.isOpen()) Screens.nav(b.dataset.nav);
+    }));
 
   Events.on('interact:target', (t) => { target = t; refresh(); });
   Events.on('ui:changed', refresh);
@@ -3491,12 +4221,14 @@ const Controls = (() => {
   function drawMonster(m) {
     const set = Sprites.monsters[m.def.sprite];
     const img = (m.dir < 0 ? set.left : set.right)[m.frame];
-    const x = snapX(m.x - img.width / 2 - cam.x);
-    const y = snapY(m.y - (img.height - 1) - cam.y);
+    const sc = m.def.scale || 1;
+    const w = img.width * sc, h = img.height * sc;
+    const x = snapX(m.x - w / 2 - cam.x);
+    const y = snapY(m.y - (h - sc) - cam.y);
     const rarity = MonsterRarities[m.def.rarity];
 
     ctx.globalAlpha = Math.max(0, m.fade);
-    ctx.drawImage(img, x, y);
+    ctx.drawImage(img, x, y, w, h);
     ctx.globalAlpha = 1;
 
     if (rarity.sparkle && !m.fading) {
@@ -3504,8 +4236,8 @@ const Controls = (() => {
       const t = performance.now() / 1000;
       for (let i = 0; i < 3; i++) {
         const a = t * 2 + i * 2.1;
-        const px = x + img.width / 2 + Math.cos(a) * (img.width * 0.65);
-        const py = y + img.height / 2 + Math.sin(a * 1.3) * (img.height * 0.55);
+        const px = x + w / 2 + Math.cos(a) * (w * 0.65);
+        const py = y + h / 2 + Math.sin(a * 1.3) * (h * 0.55);
         ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 6 + i * 2);
         ctx.fillStyle = i === 1 ? '#ffffff' : '#ffd84a';
         ctx.fillRect(snapX(px), snapY(py), 1, 1);
@@ -3514,7 +4246,7 @@ const Controls = (() => {
     }
 
     if (m.alert > 0) {
-      ctx.drawImage(Sprites.alert, snapX(x + img.width - 2), snapY(y - 8));
+      ctx.drawImage(Sprites.alert, snapX(x + w - 2), snapY(y - 8));
     }
   }
 
@@ -3540,9 +4272,10 @@ const Controls = (() => {
       if (d >= LABEL_HIDE) continue;
       const rarity = MonsterRarities[m.def.rarity];
       const img = Sprites.monsters[m.def.sprite].right[0];
+      const sc = m.def.scale || 1;
       out.push({
-        text: (rarity.mark ? rarity.mark + ' ' : '') + m.def.name, color: rarity.pillColor,
-        x: m.x, y: m.y - (img.height - 1), alpha: fade(d, LABEL_FULL, LABEL_HIDE) * Math.max(0, m.fade),
+        text: (rarity.mark ? rarity.mark + ' ' : '') + `Lv.${m.level} ${m.def.name}`, color: rarity.pillColor,
+        x: m.x, y: m.y - (img.height - 1) * sc, alpha: fade(d, LABEL_FULL, LABEL_HIDE) * Math.max(0, m.fade),
       });
     }
     for (const n of Npcs.entities) {
@@ -3612,6 +4345,8 @@ const Controls = (() => {
     Monsters.update(dt, player, { x: cam.x, y: cam.y, w: view.w, h: view.h });
     Npcs.update(dt, player);
     checkTrigger();
+    const touched = Monsters.contact(player);   // 몬스터에게 닿으면 전투 시작
+    if (touched) Events.emit('battle:request', { monster: touched });
     updateTarget();
     render();
     rafId = requestAnimationFrame(frame);
@@ -3663,6 +4398,10 @@ const Controls = (() => {
     paused = false;
 
     GameState.patch('location', { id: r.id, name: r.name, type: r.type || 'field' });
+    if (r.type === 'village') {        // 마을에서는 HP/MP 가 모두 회복된다
+      const p = GameState.get('player');
+      GameState.patch('player', { hp: p.maxHp, mp: p.maxMp });
+    }
     running = true;
     fit();
     updateCamera();
@@ -3702,6 +4441,23 @@ const Controls = (() => {
   Events.on('location:request', ({ id }) => {
     const r = Regions.find((x) => x.id === id);
     if (r && !r.locked) enterRegion(r);
+  });
+  // 전투: 시작하면 월드를 멈추고, 끝나면 결과를 월드에 반영한다
+  Events.on('battle:start', () => {
+    Screens.close();
+    Dialog.close();
+    setPauseLock('battle', true);
+  });
+  Events.on('battle:end', ({ outcome, monster }) => {
+    if (outcome === 'win') {
+      Monsters.defeat(monster);
+    } else if (outcome === 'flee') {
+      Monsters.flee(monster);
+    } else if (outcome === 'lose') {
+      enterRegion(Regions[0]);          // 쓰러지면 마을로 돌아가 회복한다
+      Events.emit('toast', { text: '쓰러져서 마을로 돌아왔어요.' });
+    }
+    setPauseLock('battle', false);
   });
   Events.on('trigger', (t) => {
     if (t.action === 'explore') Screens.open('explore');

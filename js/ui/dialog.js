@@ -1,4 +1,4 @@
-// NPC 대화창 (임시): 이름표 + 대사. 보여 주기만 하고, 넘기기/닫기는 하단 컨트롤(ui/controls.js)이 next()/close() 로 조작한다.
+// NPC 대화창 (임시): 이름표 + 대사. 넘기기/닫기는 하단 컨트롤(ui/controls.js)이나 대화창 터치로 한다.
 // 실제 상점/제작/의뢰 연결은 추후 'npc:interact' 를 듣는 시스템이 맡는다.
 const Dialog = (() => {
   const root = document.getElementById('dialog');
@@ -56,6 +56,7 @@ const Dialog = (() => {
   // 확인 버튼에 표시할 이름
   const confirmLabel = () => (isLast() ? '닫기' : '다음');
 
+  root.querySelector('.dialog-card').addEventListener('click', next); // 대화창을 직접 눌러도 넘어간다
   Events.on('npc:interact', ({ npc }) => open(npc));
 
   return { open, close, next, isOpen, confirmLabel, onChange: (fn) => listeners.push(fn) };
