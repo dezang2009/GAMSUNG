@@ -43,7 +43,7 @@ HTML/CSS/JavaScript만 사용한다. 빌드 도구 없이 `index.html`의 `<scri
 | Shop | `systems/shop.js` + `ui/shop-screen.js` (+ `data/shop.js`) | 구현됨: 상점 사기/팔기. 파는 가격 `data/items.js` 의 `sell`, 사는 가격 `data/shop.js` 의 `ShopStock` |
 | Inn | `systems/inn.js` + `ui/inn-screen.js` | 구현됨: 여관(요금 `Services.innCost` 로 HP/MP 전부 회복) |
 | Quest | `systems/quest.js` + `ui/quest-screen.js` (+ `data/quests.js`) | 구현됨: 의뢰소(처치/수집 의뢰, 보상). 상태는 `GameState.quests` |
-| Crafting | `systems/crafting.js` + `ui/forge-screen.js` (+ `data/forge.js`) | 구현됨: 대장간 강화(등급 ★ 올리기). 확률 = `Forge.successRate[등급]` + 재료 `forge.chanceBonus` |
+| Crafting | `systems/crafting.js` + `ui/forge-screen.js` (+ `data/forge.js`) | 구현됨: 대장간 강화(등급 ★ 올리기, 확률 = `Forge.successRate[등급]` + 재료 `forge.chanceBonus`)와 제작(`ForgeRecipes`: 몬스터 소재 + 골드로 더 높은 등급의 무기) |
 | Save | `systems/save.js` (+ `core/save-store.js`, `ui/title-screen.js`, `ui/system-screen.js`) | 구현됨: 파일 3개, 10분 자동 저장, 타이틀 화면 |
 | Inventory | `systems/inventory.js` (+ `data/items.js`, `ui/bag-screen.js`) | 구현됨: 아이템 보유, 꾸러미 열기 |
 | Starter | `systems/starter.js` | 구현됨: NPC `gift` 설정으로 처음 한 번 지급 (촌장 → 초보자 패키지) |
@@ -59,6 +59,7 @@ HTML/CSS/JavaScript만 사용한다. 빌드 도구 없이 `index.html`의 `<scri
 - **드롭 아이템**: 몬스터별 드롭은 `data/drops.js` 의 `DropTables[몬스터 id]` 한 곳에서 정한다. 몬스터 소재는 `data/items.js` 에 `type: 'loot'` 로 추가한다.
 - **새 의뢰**: `data/quests.js` 에 항목 추가 (`goal` 처치/수집, `reward`, 선행 의뢰 `after`).
 - **건물 기능 연결**: `enter: 'id'` 건물은 `building:enter` 를 듣는 화면(대장간/상점은 전용 화면, 여관/의뢰소는 `Screens`)이 처리한다.
+- **새 무기**: `data/items.js` 에 `weapon { atk, atkPerLevel, skills }` 로 추가하고, 기술은 `data/skills.js`, 아이콘은 `gfx/item-sprites.js`. 얻는 길은 세 가지 — 상점(`data/shop.js` 의 `needs` = 골드 + 몬스터 소재), 대장간 제작(`data/forge.js` 의 `ForgeRecipes`, 더 높은 `grade`), 던전 보상(추후, `item:gain { id, grade }`).
 - **강화재료 추가**: `data/items.js` 에 `type: 'material'` + `forge: { rarity, chanceBonus }` 로 추가한다 (희귀할수록 보너스를 크게).
 - **승리 보상**: 승리하면 `battle:rewards { exp, gold, weaponExp, steps }` 를 보낸다. Character(경험치·레벨), Equipment(무기 숙련), Economy(골드)가 각자 지급하고 `steps` 에 전투 화면용 메시지를 덧붙인다.
 - **기술**: `data/skills.js` 에 기술, `data/items.js` 의 `weapon.skills` 에 "숙련 레벨 N 에서 배움"을 적는다. 4개가 가득 차면 전투 화면이 하나를 잊을지 묻는다(`skill:decide`).

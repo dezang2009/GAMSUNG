@@ -1,5 +1,5 @@
 // Shop 시스템 — NPC 상점: 사고 팔기.
-//   수신 'shop:buy' { id, count }           구매: 골드가 충분하면 가격만큼 쓰고 아이템을 받는다
+//   수신 'shop:buy' { id, count }           구매: 골드(와 필요한 소재 needs)가 충분하면 쓰고 아이템을 받는다
 //   수신 'shop:sell' { id, count }          아이템 판매
 //   발신 'inventory:consume' { id, count }  판 아이템 소모
 //   발신 'gold:gain' { amount }             골드 지급 (Economy 가 처리)
@@ -18,6 +18,14 @@ Game.register('shop', {
         Events.emit('shop:failed', { reason: 'gold' });
         return;
       }
+      // 필요한 소재(needs)가 모두 있어야 한다
+      const held = (item) => (GameState.get('inventory').items.find((it) => it.id === item) || { count: 0 }).count;
+      const needs = (stock.needs || []).map((x) => ({ id: x.id, count: x.count * n }));
+      if (needs.some((x) => held(x.id) < x.count)) {
+        Events.emit('shop:failed', { reason: 'items' });
+        return;
+      }
+      for (const x of needs) Events.emit('inventory:consume', x);
       Events.emit('gold:gain', { amount: -amount });
       Events.emit('item:gain', { id, count: n });
       Events.emit('shop:bought', { id, count: n, amount });

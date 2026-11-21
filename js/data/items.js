@@ -31,6 +31,31 @@ const ItemData = {
       ],
     },
   },
+  // ---- 무기: 상점 구매(드롭 재료 + 골드) 또는 대장간 제작(더 높은 등급)으로 얻는다 ----
+  iron_dagger: {
+    id: 'iron_dagger', name: '철제 단검', type: 'weapon', icon: 'dagger',
+    desc: '가볍고 날카로운 철제 단검. 빠른 연속 공격과 급소 공격이 특기다.',
+    weapon: {
+      atk: 5, atkPerLevel: 0.6,
+      skills: [{ level: 1, skill: 'slash' }, { level: 3, skill: 'backstab' }, { level: 6, skill: 'flurry' }],
+    },
+  },
+  hunter_axe: {
+    id: 'hunter_axe', name: '사냥꾼의 도끼', type: 'weapon', icon: 'axe',
+    desc: '사냥꾼들이 쓰는 묵직한 도끼. 한 방이 강하다.',
+    weapon: {
+      atk: 7, atkPerLevel: 0.8,
+      skills: [{ level: 1, skill: 'chop' }, { level: 4, skill: 'cleave' }, { level: 7, skill: 'rage' }],
+    },
+  },
+  goblin_mace: {
+    id: 'goblin_mace', name: '고블린 대장의 철퇴', type: 'weapon', icon: 'mace',
+    desc: '고블린 대장의 뿔로 벼려 낸 철퇴. 대장간에서만 만들 수 있다.',
+    weapon: {
+      atk: 9, atkPerLevel: 1.0,
+      skills: [{ level: 1, skill: 'bash' }, { level: 5, skill: 'crush' }],
+    },
+  },
   old_leather_armor: {
     id: 'old_leather_armor', name: '낡은 가죽갑옷', type: 'armor', icon: 'armor',
     desc: '곳곳을 기워 입은 가죽갑옷. 가벼워서 움직이기 편하다.',

@@ -1751,3 +1751,27 @@ body {
 @media (orientation: landscape) and (max-height: 520px) {
   #rotate { display: flex; }
 }
+
+/* ---------- 대장간 제작 탭 ---------- */
+.fg-lists.craft { grid-template-columns: 1fr; }
+.fg-lists.craft #fp-mats { display: none; }
+
+.fp-recipe {
+  flex-direction: column;
+  align-items: stretch;
+  cursor: pointer;
+}
+
+.fp-recipe-head { display: flex; align-items: center; gap: 10px; }
+
+.fp-needs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+
+.fp-need {
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.fp-need.ok { background: var(--accent-soft); color: var(--accent); }
+.fp-need.lack { background: #fbe4e1; color: var(--hp); }

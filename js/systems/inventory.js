@@ -1,6 +1,6 @@
 // Inventory 시스템 — 아이템 보유, 꾸러미 열기, 장비 인스턴스 생성.
 // 쌓이는 아이템(꾸러미/물약)은 GameState.inventory, 장비(무기/방어구)는 한 개씩 레벨·등급을 가지므로 GameState.gear 에 둔다.
-//   수신 'item:gain'      { id, count }  아이템 획득 (장비는 count 개의 새 장비가 만들어진다)
+//   수신 'item:gain'      { id, count, grade }  아이템 획득 (장비는 count 개의 새 장비가 만들어지고, grade 가 시작 등급)
 //   수신 'inventory:use'  { id }         꾸러미 열기
 //   수신 'inventory:consume' { id, count } 소모 (전투 중 물약 사용, 판매 등. count 생략 시 1개)
 //   발신 'inventory:changed'              가방 내용이 바뀜
@@ -23,11 +23,11 @@ Game.register('inventory', {
       const list = GameState.get('inventory').items.map((it) => ({ ...it }));
       const gear = GameState.get('gear').list;
       const added = [];
-      for (const { id, count } of entries) {
+      for (const { id, count, grade } of entries) {
         if (!ItemData[id]) continue;
         if (isGear(id)) {
           for (let i = 0; i < count; i++) {
-            const inst = { uid: 'g' + uidSeq++, id, level: 1, exp: 0, grade: 1, offered: [] };
+            const inst = { uid: 'g' + uidSeq++, id, level: 1, exp: 0, grade: grade || 1, offered: [] };
             gear.push(inst);
             added.push(inst.uid);
           }
@@ -41,7 +41,7 @@ Game.register('inventory', {
       for (const uid of added) Events.emit('gear:added', { uid });
     }
 
-    Events.on('item:gain', ({ id, count }) => gain([{ id, count: count || 1 }]));
+    Events.on('item:gain', ({ id, count, grade }) => gain([{ id, count: count || 1, grade }]));
 
     // 전투 보상으로 떨어진 아이템
     Events.on('battle:rewards', (r) => {

@@ -29,14 +29,17 @@ const ShopUI = (() => {
 
   // 지금 탭의 목록: { id, price, owned }
   function entries() {
-    if (mode === 'buy') return ShopStock.shop.map((x) => ({ id: x.id, price: x.price, owned: held(x.id) }));
+    if (mode === 'buy') return ShopStock.shop.map((x) => ({ id: x.id, price: x.price, needs: x.needs || [], owned: held(x.id) }));
     return GameState.get('inventory').items
       .filter((it) => ItemData[it.id].sell)
       .sort((a, b) => ItemTypes[ItemData[a.id].type].order - ItemTypes[ItemData[b.id].type].order)
       .map((it) => ({ id: it.id, price: ItemData[it.id].sell, owned: it.count }));
   }
 
-  const maxQty = (e) => (mode === 'buy' ? 99 : e.owned);
+  const isGear = (id) => ItemData[id].type === 'weapon' || ItemData[id].type === 'armor';
+  const maxQty = (e) => (mode === 'buy' ? (isGear(e.id) ? 1 : 99) : e.owned);   // 장비는 한 번에 하나
+  const needsOk = (e, n) => (e.needs || []).every((x) => held(x.id) >= x.count * n);
+  const canBuy = (e, n) => gold() >= e.price * n && needsOk(e, n);
   const setMsg = (t) => { $('sh-msg').textContent = t; };
 
   function drawIcon(canvas, def, scale) {
@@ -78,7 +81,7 @@ const ShopUI = (() => {
       icon.getContext('2d').drawImage(Sprites.items[def.icon], 0, 0);
       const text = el('div', 'bag-name', def.name);
       text.append(el('span', 'bag-type', `${ItemTypes[def.type].label} · 보유 ${e.owned}개`));
-      const poor = mode === 'buy' && gold() < e.price;
+      const poor = mode === 'buy' && !canBuy(e, 1);
       const price = el('div', 'sh-price' + (poor ? ' is-poor' : ''), e.price + ' G');
       price.append(el('small', '', '개당'));
       main.append(icon, text, price);
@@ -86,6 +89,18 @@ const ShopUI = (() => {
       if (picked) {                                     // 설명은 선택한 카드 아래에만
         const d = el('div', 'bag-desc');
         d.append(el('p', '', def.desc));
+        if (def.weapon) {
+          const w = def.weapon;
+          d.append(el('p', 'bag-stat', `공격 +${w.atk.toFixed(1)} · 기술: ${w.skills.map((u) => `${SkillData[u.skill].name}(Lv.${u.level})`).join(', ')}`));
+        }
+        if (mode === 'buy' && e.needs.length) {         // 필요한 몬스터 소재
+          const need = el('div', 'fp-needs');
+          for (const x of e.needs) {
+            const have = held(x.id);
+            need.append(el('span', 'fp-need' + (have >= x.count ? ' ok' : ' lack'), `${ItemData[x.id].name} ${have}/${x.count}`));
+          }
+          d.append(el('p', 'bag-action', '골드 외에 아래 소재가 필요해요.'), need);
+        }
         li.append(d);
       }
       li.addEventListener('click', (ev) => {
@@ -124,13 +139,13 @@ const ShopUI = (() => {
     minus.addEventListener('click', () => { qty = Math.max(1, qty - 1); renderScene(); });
     plus.addEventListener('click', () => { qty = Math.min(maxQty(e), qty + 1); renderScene(); });
     all.addEventListener('click', () => {
-      qty = mode === 'buy' ? Math.max(1, Math.min(99, Math.floor(gold() / e.price))) : e.owned;
+      qty = mode === 'buy' ? Math.max(1, Math.min(maxQty(e), Math.floor(gold() / e.price))) : e.owned;
       renderScene();
     });
     row.append(minus, el('span', '', `${qty}개`), plus, all);
     const total = e.price * qty;
     info.append(el('b', '', def.name), row, el('span', 'sh-total', `합계 ${total.toLocaleString('ko-KR')} 골드`));
-    if (mode === 'buy') info.append(el('span', 'sh-gold', `보유 ${gold().toLocaleString('ko-KR')} 골드`));
+    if (mode === 'buy') info.append(el('span', 'sh-gold', e.needs.length ? (needsOk(e, qty) ? '소재 충분' : '소재가 부족해요') + ` · 보유 ${gold().toLocaleString('ko-KR')}G` : `보유 ${gold().toLocaleString('ko-KR')} 골드`));
   }
 
   function render() {
@@ -171,7 +186,7 @@ const ShopUI = (() => {
     render();
   });
 
-  Events.on('shop:failed', () => { if (active) setMsg('골드가 부족해요.'); });
+  Events.on('shop:failed', ({ reason }) => { if (active) setMsg(reason === 'items' ? '필요한 몬스터 소재가 부족해요.' : '골드가 부족해요.'); });
   Events.on('state:wallet', () => { if (active) render(); });
   Events.on('inventory:changed', () => { if (active) render(); });
 
