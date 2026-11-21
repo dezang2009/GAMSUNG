@@ -14,54 +14,53 @@ const Regions = [
     id: 'village',
     type: 'village',            // 마을: 건물/NPC 가 있고 몬스터는 나오지 않는다
     name: '솔빛 마을',
-    desc: '포근한 햇살이 머무는 모험의 출발점. 상점과 여관이 모여 있어요.',
+    desc: '포근한 햇살이 머무는 작은 마을. 상점, 여관, 대장간, 의뢰소가 모여 있어요.',
     color: '#8bd36a',
     thumbSize: 56,
     thumb: [['buildings.shop', 0, 3, 2]],
-    cols: 32,
-    rows: 36,
-    spawn: { tx: 16, ty: 29 },
+    cols: 24,
+    rows: 28,
+    spawn: { tx: 11, ty: 23 },
     palette: { grass: [[118, 184, 88], [110, 176, 82], [130, 194, 98], [96, 164, 72]] },
     village: {
       seed: 777,
-      trees: 26,
-      bushes: 14,
-      flowers: 50,
+      trees: 10,
+      bushes: 6,
+      flowers: 30,
       // 길과 광장: [x, y, 가로, 세로] (타일)
       roads: [
-        [15, 3, 2, 29], [5, 18, 23, 2], [5, 26, 23, 2],
-        [6, 13, 2, 5], [25, 13, 2, 5], [6, 24, 2, 2], [25, 24, 2, 2],
-        [15, 31, 9, 2],
+        [11, 3, 2, 22],                                  // 중앙 길 (게이트 ~ 시작 지점)
+        [5, 10, 15, 2], [5, 20, 15, 2],                  // 위/아래 가로 길
+        [5, 9, 2, 1], [18, 9, 2, 1], [5, 19, 2, 1], [18, 19, 2, 1],   // 건물 문 앞 연결
+        [11, 24, 9, 2],                                  // 내 집으로 가는 길
       ],
-      plaza: [12, 16, 8, 6],
-      // 건물 (3x2 타일 발판, sprite 는 Sprites.buildings 의 키). 이름표로 표시된다.
+      plaza: [8, 12, 8, 6],
+      // 건물 (3x2 타일 발판, sprite 는 Sprites.buildings 의 키). enter: 들어가면 열리는 화면
       buildings: [
-        { id: 'shop', name: '판매소', sprite: 'shop', tx: 5, ty: 11, enter: 'shop' },
-        { id: 'inn', name: '여관', sprite: 'inn', tx: 24, ty: 11 },
-        { id: 'forge', name: '대장간', sprite: 'forge', tx: 5, ty: 22, enter: 'forge' },   // enter: 들어가면 열리는 화면
-        { id: 'hall', name: '의뢰소', sprite: 'hall', tx: 24, ty: 22 },
-        { id: 'home', name: '내 집', sprite: 'home', tx: 21, ty: 29 },
+        { id: 'shop', name: '상점', sprite: 'shop', tx: 4, ty: 7, enter: 'shop' },
+        { id: 'inn', name: '여관', sprite: 'inn', tx: 17, ty: 7, enter: 'inn' },
+        { id: 'forge', name: '대장간', sprite: 'forge', tx: 4, ty: 17, enter: 'forge' },
+        { id: 'hall', name: '의뢰소', sprite: 'hall', tx: 17, ty: 17, enter: 'quests' },
+        { id: 'home', name: '내 집', sprite: 'home', tx: 17, ty: 22 },
       ],
       props: [
-        { type: 'fountain', tx: 15, ty: 18 },
-        { type: 'gate', tx: 14, ty: 4, name: '탐험 게이트' },
-        { type: 'lamp', tx: 14, ty: 12 }, { type: 'lamp', tx: 17, ty: 12 },
-        { type: 'lamp', tx: 14, ty: 23 }, { type: 'lamp', tx: 17, ty: 23 },
-        { type: 'lamp', tx: 11, ty: 15 }, { type: 'lamp', tx: 20, ty: 15 },
-        { type: 'lamp', tx: 11, ty: 22 }, { type: 'lamp', tx: 20, ty: 22 },
+        { type: 'fountain', tx: 11, ty: 14 },
+        { type: 'gate', tx: 10, ty: 4, name: '탐험 게이트' },
+        { type: 'lamp', tx: 10, ty: 8 }, { type: 'lamp', tx: 13, ty: 8 },
+        { type: 'lamp', tx: 10, ty: 19 }, { type: 'lamp', tx: 13, ty: 19 },
+        { type: 'lamp', tx: 7, ty: 13 }, { type: 'lamp', tx: 16, ty: 13 },
       ],
-      // NPC: role 은 추후 상호작용 시스템(상점/제작/의뢰 등)이 사용한다. look 은 Sprites.npcs 의 키
+      // NPC: role 은 추후 상호작용 시스템이 사용한다. look 은 Sprites.npcs 의 키
       npcs: [
-        { id: 'merchant', name: '상인 모모', role: 'shop', look: 'merchant', tx: 9, ty: 14, lines: ['어서 오세요! 솔빛 마을 판매소예요.', '몬스터에게서 얻은 전리품을 가져오면 좋은 값에 사 드릴게요.'] },
-        { id: 'shopkeeper', name: '상점 주인 도라', role: 'shop', look: 'shopF', tx: 3, ty: 15, lines: ['남편이 또 물건을 쌓아 두네요.', '필요한 게 있으면 말씀하세요.'] },
-        { id: 'innkeeper', name: '여관 주인 하나', role: 'inn', look: 'innkeeper', tx: 22, ty: 14, lines: ['여관에 오신 걸 환영해요. 푹 쉬고 가세요.', '따뜻한 차도 준비해 둘게요.'] },
-        { id: 'maid', name: '여관 일꾼 미나', role: 'villager', look: 'maid', tx: 28, ty: 15, lines: ['어서 오세요! 방은 늘 깨끗해요.'] },
-        { id: 'smith', name: '대장장이 쿠로', role: 'crafting', look: 'smith', tx: 9, ty: 24, lines: ['쿵쿵! 지금 한창 망치질 중이야.', '나중에 장비 제작과 강화는 나한테 맡겨.'] },
-        { id: 'clerk', name: '의뢰소 직원 리코', role: 'quest', look: 'clerk', tx: 22, ty: 24, lines: ['의뢰소에 오셨군요!', '의뢰는 아직 준비 중이에요. 조금만 기다려 주세요.'] },
-        { id: 'witch', name: '마녀 루나', role: 'villager', look: 'witch', tx: 28, ty: 25, lines: ['후후, 숲에는 신기한 것이 많단다.', '달빛 여우를 만나면 행운이 따른다지.'] },
+        { id: 'merchant', name: '상인 모모', role: 'shop', look: 'merchant', tx: 8, ty: 9, lines: ['어서 오세요! 솔빛 마을 상점이에요.', '물약과 강화석을 팔고, 몬스터 전리품도 사 드려요. 안으로 들어와 보세요!'] },
+        { id: 'innkeeper', name: '여관 주인 하나', role: 'inn', look: 'innkeeper', tx: 15, ty: 9, lines: ['여관에 오신 걸 환영해요.', '지치셨다면 안에서 푹 쉬고 가세요. 요금은 5골드예요.'] },
+        { id: 'maid', name: '여관 일꾼 미나', role: 'villager', look: 'maid', tx: 21, ty: 10, lines: ['어서 오세요! 방은 늘 깨끗해요.'] },
+        { id: 'smith', name: '대장장이 쿠로', role: 'crafting', look: 'smith', tx: 8, ty: 19, lines: ['쿵쿵! 지금 한창 망치질 중이야.', '장비 등급을 올리고 싶으면 강화석을 가지고 대장간으로 와.'] },
+        { id: 'clerk', name: '의뢰소 직원 리코', role: 'quest', look: 'clerk', tx: 15, ty: 19, lines: ['의뢰소에 오셨군요!', '안으로 들어오면 의뢰를 받을 수 있어요. 목표를 채우면 보상을 드려요.'] },
+        { id: 'witch', name: '마녀 루나', role: 'villager', look: 'witch', tx: 21, ty: 19, lines: ['후후, 숲에는 신기한 것이 많단다.', '달빛 여우를 만나면 행운이 따른다지.'] },
         {
-          id: 'elder', name: '촌장 할아버지', role: 'villager', look: 'elder', tx: 20, ty: 17,
-          lines: ['솔빛 마을에 잘 왔네, 젊은 모험가.', '북쪽 게이트 너머가 초록숲이라네.'],
+          id: 'elder', name: '촌장 할아버지', role: 'villager', look: 'elder', tx: 9, ty: 13,
+          lines: ['솔빛 마을에 잘 왔네, 젊은 모험가.', '북쪽 게이트 너머가 초록숲이라네. 의뢰소에서 일감도 받아 보게.'],
           // 처음 말을 걸었을 때 한 번만 지급 (flag 로 기록)
           gift: {
             flag: 'starterPackage',
@@ -70,11 +69,11 @@ const Regions = [
             toast: '초보자 패키지를 받았어요! 가방에서 열어 보세요.',
           },
         },
-        { id: 'kid', name: '꼬마 콩이', role: 'villager', look: 'kid', tx: 13, ty: 22, lines: ['안녕! 나는 콩이야.', '게이트 너머 초록숲에는 슬라임이 살아!'] },
-        { id: 'guard', name: '문지기 도리', role: 'guard', look: 'guard', tx: 18, ty: 5, lines: ['여기는 탐험 게이트다.', '초록숲으로 가려면 이 문을 지나가라. 조심해서 다녀와!'] },
+        { id: 'kid', name: '꼬마 콩이', role: 'villager', look: 'kid', tx: 14, ty: 16, lines: ['안녕! 나는 콩이야.', '게이트 너머 초록숲에는 슬라임이 살아!'] },
+        { id: 'guard', name: '문지기 도리', role: 'guard', look: 'guard', tx: 14, ty: 5, lines: ['여기는 탐험 게이트다.', '초록숲으로 가려면 이 문을 지나가라. 조심해서 다녀와!'] },
       ],
       // 밟으면 이벤트가 발생하는 영역. action 'explore' 는 탐험 화면을 연다
-      triggers: [{ id: 'gate', tx: 15, ty: 3, w: 2, h: 2, action: 'explore' }],
+      triggers: [{ id: 'gate', tx: 11, ty: 3, w: 2, h: 2, action: 'explore' }],
     },
   },
   {

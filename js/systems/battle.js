@@ -6,6 +6,7 @@
 //   발신 'battle:steps' { steps, outcome }  steps 를 차례로 보여 준다. outcome: null | 'win' | 'lose' | 'flee'
 //   발신 'battle:rewards' payload           승리 보상: { monster, exp, gold, weaponExp, drops, steps }
 //        Character/Economy/Equipment/Inventory 가 각자 지급하고 payload.steps 에 보여 줄 메시지를 덧붙인다.
+//   발신 'monster:defeated' { id, level }   몬스터를 쓰러뜨림 (의뢰 진행 등이 듣는다)
 //   발신 'battle:end' { outcome, monster }  월드가 결과를 반영한다 (몬스터 제거, 패배 시 마을 복귀 등)
 //   발신 'inventory:consume' { id }         물약 사용
 // 한 턴: 플레이어가 명령을 내리면 먼저 실행되고, 상대가 살아 있으면 상대가 한 번 공격한다.
@@ -67,6 +68,7 @@ Game.register('battle', {
       };
       Events.emit('battle:rewards', payload);
       steps.push(...payload.steps);
+      Events.emit('monster:defeated', { id: d.id, level: b.monster.level });
       b.outcome = 'win';
     }
 

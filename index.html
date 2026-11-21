@@ -57,9 +57,9 @@
         </div>
       </section>
 
-      <!-- 판매소: 위쪽은 팔 수 있는 아이템 목록 (아래쪽 메뉴 자리에 판매 장면이 나온다) -->
+      <!-- 상점: 위쪽은 사기/팔기 목록 (아래쪽 메뉴 자리에 거래 장면이 나온다) -->
       <section id="shop" hidden>
-        <header class="fg-head"><h2>판매소</h2><p>몬스터에게서 얻은 전리품을 골드로 바꿔요</p></header>
+        <header class="fg-head"><h2>상점</h2><div class="sh-tabs" id="sh-tabs"></div></header>
         <div class="sh-list" id="sh-list"></div>
       </section>
 
@@ -130,7 +130,7 @@
         </div>
       </div>
 
-      <!-- 판매소 중에는 판매 장면 -->
+      <!-- 상점 중에는 거래 장면 -->
       <div id="shop-panel" hidden>
         <div class="fg-scene">
           <div class="fg-wall"></div>
@@ -197,6 +197,8 @@
   <script src="js/data/skills.js"></script>
   <script src="js/data/items.js"></script>
   <script src="js/data/drops.js"></script>
+  <script src="js/data/shop.js"></script>
+  <script src="js/data/quests.js"></script>
   <script src="js/world/world.js"></script>
   <script src="js/world/monsters.js"></script>
   <script src="js/world/npcs.js"></script>
@@ -213,6 +215,7 @@
   <script src="js/systems/crafting.js"></script>
   <script src="js/systems/collection.js"></script>
   <script src="js/systems/quest.js"></script>
+  <script src="js/systems/inn.js"></script>
   <script src="js/systems/save.js"></script>
   <script src="js/ui/input.js"></script>
   <script src="js/ui/screens.js"></script>
@@ -226,6 +229,8 @@
   <script src="js/ui/system-screen.js"></script>
   <script src="js/ui/forge-screen.js"></script>
   <script src="js/ui/shop-screen.js"></script>
+  <script src="js/ui/inn-screen.js"></script>
+  <script src="js/ui/quest-screen.js"></script>
   <script src="js/ui/battle-screen.js"></script>
   <script src="js/ui/controls.js"></script>
   <script src="js/ui/title-screen.js"></script>

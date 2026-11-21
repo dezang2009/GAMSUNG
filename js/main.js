@@ -324,7 +324,8 @@
     World.load(r);
     player.x = r.spawn.tx * World.TILE + World.TILE / 2;
     player.y = r.spawn.ty * World.TILE + 12;
-    if (o.at) { player.x = o.at.x; player.y = o.at.y; }
+    // 저장된 위치로 시작하되, 맵이 바뀌어 막힌 자리면 시작 지점을 쓴다
+    if (o.at && !World.blocked(o.at.x - 3, o.at.y - 3, o.at.x + 3, o.at.y + 1)) { player.x = o.at.x; player.y = o.at.y; }
     player.vx = 0;
     player.vy = 0;
     player.dir = 'down';
@@ -339,10 +340,6 @@
     paused = false;
 
     GameState.patch('location', { id: r.id, name: r.name, type: r.type || 'field' });
-    if (r.type === 'village' && !o.keep) {   // 마을에서는 HP/MP 가 모두 회복된다
-      const p = GameState.get('player');
-      GameState.patch('player', { hp: p.maxHp, mp: p.maxMp });
-    }
     running = true;
     fit();
     updateCamera();
@@ -395,8 +392,10 @@
     } else if (outcome === 'flee') {
       Monsters.flee(monster);
     } else if (outcome === 'lose') {
-      enterRegion(Regions[0]);          // 쓰러지면 마을로 돌아가 회복한다
-      Events.emit('toast', { text: '쓰러져서 마을로 돌아왔어요.' });
+      enterRegion(Regions[0]);          // 쓰러지면 마을로 돌아온다 (HP 는 절반만 회복)
+      const pl = GameState.get('player');
+      GameState.patch('player', { hp: Math.max(1, Math.round(pl.maxHp * 0.5)) });
+      Events.emit('toast', { text: '쓰러져서 마을로 돌아왔어요. 여관에서 쉬어 보세요.' });
     }
     setPauseLock('battle', false);
   });

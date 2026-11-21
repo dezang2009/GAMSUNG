@@ -54,7 +54,19 @@
         r.append(el('b', '', s.name), el('span', '', s.mp ? `MP ${s.mp}` : 'MP 0'), el('p', '', s.desc));
         skills.append(r);
       }
-      body.append(head, stats, gear, skills);
+      // 진행 중인 의뢰
+      const quests = section('진행 중인 의뢰');
+      const active = GameState.get('quests').active;
+      const ids = Object.keys(active);
+      if (!ids.length) quests.append(el('p', 'ch-note', '진행 중인 의뢰가 없어요. 의뢰소에서 받을 수 있어요.'));
+      for (const id of ids) {
+        const q = QuestData.find((x) => x.id === id);
+        const have = q.goal.type === 'collect'
+          ? ((GameState.get('inventory').items.find((it) => it.id === q.goal.item) || { count: 0 }).count)
+          : active[id].progress;
+        quests.append(row(q.name, `${Math.min(have, q.goal.count)} / ${q.goal.count}`));
+      }
+      body.append(head, stats, gear, skills, quests);
     },
   });
 })();
