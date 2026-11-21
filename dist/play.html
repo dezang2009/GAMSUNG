@@ -1284,7 +1284,7 @@ body {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 0.5fr;   /* 장비 목록은 넓게, 재료 목록은 좁게 */
   gap: 8px;
   padding: 10px;
 }
@@ -1322,6 +1322,26 @@ body {
 }
 
 .fp-sub { color: var(--ink-soft); font-size: 12px; font-weight: 600; }
+
+.fp-gear-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.fp-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  image-rendering: pixelated;
+}
+
+.fp-text { display: grid; gap: 2px; text-align: left; }
+
+#fp-mats .fp-row { padding: 8px 9px; font-size: 13px; }
+#fp-mats .fp-sub { font-size: 11px; }
 .fp-row.is-picked { background: var(--accent-soft); border-color: var(--accent); }
 .fp-row.is-focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 
@@ -2496,6 +2516,29 @@ const Sprites = (() => {
     r(4, 3, 2, 1, '#e8f6ff'); r(3, 5, 1, 2, '#d4ecff'); r(8, 5, 2, 1, '#8fcaf5'); r(7, 8, 3, 1, '#2f6aa8');
   });
 
+  // 몬스터 소재 아이콘
+  const jelly = icon((r) => {
+    r(3, 4, 8, 7, '#5aa8e8'); r(2, 6, 10, 5, '#5aa8e8'); r(4, 3, 6, 1, '#8fcaf5'); r(4, 4, 6, 2, '#8fcaf5');
+    r(3, 10, 8, 2, '#3f86cc'); r(5, 5, 2, 1, '#e8f6ff'); r(9, 8, 1, 2, '#3f86cc');
+  });
+  const tail = icon((r) => {
+    r(1, 10, 3, 2, '#d8a0a0'); r(3, 9, 3, 2, '#d8a0a0'); r(5, 8, 3, 2, '#c98f8f');
+    r(7, 6, 3, 3, '#c98f8f'); r(9, 4, 3, 3, '#b87f7f'); r(11, 2, 2, 3, '#b87f7f'); r(12, 1, 1, 2, '#9a6666');
+  });
+  const cap = icon((r) => {
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 14; x++) {
+      const nx = (x + 0.5 - 7) / 7, ny = (y + 0.5 - 6) / 6;
+      if (nx * nx + ny * ny <= 1) r(x, y + 2, 1, 1, nx + ny < -0.6 ? '#f2705f' : ny > 0.4 ? '#a8332b' : '#d8483c');
+    }
+    r(3, 4, 2, 2, '#fff7ea'); r(8, 3, 2, 2, '#fff7ea'); r(6, 6, 2, 1, '#fff7ea');
+    r(5, 10, 4, 2, '#f2e3c3');
+  });
+  const horn = icon((r) => {
+    r(2, 11, 4, 2, '#e8e2d0'); r(3, 9, 4, 2, '#e8e2d0'); r(4, 7, 4, 2, '#f2ecda');
+    r(6, 5, 3, 2, '#e8e2d0'); r(8, 3, 3, 2, '#e8e2d0'); r(10, 1, 2, 2, '#cfc8b4'); r(11, 0, 1, 1, '#b3ab97');
+    r(2, 12, 4, 1, '#c9c2ae');
+  });
+
   // 모루 (대장간 장면용, 28x14)
   const anvil = build(28, 14, (ctx, ox, oy) => {
     const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
@@ -2513,6 +2556,7 @@ const Sprites = (() => {
     hpPotion: potion('#ef7a74', '#d9534f', '#a8383a'),
     mpPotion: potion('#7ba3ea', '#4f7fd6', '#35589c'),
     gem,
+    jelly, tail, cap, horn,
   };
 })();
 </script>
@@ -2644,7 +2688,7 @@ const Regions = [
 // 몬스터 데이터. 새 몬스터는 MonsterData 에 항목만 추가하면 된다.
 //   rarity       : MonsterRarities 의 키
 //   regions      : 등장 지역 id 목록 (한 지역에는 일반 몬스터 3종 + 중간보스 1종을 배치한다)
-//   drops        : 떨어뜨리는 아이템 [{ id, chance, count: [최소, 최대] }]
+//   (드롭 아이템은 drops.js 의 DropTables 에서 몬스터 id 로 정한다)
 //   exp / gold   : 쓰러뜨렸을 때 얻는 경험치와 골드 범위
 //   level        : [최소, 최대] 레벨. 스탯은 stats 기준이며 레벨이 오를수록 조금씩 강해진다
 //   scale        : 필드에서 그리는 배율(정수, 생략 시 1)
@@ -2669,49 +2713,49 @@ const MonsterRarities = {
 const MonsterData = [
   // ---- 초록숲: 일반 3종 ----
   {
-    id: 'blue_slime', drops: [{ id: 'upgrade_stone', chance: 0.3 }], exp: 6, gold: [2, 5], name: '푸른 슬라임', rarity: 'normal', regions: ['greenforest'], level: [1, 2],
+    id: 'blue_slime', exp: 6, gold: [2, 5], name: '푸른 슬라임', rarity: 'normal', regions: ['greenforest'], level: [1, 2],
     spawnChance: 50, maxCount: 3, stats: { hp: 18, atk: 4, def: 1, spd: 3 },
     moveSpeed: 16, detectRange: 56, sprite: 'slime', wanderRadius: 36,
   },
   {
-    id: 'forest_rat', drops: [{ id: 'upgrade_stone', chance: 0.3 }], exp: 7, gold: [2, 6], name: '들쥐', rarity: 'normal', regions: ['greenforest'], level: [1, 3],
+    id: 'forest_rat', exp: 7, gold: [2, 6], name: '들쥐', rarity: 'normal', regions: ['greenforest'], level: [1, 3],
     spawnChance: 40, maxCount: 3, stats: { hp: 14, atk: 5, def: 0, spd: 8 },
     moveSpeed: 24, detectRange: 52, sprite: 'rat', wanderRadius: 48,
   },
   {
-    id: 'mushroom_kid', drops: [{ id: 'upgrade_stone', chance: 0.3 }], exp: 10, gold: [4, 8], name: '버섯돌이', rarity: 'normal', regions: ['greenforest'], level: [2, 3],
+    id: 'mushroom_kid', exp: 10, gold: [4, 8], name: '버섯돌이', rarity: 'normal', regions: ['greenforest'], level: [2, 3],
     spawnChance: 35, maxCount: 2, stats: { hp: 26, atk: 6, def: 2, spd: 2 },
     moveSpeed: 13, detectRange: 48, sprite: 'mushroom', wanderRadius: 44,
   },
   // ---- 초록숲: 중간보스 (맵 가장 위쪽에 자리 잡고 있다) ----
   {
-    id: 'goblin_chief', drops: [{ id: 'upgrade_stone', chance: 1, count: [2, 3] }], exp: 90, gold: [60, 90], name: '고블린 대장', rarity: 'boss', regions: ['greenforest'], level: [6, 6],
+    id: 'goblin_chief', exp: 90, gold: [60, 90], name: '고블린 대장', rarity: 'boss', regions: ['greenforest'], level: [6, 6],
     spawnChance: 0, maxCount: 1, stats: { hp: 90, atk: 12, def: 4, spd: 6 },
     moveSpeed: 18, detectRange: 56, sprite: 'goblinChief', wanderRadius: 24, scale: 2,
   },
   // ---- 다른 지역용 (아직 배치하지 않음) ----
   {
-    id: 'cave_bat', drops: [{ id: 'upgrade_stone', chance: 0.3 }], exp: 9, gold: [3, 7], name: '박쥐', rarity: 'normal', regions: [], level: [2, 4],
+    id: 'cave_bat', exp: 9, gold: [3, 7], name: '박쥐', rarity: 'normal', regions: [], level: [2, 4],
     spawnChance: 28, maxCount: 2, stats: { hp: 16, atk: 5, def: 1, spd: 10 },
     moveSpeed: 30, detectRange: 64, sprite: 'bat', wanderRadius: 60,
   },
   {
-    id: 'black_spider', drops: [{ id: 'upgrade_stone', chance: 0.3 }], exp: 13, gold: [5, 10], name: '독거미', rarity: 'normal', regions: [], level: [3, 5],
+    id: 'black_spider', exp: 13, gold: [5, 10], name: '독거미', rarity: 'normal', regions: [], level: [3, 5],
     spawnChance: 20, maxCount: 2, stats: { hp: 22, atk: 7, def: 2, spd: 6 },
     moveSpeed: 20, detectRange: 50, sprite: 'spider', wanderRadius: 40,
   },
   {
-    id: 'goblin', drops: [{ id: 'upgrade_stone', chance: 0.3 }], exp: 15, gold: [6, 12], name: '고블린', rarity: 'normal', regions: [], level: [3, 5],
+    id: 'goblin', exp: 15, gold: [6, 12], name: '고블린', rarity: 'normal', regions: [], level: [3, 5],
     spawnChance: 18, maxCount: 2, stats: { hp: 32, atk: 8, def: 3, spd: 5 },
     moveSpeed: 18, detectRange: 60, sprite: 'goblin', wanderRadius: 44,
   },
   {
-    id: 'gray_wolf', drops: [{ id: 'upgrade_stone', chance: 0.3 }], exp: 22, gold: [9, 16], name: '회색 늑대', rarity: 'normal', regions: [], level: [4, 6],
+    id: 'gray_wolf', exp: 22, gold: [9, 16], name: '회색 늑대', rarity: 'normal', regions: [], level: [4, 6],
     spawnChance: 10, maxCount: 1, stats: { hp: 40, atk: 10, def: 4, spd: 9 },
     moveSpeed: 28, detectRange: 78, sprite: 'wolf', wanderRadius: 64,
   },
   {
-    id: 'moon_fox', drops: [{ id: 'upgrade_stone', chance: 0.6 }], exp: 32, gold: [20, 35], name: '달빛 여우', rarity: 'rare', regions: [], level: [4, 5],
+    id: 'moon_fox', exp: 32, gold: [20, 35], name: '달빛 여우', rarity: 'rare', regions: [], level: [4, 5],
     spawnChance: 4, maxCount: 1, stats: { hp: 45, atk: 9, def: 4, spd: 9 },
     moveSpeed: 26, detectRange: 72, sprite: 'fox', wanderRadius: 60, lifetime: [30, 50],
   },
@@ -2810,7 +2854,8 @@ const SkillData = {
 </script>
   <script>
 // 아이템 데이터. 새 아이템은 ItemData 에 항목만 추가한다.
-//   type     : 'package'(열면 다른 아이템이 나옴) | 'weapon' | 'armor' | 'potion' | 'material'(강화재료)
+//   type     : 'package'(열면 다른 아이템이 나옴) | 'weapon' | 'armor' | 'potion' | 'material'(강화재료) | 'loot'(몬스터 소재)
+//   rarity   : 'common' | 'uncommon' | 'rare' (소재/재료의 희귀도)
 //   icon     : Sprites.items 의 키
 //   contents : 꾸러미(package)를 열었을 때 나오는 아이템 목록
 //   weapon   : 무기 설정 { atk, atkPerLevel, skills: [{ level, skill }] }
@@ -2856,6 +2901,11 @@ const ItemData = {
     // 강화재료: chanceBonus 는 대장간 기본 성공 확률에 더해진다 (더 희귀한 재료는 보너스가 크다)
     forge: { rarity: 'common', chanceBonus: 0 },
   },
+  // ---- 몬스터 소재(전리품): 아직 쓸 곳은 없고, 상점 판매/제작이 생기면 쓰인다 ----
+  slime_jelly: { id: 'slime_jelly', name: '슬라임 젤리', type: 'loot', icon: 'jelly', rarity: 'common', desc: '푸른 슬라임의 몸에서 나온 말랑한 젤리.' },
+  rat_tail: { id: 'rat_tail', name: '들쥐 꼬리', type: 'loot', icon: 'tail', rarity: 'common', desc: '들쥐의 가늘고 긴 꼬리.' },
+  mushroom_cap: { id: 'mushroom_cap', name: '버섯 갓', type: 'loot', icon: 'cap', rarity: 'common', desc: '버섯돌이의 머리에서 떨어진 붉은 갓.' },
+  goblin_horn: { id: 'goblin_horn', name: '고블린 대장의 뿔', type: 'loot', icon: 'horn', rarity: 'rare', desc: '고블린 대장의 투구에 달려 있던 단단한 뿔.' },
   mp_potion: {
     id: 'mp_potion', name: 'MP 회복물약', type: 'potion', icon: 'mpPotion',
     desc: '푸른 이슬을 모아 만든 물약. 마시면 마력이 회복된다. (MP +20)',
@@ -2869,7 +2919,48 @@ const ItemTypes = {
   weapon: { label: '무기', order: 1 },
   armor: { label: '방어구', order: 2 },
   potion: { label: '물약', order: 3 },
-  material: { label: '재료', order: 4 },
+  material: { label: '재료', order: 4 },      // 강화재료
+  loot: { label: '소재', order: 5 },          // 몬스터 전리품
+};
+</script>
+  <script>
+// 몬스터 드롭 테이블. 몬스터 id 마다 "무엇을 / 몇 % 로 / 몇 개" 떨어뜨리는지 한곳에서 정리한다.
+//   { id: 아이템 id, chance: 0~1, count: [최소, 최대] (생략 시 1개) }
+// 구성 원칙
+//   - 강화석(강화재료): 대부분의 몬스터가 낮은 확률로 떨어뜨린다. 강한 몬스터일수록 확률이 높다.
+//   - 소재(loot): 그 몬스터만의 전리품. 쉽게 얻는 소재는 50%, 보스/희귀 소재는 확정 또는 높은 확률.
+//   - 물약: 낮은 확률의 덤. 보스는 넉넉히 준다.
+// 새 몬스터를 만들면 여기에 한 줄만 추가한다.
+const DropTables = {
+  // ---- 초록숲 ----
+  blue_slime: [
+    { id: 'slime_jelly', chance: 0.5 },
+    { id: 'upgrade_stone', chance: 0.25 },
+    { id: 'hp_potion', chance: 0.08 },
+  ],
+  forest_rat: [
+    { id: 'rat_tail', chance: 0.5 },
+    { id: 'upgrade_stone', chance: 0.25 },
+    { id: 'hp_potion', chance: 0.06 },
+  ],
+  mushroom_kid: [
+    { id: 'mushroom_cap', chance: 0.5 },
+    { id: 'upgrade_stone', chance: 0.25 },
+    { id: 'mp_potion', chance: 0.08 },
+  ],
+  goblin_chief: [                                     // 중간보스
+    { id: 'goblin_horn', chance: 1 },
+    { id: 'upgrade_stone', chance: 1, count: [2, 3] },
+    { id: 'hp_potion', chance: 0.5, count: [1, 2] },
+    { id: 'mp_potion', chance: 0.5, count: [1, 2] },
+  ],
+
+  // ---- 다른 지역용 (아직 배치하지 않은 몬스터: 소재는 지역을 만들 때 추가한다) ----
+  cave_bat: [{ id: 'upgrade_stone', chance: 0.25 }, { id: 'mp_potion', chance: 0.08 }],
+  black_spider: [{ id: 'upgrade_stone', chance: 0.25 }],
+  goblin: [{ id: 'upgrade_stone', chance: 0.3 }, { id: 'hp_potion', chance: 0.1 }],
+  gray_wolf: [{ id: 'upgrade_stone', chance: 0.35 }, { id: 'hp_potion', chance: 0.12 }],
+  moon_fox: [{ id: 'upgrade_stone', chance: 0.6 }],     // 희귀
 };
 </script>
   <script>
@@ -3680,7 +3771,7 @@ Game.register('battle', {
         monster: b.monster, exp,
         gold: Math.round((d.gold[0] + Math.random() * (d.gold[1] - d.gold[0])) * k),
         weaponExp: Math.max(1, Math.round(exp * 0.8)),
-        drops: (d.drops || []).filter((x) => Math.random() < x.chance).map((x) => ({
+        drops: (DropTables[d.id] || []).filter((x) => Math.random() < x.chance).map((x) => ({
           id: x.id, count: x.count ? x.count[0] + Math.floor(Math.random() * (x.count[1] - x.count[0] + 1)) : 1,
         })),
         steps: [],
@@ -5150,9 +5241,18 @@ const ForgeUI = (() => {
     if (!gears.length) colGear.append(el('p', 'fp-empty', '장비가 없어요'));
     gears.forEach((inst, i) => {
       const def = ItemData[inst.id];
-      const row = el('button', 'fp-row' + (focus === 0 && i === gi ? ' is-focus' : '') + (i === gi ? ' is-picked' : ''));
+      const row = el('button', 'fp-row fp-gear-row' + (focus === 0 && i === gi ? ' is-focus' : '') + (i === gi ? ' is-picked' : ''));
       row.type = 'button';
-      row.append(el('span', 'fp-name', def.name), el('span', 'fp-sub', '★' + inst.grade + (isEquipped(inst) ? ' · 장착' : '')));
+      const icon = el('canvas', 'fp-icon');
+      icon.width = 16;
+      icon.height = 16;
+      icon.getContext('2d').drawImage(Sprites.items[def.icon], 0, 0);
+      const text = el('span', 'fp-text');
+      text.append(
+        el('span', 'fp-name', def.name),
+        el('span', 'fp-sub', '★' + inst.grade + (def.weapon ? ` · 숙련 Lv.${inst.level}` : '') + (isEquipped(inst) ? ' · 장착 중' : '')),
+      );
+      row.append(icon, text);
       row.addEventListener('click', () => { if (busy) return; focus = 0; gi = i; render(); });
       colGear.append(row);
     });

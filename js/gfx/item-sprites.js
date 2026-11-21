@@ -63,6 +63,29 @@
     r(4, 3, 2, 1, '#e8f6ff'); r(3, 5, 1, 2, '#d4ecff'); r(8, 5, 2, 1, '#8fcaf5'); r(7, 8, 3, 1, '#2f6aa8');
   });
 
+  // 몬스터 소재 아이콘
+  const jelly = icon((r) => {
+    r(3, 4, 8, 7, '#5aa8e8'); r(2, 6, 10, 5, '#5aa8e8'); r(4, 3, 6, 1, '#8fcaf5'); r(4, 4, 6, 2, '#8fcaf5');
+    r(3, 10, 8, 2, '#3f86cc'); r(5, 5, 2, 1, '#e8f6ff'); r(9, 8, 1, 2, '#3f86cc');
+  });
+  const tail = icon((r) => {
+    r(1, 10, 3, 2, '#d8a0a0'); r(3, 9, 3, 2, '#d8a0a0'); r(5, 8, 3, 2, '#c98f8f');
+    r(7, 6, 3, 3, '#c98f8f'); r(9, 4, 3, 3, '#b87f7f'); r(11, 2, 2, 3, '#b87f7f'); r(12, 1, 1, 2, '#9a6666');
+  });
+  const cap = icon((r) => {
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 14; x++) {
+      const nx = (x + 0.5 - 7) / 7, ny = (y + 0.5 - 6) / 6;
+      if (nx * nx + ny * ny <= 1) r(x, y + 2, 1, 1, nx + ny < -0.6 ? '#f2705f' : ny > 0.4 ? '#a8332b' : '#d8483c');
+    }
+    r(3, 4, 2, 2, '#fff7ea'); r(8, 3, 2, 2, '#fff7ea'); r(6, 6, 2, 1, '#fff7ea');
+    r(5, 10, 4, 2, '#f2e3c3');
+  });
+  const horn = icon((r) => {
+    r(2, 11, 4, 2, '#e8e2d0'); r(3, 9, 4, 2, '#e8e2d0'); r(4, 7, 4, 2, '#f2ecda');
+    r(6, 5, 3, 2, '#e8e2d0'); r(8, 3, 3, 2, '#e8e2d0'); r(10, 1, 2, 2, '#cfc8b4'); r(11, 0, 1, 1, '#b3ab97');
+    r(2, 12, 4, 1, '#c9c2ae');
+  });
+
   // 모루 (대장간 장면용, 28x14)
   const anvil = build(28, 14, (ctx, ox, oy) => {
     const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
@@ -80,5 +103,6 @@
     hpPotion: potion('#ef7a74', '#d9534f', '#a8383a'),
     mpPotion: potion('#7ba3ea', '#4f7fd6', '#35589c'),
     gem,
+    jelly, tail, cap, horn,
   };
 })();

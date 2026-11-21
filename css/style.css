@@ -1276,7 +1276,7 @@ body {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 0.5fr;   /* 장비 목록은 넓게, 재료 목록은 좁게 */
   gap: 8px;
   padding: 10px;
 }
@@ -1314,6 +1314,26 @@ body {
 }
 
 .fp-sub { color: var(--ink-soft); font-size: 12px; font-weight: 600; }
+
+.fp-gear-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.fp-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  image-rendering: pixelated;
+}
+
+.fp-text { display: grid; gap: 2px; text-align: left; }
+
+#fp-mats .fp-row { padding: 8px 9px; font-size: 13px; }
+#fp-mats .fp-sub { font-size: 11px; }
 .fp-row.is-picked { background: var(--accent-soft); border-color: var(--accent); }
 .fp-row.is-focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 

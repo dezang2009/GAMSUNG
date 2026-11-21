@@ -60,7 +60,7 @@ Game.register('battle', {
         monster: b.monster, exp,
         gold: Math.round((d.gold[0] + Math.random() * (d.gold[1] - d.gold[0])) * k),
         weaponExp: Math.max(1, Math.round(exp * 0.8)),
-        drops: (d.drops || []).filter((x) => Math.random() < x.chance).map((x) => ({
+        drops: (DropTables[d.id] || []).filter((x) => Math.random() < x.chance).map((x) => ({
           id: x.id, count: x.count ? x.count[0] + Math.floor(Math.random() * (x.count[1] - x.count[0] + 1)) : 1,
         })),
         steps: [],

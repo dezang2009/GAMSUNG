@@ -72,9 +72,18 @@ const ForgeUI = (() => {
     if (!gears.length) colGear.append(el('p', 'fp-empty', '장비가 없어요'));
     gears.forEach((inst, i) => {
       const def = ItemData[inst.id];
-      const row = el('button', 'fp-row' + (focus === 0 && i === gi ? ' is-focus' : '') + (i === gi ? ' is-picked' : ''));
+      const row = el('button', 'fp-row fp-gear-row' + (focus === 0 && i === gi ? ' is-focus' : '') + (i === gi ? ' is-picked' : ''));
       row.type = 'button';
-      row.append(el('span', 'fp-name', def.name), el('span', 'fp-sub', '★' + inst.grade + (isEquipped(inst) ? ' · 장착' : '')));
+      const icon = el('canvas', 'fp-icon');
+      icon.width = 16;
+      icon.height = 16;
+      icon.getContext('2d').drawImage(Sprites.items[def.icon], 0, 0);
+      const text = el('span', 'fp-text');
+      text.append(
+        el('span', 'fp-name', def.name),
+        el('span', 'fp-sub', '★' + inst.grade + (def.weapon ? ` · 숙련 Lv.${inst.level}` : '') + (isEquipped(inst) ? ' · 장착 중' : '')),
+      );
+      row.append(icon, text);
       row.addEventListener('click', () => { if (busy) return; focus = 0; gi = i; render(); });
       colGear.append(row);
     });

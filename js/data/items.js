@@ -1,5 +1,6 @@
 // 아이템 데이터. 새 아이템은 ItemData 에 항목만 추가한다.
-//   type     : 'package'(열면 다른 아이템이 나옴) | 'weapon' | 'armor' | 'potion' | 'material'(강화재료)
+//   type     : 'package'(열면 다른 아이템이 나옴) | 'weapon' | 'armor' | 'potion' | 'material'(강화재료) | 'loot'(몬스터 소재)
+//   rarity   : 'common' | 'uncommon' | 'rare' (소재/재료의 희귀도)
 //   icon     : Sprites.items 의 키
 //   contents : 꾸러미(package)를 열었을 때 나오는 아이템 목록
 //   weapon   : 무기 설정 { atk, atkPerLevel, skills: [{ level, skill }] }
@@ -45,6 +46,11 @@ const ItemData = {
     // 강화재료: chanceBonus 는 대장간 기본 성공 확률에 더해진다 (더 희귀한 재료는 보너스가 크다)
     forge: { rarity: 'common', chanceBonus: 0 },
   },
+  // ---- 몬스터 소재(전리품): 아직 쓸 곳은 없고, 상점 판매/제작이 생기면 쓰인다 ----
+  slime_jelly: { id: 'slime_jelly', name: '슬라임 젤리', type: 'loot', icon: 'jelly', rarity: 'common', desc: '푸른 슬라임의 몸에서 나온 말랑한 젤리.' },
+  rat_tail: { id: 'rat_tail', name: '들쥐 꼬리', type: 'loot', icon: 'tail', rarity: 'common', desc: '들쥐의 가늘고 긴 꼬리.' },
+  mushroom_cap: { id: 'mushroom_cap', name: '버섯 갓', type: 'loot', icon: 'cap', rarity: 'common', desc: '버섯돌이의 머리에서 떨어진 붉은 갓.' },
+  goblin_horn: { id: 'goblin_horn', name: '고블린 대장의 뿔', type: 'loot', icon: 'horn', rarity: 'rare', desc: '고블린 대장의 투구에 달려 있던 단단한 뿔.' },
   mp_potion: {
     id: 'mp_potion', name: 'MP 회복물약', type: 'potion', icon: 'mpPotion',
     desc: '푸른 이슬을 모아 만든 물약. 마시면 마력이 회복된다. (MP +20)',
@@ -58,5 +64,6 @@ const ItemTypes = {
   weapon: { label: '무기', order: 1 },
   armor: { label: '방어구', order: 2 },
   potion: { label: '물약', order: 3 },
-  material: { label: '재료', order: 4 },
+  material: { label: '재료', order: 4 },      // 강화재료
+  loot: { label: '소재', order: 5 },          // 몬스터 전리품
 };
