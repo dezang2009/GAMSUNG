@@ -12,7 +12,8 @@ const Screens = (() => {
 
   // 임시 화면 정의 (아이콘은 하단 메뉴 버튼의 것을 재사용)
   const defs = {
-    battle: { title: '전투', desc: '전투 화면이 들어갈 자리예요.' },
+    equip: { title: '장비', desc: '장비 목록이 들어갈 자리예요.' },     // ui/equip-screen.js 가 실제 화면을 등록
+    system: { title: '저장', desc: '저장 화면이 들어갈 자리예요.' },     // ui/system-screen.js
     explore: { title: '탐험', desc: '탐험 지역 목록이 들어갈 자리예요.' }, // ui/explore-screen.js 가 실제 화면을 등록
     bag: { title: '가방', desc: '아이템 목록이 들어갈 자리예요.' },
     party: { title: '동료', desc: '동료 목록이 들어갈 자리예요.' },

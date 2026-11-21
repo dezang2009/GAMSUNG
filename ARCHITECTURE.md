@@ -40,15 +40,20 @@ HTML/CSS/JavaScript만 사용한다. 빌드 도구 없이 `index.html`의 `<scri
 | Character | `systems/character.js` (+ `data/progression.js`, `ui/character-screen.js`) | 구현됨: 경험치/레벨업, 기술 4개 습득·교체 |
 | Equipment | `systems/equipment.js` (+ `core/stats.js`) | 구현됨: 장착, 무기 숙련 레벨, 무기별 기술 제안, 등급(대장장이가 올릴 예정) |
 | Economy | `systems/economy.js` | 골드 획득만 구현 (가격/상점은 Shop 에서) |
+| Crafting | `systems/crafting.js` + `ui/forge-screen.js` (+ `data/forge.js`) | 구현됨: 대장간 강화(등급 ★ 올리기). 확률 = `Forge.successRate[등급]` + 재료 `forge.chanceBonus` |
+| Save | `systems/save.js` (+ `core/save-store.js`, `ui/title-screen.js`, `ui/system-screen.js`) | 구현됨: 파일 3개, 10분 자동 저장, 타이틀 화면 |
 | Inventory | `systems/inventory.js` (+ `data/items.js`, `ui/bag-screen.js`) | 구현됨: 아이템 보유, 꾸러미 열기 |
 | Starter | `systems/starter.js` | 구현됨: NPC `gift` 설정으로 처음 한 번 지급 (촌장 → 초보자 패키지) |
-| Companion, Shop, Crafting, Collection, Quest | `systems/<이름>.js` | 뼈대만 있음 |
+| Companion, Shop, Collection, Quest | `systems/<이름>.js` | 뼈대만 있음 |
 
 ## 확장 방법
 
 - **새 탐험 지역**: `data/regions.js` 에 항목 추가 (`gen`, `monsters` 규칙). 몬스터는 `data/monster-data.js`.
 - **새 몬스터/등급**: `MonsterData` 항목 추가, 등급은 `MonsterRarities`에 추가 (엘리트/보스 확장 지점).
 - **새 건물/NPC**: `regions.js` 마을 블록의 `buildings`/`npcs` 추가, 스프라이트는 `gfx/village-sprites.js`.
+- **저장**: 저장 대상은 `GameState.snapshot()` (player, wallet, inventory, gear, equipment, skills, flags) + 월드 위치/플레이 시간. 월드 정보는 `save:collect` 이벤트로 받아 온다. 새 상태 조각을 저장하려면 `core/state.js` 의 `SAVED` 에 추가한다.
+- **건물 입장**: `regions.js` 건물에 `enter: '화면id'` 를 넣으면 문 앞에서 `입장` 버튼이 나오고 `building:enter { id }` 가 발생한다. 대장간(`forge`)이 이 방식이다.
+- **강화재료 추가**: `data/items.js` 에 `type: 'material'` + `forge: { rarity, chanceBonus }` 로 추가한다 (희귀할수록 보너스를 크게).
 - **승리 보상**: 승리하면 `battle:rewards { exp, gold, weaponExp, steps }` 를 보낸다. Character(경험치·레벨), Equipment(무기 숙련), Economy(골드)가 각자 지급하고 `steps` 에 전투 화면용 메시지를 덧붙인다.
 - **기술**: `data/skills.js` 에 기술, `data/items.js` 의 `weapon.skills` 에 "숙련 레벨 N 에서 배움"을 적는다. 4개가 가득 차면 전투 화면이 하나를 잊을지 묻는다(`skill:decide`).
 - **전투 시작/종료**: 필드에서 몬스터에게 닿으면 `battle:request` → 시스템이 `battle:start`/`battle:steps`(연출 단계) 를 보내고, UI 가 끝나면 `battle:finish` → `battle:end { outcome, monster }` 로 월드가 결과를 반영한다.

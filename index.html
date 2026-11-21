@@ -24,6 +24,7 @@
         <div class="hud-right">
           <span class="pill"><b class="coin"></b><span id="hud-gold">0</span></span>
           <span class="pill" id="hud-loc"><b class="dot"></b><span id="hud-loc-name"></span></span>
+          <button class="pill pill-btn" id="sys-btn" type="button">저장</button>
         </div>
       </div>
 
@@ -47,6 +48,24 @@
         <div id="screen-body"></div>
       </section>
 
+      <!-- 대장간 강화 화면: 위쪽은 강화 장면 (아래쪽 메뉴는 장비/재료 선택으로 바뀐다) -->
+      <section id="forge" hidden>
+        <div class="fg-scene">
+          <div class="fg-wall"></div>
+          <div class="fg-floor"></div>
+          <div class="fg-glow"></div>
+          <canvas id="fg-smith" class="fg-smith"></canvas>
+          <div class="fg-stage">
+            <div class="fg-stars" id="fg-stars"></div>
+            <canvas id="fg-gear" class="fg-gear"></canvas>
+            <canvas id="fg-anvil" class="fg-anvil"></canvas>
+          </div>
+          <div class="fg-info" id="fg-info"></div>
+          <div class="fg-fx" id="fg-fx"></div>
+        </div>
+        <div class="fg-msg" id="fg-msg"></div>
+      </section>
+
       <!-- 전투 화면 (포켓몬 스타일): 필드 전체를 덮는다 -->
       <section id="battle" hidden>
         <div class="bt-box bt-box-e">
@@ -68,9 +87,9 @@
     <!-- 아래: 메인 메뉴 + 조이스틱 패드 -->
     <nav id="dock" aria-label="메인 메뉴">
       <div class="dock-grid">
-        <button class="dock-btn c-coral" type="button" data-menu="battle">
-          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M9.5 6.5 21 18v3h-3L6.5 9.5"/><path d="m11 5-3-2H5v3l2 3"/></svg></span>
-          <span class="dock-label">전투</span>
+        <button class="dock-btn c-coral" type="button" data-menu="equip">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5z"/><path d="M12 7v9"/><path d="M8.5 10.5h7"/></svg></span>
+          <span class="dock-label">장비</span>
         </button>
         <button class="dock-btn c-amber" type="button" data-menu="bag">
           <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
@@ -96,6 +115,12 @@
       <!-- 전투 중에는 메인 메뉴 대신 전투 명령이 나온다 -->
       <div id="battle-cmds" hidden></div>
 
+      <!-- 대장간 중에는 장비 선택 / 재료 선택 -->
+      <div id="forge-panel" hidden>
+        <div class="fp-col" id="fp-gear"></div>
+        <div class="fp-col" id="fp-mats"></div>
+      </div>
+
       <div id="pad" data-mode="field">
         <!-- 왼쪽: 고정 조이스틱 -->
         <div id="joy-zone" aria-label="조이스틱">
@@ -120,7 +145,19 @@
     </nav>
   </div>
 
+  <!-- 게임 메인(타이틀) 화면: 세이브 파일 3개 -->
+  <main id="title">
+    <div class="title-inner">
+      <canvas id="title-art" width="112" height="44"></canvas>
+      <h1>픽셀 모험</h1>
+      <p class="title-sub">이어서 할 파일을 고르거나 빈 파일로 새로 시작하세요.</p>
+      <ul id="title-slots"></ul>
+      <p class="title-note">진행은 10분마다 자동으로 저장돼요.</p>
+    </div>
+  </main>
+
   <script src="js/core/util.js"></script>
+  <script src="js/core/save-store.js"></script>
   <script src="js/core/events.js"></script>
   <script src="js/core/state.js"></script>
   <script src="js/core/game.js"></script>
@@ -133,6 +170,7 @@
   <script src="js/data/monster-data.js"></script>
   <script src="js/data/monster-roster.js"></script>
   <script src="js/data/progression.js"></script>
+  <script src="js/data/forge.js"></script>
   <script src="js/data/skills.js"></script>
   <script src="js/data/items.js"></script>
   <script src="js/world/world.js"></script>
@@ -151,6 +189,7 @@
   <script src="js/systems/crafting.js"></script>
   <script src="js/systems/collection.js"></script>
   <script src="js/systems/quest.js"></script>
+  <script src="js/systems/save.js"></script>
   <script src="js/ui/input.js"></script>
   <script src="js/ui/screens.js"></script>
   <script src="js/ui/hud.js"></script>
@@ -159,8 +198,12 @@
   <script src="js/ui/toast.js"></script>
   <script src="js/ui/bag-screen.js"></script>
   <script src="js/ui/character-screen.js"></script>
+  <script src="js/ui/equip-screen.js"></script>
+  <script src="js/ui/system-screen.js"></script>
+  <script src="js/ui/forge-screen.js"></script>
   <script src="js/ui/battle-screen.js"></script>
   <script src="js/ui/controls.js"></script>
+  <script src="js/ui/title-screen.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

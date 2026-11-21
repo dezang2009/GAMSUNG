@@ -38,7 +38,7 @@ const Regions = [
       buildings: [
         { id: 'shop', name: '상점', sprite: 'shop', tx: 5, ty: 11 },
         { id: 'inn', name: '여관', sprite: 'inn', tx: 24, ty: 11 },
-        { id: 'forge', name: '제작소', sprite: 'forge', tx: 5, ty: 22 },
+        { id: 'forge', name: '대장간', sprite: 'forge', tx: 5, ty: 22, enter: 'forge' },   // enter: 들어가면 열리는 화면
         { id: 'hall', name: '의뢰소', sprite: 'hall', tx: 24, ty: 22 },
         { id: 'home', name: '내 집', sprite: 'home', tx: 21, ty: 29 },
       ],

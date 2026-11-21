@@ -43,6 +43,21 @@ Game.register('inventory', {
 
     Events.on('item:gain', ({ id, count }) => gain([{ id, count: count || 1 }]));
 
+    // 전투 보상으로 떨어진 아이템
+    Events.on('battle:rewards', (r) => {
+      for (const d of r.drops || []) {
+        if (!ItemData[d.id]) continue;
+        gain([d]);
+        r.steps.push({ text: `${ItemData[d.id].name} ${d.count}개를 얻었다!` });
+      }
+    });
+
+    // 불러온 장비 uid 와 겹치지 않도록 번호를 이어 간다
+    Events.on('game:loaded', () => {
+      uidSeq = GameState.get('gear').list.reduce((m, g) => Math.max(m, parseInt(g.uid.slice(1), 10) || 0), 0) + 1;
+    });
+    Events.on('game:new', () => { uidSeq = 1; });
+
     function consume(id) {
       const items = GameState.get('inventory').items;
       const held = items.find((it) => it.id === id);

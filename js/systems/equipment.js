@@ -3,6 +3,7 @@
 // 등급(grade)은 능력치 배율과 숙련 레벨 한계를 정한다. 등급을 올리는 일은 추후 대장장이(Crafting)가 맡는다.
 //   수신 'gear:added' { uid }            새 장비 -> 해당 칸이 비어 있으면 자동 장착
 //   수신 'equip:request' { uid }         장착 변경
+//   수신 'gear:upgrade' { uid }          장비 등급 +1 (대장간 강화 성공)
 //   수신 'battle:rewards' payload         무기 경험치 지급 (payload.steps 에 전투 화면용 메시지를 덧붙인다)
 //   수신 'skill:decided' { source, skill } 제안한 기술에 대한 결정이 끝남 -> 다시 제안하지 않도록 기록
 //   발신 'equipment:changed'
@@ -44,6 +45,15 @@ Game.register('equipment', {
       setSlot(slot, uid);
       if (slot === 'weapon') offerSkills(inst, null);
       Events.emit('toast', { text: `${Util.josa(ItemData[inst.id].name, '을/를')} 장착했어요.` });
+    });
+
+    // 대장간 강화 성공: 등급이 한 단계 오른다
+    Events.on('gear:upgrade', ({ uid }) => {
+      const inst = find(uid);
+      if (!inst || inst.grade >= Forge.maxGrade) return;
+      inst.grade += 1;
+      GameState.patch('gear', { list: gearList() });
+      Events.emit('equipment:changed');
     });
 
     Events.on('skill:decided', ({ source, skill }) => {

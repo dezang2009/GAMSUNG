@@ -30,6 +30,7 @@ const World = (() => {
   let grassC = GRASS_C;   // 지역별 잔디 색상표
   let reserved = null;    // 마을: 길/건물/소품 자리라 나무를 심지 않는 타일
   const triggers = [];    // 밟으면 이벤트가 발생하는 영역(마을 게이트 등)
+  const doors = [];       // 들어갈 수 있는 건물의 문 앞 자리 [{ id, enter, name, x, y }]
 
   const idx = (tx, ty) => ty * COLS + tx;
   const inMap = (tx, ty) => tx >= 0 && ty >= 0 && tx < COLS && ty < ROWS;
@@ -214,6 +215,7 @@ const World = (() => {
       fw: 3, fh: 2, label: { text: b.name, cx: x + img.width / 2, y: y + 8 },
     });
     reserveRect(b.tx - 1, b.ty - 2, 5, 5);
+    if (b.enter) doors.push({ id: b.enter, name: b.name, x: (b.tx + 1.5) * TILE, y: (b.ty + 2) * TILE + 6 });
   }
 
   function placeProp(p) {
@@ -364,6 +366,7 @@ const World = (() => {
     cfg = village ? region.village : region.gen;
     grassC = (region.palette && region.palette.grass) || GRASS_C;
     triggers.length = 0;
+    doors.length = 0;
     COLS = region.cols;
     ROWS = region.rows;
     SPAWN = region.spawn;
@@ -411,6 +414,7 @@ const World = (() => {
     load,
     blocked,
     triggerAt,
+    doors,
     get ground() { return ground; },
   };
 })();

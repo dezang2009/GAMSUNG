@@ -56,11 +56,29 @@
     });
   }
 
+  // 강화재료: 푸른 강화석
+  const gem = icon((r) => {
+    r(5, 1, 4, 1, '#b9e4ff'); r(3, 2, 8, 2, '#8fcaf5'); r(2, 4, 10, 3, '#5aa8e8');
+    r(3, 7, 8, 3, '#3f86cc'); r(5, 10, 4, 2, '#2f6aa8'); r(6, 12, 2, 1, '#245487');
+    r(4, 3, 2, 1, '#e8f6ff'); r(3, 5, 1, 2, '#d4ecff'); r(8, 5, 2, 1, '#8fcaf5'); r(7, 8, 3, 1, '#2f6aa8');
+  });
+
+  // 모루 (대장간 장면용, 28x14)
+  const anvil = build(28, 14, (ctx, ox, oy) => {
+    const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
+    r(1, 2, 22, 4, '#8d939f'); r(23, 3, 4, 2, '#8d939f'); r(24, 4, 3, 1, '#6d7380');
+    r(1, 2, 22, 1, '#b8bec9'); r(1, 5, 22, 1, '#5d6371');
+    r(8, 6, 8, 3, '#6d7380'); r(6, 9, 12, 2, '#5d6371'); r(4, 11, 16, 3, '#474c58');
+    r(4, 11, 16, 1, '#6d7380');
+  });
+  Sprites.props.anvil = anvil;
+
   Sprites.items = {
     package: pkg,
     club,
     armor,
     hpPotion: potion('#ef7a74', '#d9534f', '#a8383a'),
     mpPotion: potion('#7ba3ea', '#4f7fd6', '#35589c'),
+    gem,
   };
 })();

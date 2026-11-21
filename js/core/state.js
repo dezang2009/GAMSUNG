@@ -14,8 +14,27 @@ const GameState = (() => {
     flags: {},                  // 한 번만 일어나는 일의 기록 (예: starterPackage)
   };
 
+  const INITIAL = JSON.parse(JSON.stringify(data));
+  const SAVED = ['player', 'wallet', 'inventory', 'gear', 'equipment', 'skills', 'flags']; // 저장 대상 (location 은 월드가 따로 관리)
+
   function get(slice) {
     return data[slice];
+  }
+
+  const clone = (v) => JSON.parse(JSON.stringify(v));
+
+  // 저장용 복사본 / 저장본으로 되돌리기 / 새 게임 초기화
+  function snapshot() {
+    const out = {};
+    for (const k of SAVED) out[k] = clone(data[k]);
+    return out;
+  }
+
+  function restore(snap) {
+    for (const k of SAVED) {
+      data[k] = clone(snap && snap[k] ? snap[k] : INITIAL[k]);
+      Events.emit('state:' + k, data[k]);
+    }
   }
 
   function patch(slice, values) {
@@ -23,5 +42,5 @@ const GameState = (() => {
     Events.emit('state:' + slice, data[slice]);
   }
 
-  return { get, patch };
+  return { get, patch, snapshot, restore, reset: () => restore(null) };
 })();

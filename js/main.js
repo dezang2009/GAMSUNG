@@ -16,7 +16,8 @@
   let running = false;
   let paused = false;     // 메뉴 화면/대화가 열려 있는 동안 월드 갱신을 멈춘다
   const pauseLocks = new Set();
-  let target = null;      // 지금 상호작용할 수 있는 NPC
+  let target = null;      // 지금 상호작용할 수 있는 대상 { kind: 'npc' | 'building', key, ... }
+  let playSeconds = 0;    // 플레이 시간(저장에 기록)
   const INTERACT_RANGE = 28;
   let region = null;      // 지금 있는 장소(마을 또는 탐험 필드)
   let lastTrigger = null; // 직전에 밟고 있던 트리거 (들어올 때 한 번만 발동)
@@ -213,7 +214,7 @@
     for (const n of Npcs.entities) {
       const d = Math.hypot(n.x - px, n.y - py);
       if (d >= LABEL_HIDE + 20) continue;
-      out.push({ text: n.name, color: 'rgba(36, 92, 76, 0.92)', x: n.x, y: n.y - 17, alpha: fade(d, LABEL_FULL + 20, LABEL_HIDE + 20), talk: n === target });
+      out.push({ text: n.name, color: 'rgba(36, 92, 76, 0.92)', x: n.x, y: n.y - 17, alpha: fade(d, LABEL_FULL + 20, LABEL_HIDE + 20), talk: !!target && target.kind === 'npc' && target.npc === n });
     }
     for (const o of World.objects) {
       if (!o.label) continue;
@@ -272,6 +273,7 @@
     if (!running || paused) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
+    playSeconds += dt;
     update(dt);
     updateCamera();
     Monsters.update(dt, player, { x: cam.x, y: cam.y, w: view.w, h: view.h });
@@ -286,16 +288,20 @@
 
   // 가장 가까운 NPC 가 상호작용 범위 안이면 대상으로 삼고, 바뀔 때만 이벤트를 보낸다
   function setTarget(t) {
-    if (target === t) return;
+    if ((target && target.key) === (t && t.key)) return;
     target = t;
-    Events.emit('interact:target', t ? { kind: 'npc', npc: t } : null);
+    Events.emit('interact:target', t);
   }
 
   function updateTarget() {
     let best = null, bestD = INTERACT_RANGE;
     for (const n of Npcs.entities) {
       const d = Math.hypot(n.x - player.x, n.y - player.y);
-      if (d < bestD) { best = n; bestD = d; }
+      if (d < bestD) { best = { kind: 'npc', npc: n, key: 'n:' + n.id }; bestD = d; }
+    }
+    for (const door of World.doors) {          // 들어갈 수 있는 건물의 문 앞
+      const d = Math.hypot(door.x - player.x, door.y - player.y);
+      if (d < Math.min(bestD, 22)) { best = { kind: 'building', id: door.id, name: door.name, key: 'b:' + door.id }; bestD = d; }
     }
     setTarget(best);
   }
@@ -311,11 +317,14 @@
   }
 
   // ---------- 장소 이동 (마을 <-> 탐험 필드) ----------
-  function enterRegion(r) {
+  // opts.at: 이 위치에서 시작(불러오기), opts.keep: 마을 회복을 하지 않음(불러오기)
+  function enterRegion(r, opts) {
+    const o = opts || {};
     region = r;
     World.load(r);
     player.x = r.spawn.tx * World.TILE + World.TILE / 2;
     player.y = r.spawn.ty * World.TILE + 12;
+    if (o.at) { player.x = o.at.x; player.y = o.at.y; }
     player.vx = 0;
     player.vy = 0;
     player.dir = 'down';
@@ -330,7 +339,7 @@
     paused = false;
 
     GameState.patch('location', { id: r.id, name: r.name, type: r.type || 'field' });
-    if (r.type === 'village') {        // 마을에서는 HP/MP 가 모두 회복된다
+    if (r.type === 'village' && !o.keep) {   // 마을에서는 HP/MP 가 모두 회복된다
       const p = GameState.get('player');
       GameState.patch('player', { hp: p.maxHp, mp: p.maxMp });
     }
@@ -399,8 +408,40 @@
   if (window.ResizeObserver) new ResizeObserver(fit).observe(field);
 
   // 시작: 마을에서 출발
+  // ---------- 시작 / 저장 / 불러오기 ----------
+  Events.on('game:new', () => {
+    playSeconds = 0;
+    enterRegion(Regions[0]);
+    Events.emit('save:request', {});          // 새 게임도 바로 파일에 기록해 둔다
+  });
+  Events.on('game:loaded', ({ data }) => {
+    playSeconds = data.playSeconds || 0;
+    const r = Regions.find((x) => x.id === (data.world && data.world.region)) || Regions[0];
+    enterRegion(r, { at: data.world && { x: data.world.x, y: data.world.y }, keep: true });
+    Events.emit('toast', { text: '불러왔어요.' });
+  });
+  Events.on('game:quit', () => {
+    running = false;
+    cancelAnimationFrame(rafId);
+    pauseLocks.clear();
+    paused = false;
+    Input.reset();
+    Screens.close();
+    Dialog.close();
+    TitleUI.show();
+  });
+  // 저장할 때 월드 정보(위치, 플레이 시간)를 채워 준다. 전투 중에는 저장하지 않는다
+  Events.on('save:collect', (c) => {
+    if (!running) { c.blocked = true; return; }
+    c.blocked = pauseLocks.has('battle');
+    c.world = { region: region.id, x: player.x, y: player.y };
+    c.playSeconds = Math.floor(playSeconds);
+  });
+  Events.on('forge:opened', () => setPauseLock('forge', true));
+  Events.on('forge:closed', () => setPauseLock('forge', false));
+
   Game.init();
-  enterRegion(Regions[0]);
+  TitleUI.show();
 
   // 테스트용 참조
   window.__game = { player, cam, view, World, Monsters, Npcs, GameState, enterRegion };

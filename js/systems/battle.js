@@ -4,8 +4,8 @@
 //   수신 'battle:finish'                    화면이 결과 연출을 마침 -> 전투 종료
 //   발신 'battle:start' { enemy, player, intro }
 //   발신 'battle:steps' { steps, outcome }  steps 를 차례로 보여 준다. outcome: null | 'win' | 'lose' | 'flee'
-//   발신 'battle:rewards' payload           승리 보상: { monster, exp, gold, weaponExp, steps }
-//        Character/Economy/Equipment 가 각자 지급하고 payload.steps 에 보여 줄 메시지를 덧붙인다.
+//   발신 'battle:rewards' payload           승리 보상: { monster, exp, gold, weaponExp, drops, steps }
+//        Character/Economy/Equipment/Inventory 가 각자 지급하고 payload.steps 에 보여 줄 메시지를 덧붙인다.
 //   발신 'battle:end' { outcome, monster }  월드가 결과를 반영한다 (몬스터 제거, 패배 시 마을 복귀 등)
 //   발신 'inventory:consume' { id }         물약 사용
 // 한 턴: 플레이어가 명령을 내리면 먼저 실행되고, 상대가 살아 있으면 상대가 한 번 공격한다.
@@ -60,6 +60,9 @@ Game.register('battle', {
         monster: b.monster, exp,
         gold: Math.round((d.gold[0] + Math.random() * (d.gold[1] - d.gold[0])) * k),
         weaponExp: Math.max(1, Math.round(exp * 0.8)),
+        drops: (d.drops || []).filter((x) => Math.random() < x.chance).map((x) => ({
+          id: x.id, count: x.count ? x.count[0] + Math.floor(Math.random() * (x.count[1] - x.count[0] + 1)) : 1,
+        })),
         steps: [],
       };
       Events.emit('battle:rewards', payload);

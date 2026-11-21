@@ -1,5 +1,5 @@
 // 아이템 데이터. 새 아이템은 ItemData 에 항목만 추가한다.
-//   type     : 'package'(열면 다른 아이템이 나옴) | 'weapon' | 'armor' | 'potion'
+//   type     : 'package'(열면 다른 아이템이 나옴) | 'weapon' | 'armor' | 'potion' | 'material'(강화재료)
 //   icon     : Sprites.items 의 키
 //   contents : 꾸러미(package)를 열었을 때 나오는 아이템 목록
 //   weapon   : 무기 설정 { atk, atkPerLevel, skills: [{ level, skill }] }
@@ -39,6 +39,12 @@ const ItemData = {
     desc: '붉은 약초를 달인 물약. 마시면 체력이 회복된다. (HP +50)',
     use: { hp: 50 },
   },
+  upgrade_stone: {
+    id: 'upgrade_stone', name: '강화석', type: 'material', icon: 'gem',
+    desc: '대장간에서 장비의 등급을 올릴 때 쓰는 기본 강화재료. 몬스터가 가끔 떨어뜨린다.',
+    // 강화재료: chanceBonus 는 대장간 기본 성공 확률에 더해진다 (더 희귀한 재료는 보너스가 크다)
+    forge: { rarity: 'common', chanceBonus: 0 },
+  },
   mp_potion: {
     id: 'mp_potion', name: 'MP 회복물약', type: 'potion', icon: 'mpPotion',
     desc: '푸른 이슬을 모아 만든 물약. 마시면 마력이 회복된다. (MP +20)',
@@ -52,4 +58,5 @@ const ItemTypes = {
   weapon: { label: '무기', order: 1 },
   armor: { label: '방어구', order: 2 },
   potion: { label: '물약', order: 3 },
+  material: { label: '재료', order: 4 },
 };
