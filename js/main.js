@@ -3,6 +3,7 @@
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const hudName = document.getElementById('hud-name');
+  const field = document.getElementById('field');
 
   const SPEED = 46;                  // 최대 이동 속도 (논리 픽셀/초)
   const HALF_W = 3;                  // 발 판정 박스 반너비
@@ -25,10 +26,12 @@
   // 논리 해상도는 정수 배율로 맞추고, 캔버스 백버퍼는 기기 픽셀 단위로 만든다.
   // 이렇게 하면 이동을 기기 픽셀 단위로 표현할 수 있어 대각선에서도 끊김이 줄어든다.
   function fit() {
-    const cw = window.innerWidth, ch = window.innerHeight;
+    // 탐험 필드 영역을 기준으로 화면 크기를 계산한다 (하단 메뉴 영역은 제외)
+    const cw = field.clientWidth, ch = field.clientHeight;
+    if (!cw || !ch) return;
     const dpr = window.devicePixelRatio || 1;
     view.dpr = dpr;
-    view.zoom = Math.max(1, Math.min(Math.floor(cw / 160), Math.floor(ch / 200)));
+    view.zoom = Math.max(1, Math.min(Math.floor(cw / 160), Math.floor(ch / 140)));
     view.w = Math.floor(cw / view.zoom);
     view.h = Math.floor(ch / view.zoom);
     const cssW = view.w * view.zoom, cssH = view.h * view.zoom;
@@ -297,6 +300,7 @@
 
   document.getElementById('exit-btn').addEventListener('click', exitRegion);
   window.addEventListener('resize', fit);
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(field);
   buildMenu();
 
   // 테스트용 참조

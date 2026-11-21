@@ -18,17 +18,50 @@
     </div>
   </main>
 
-  <canvas id="game"></canvas>
+  <div id="app">
+    <section id="field">
+      <canvas id="game"></canvas>
 
-  <div id="hud">
-    <span id="hud-name"></span>
-    <button id="exit-btn" type="button">나가기</button>
-  </div>
+      <div id="hud">
+        <span id="hud-name"></span>
+        <button id="exit-btn" type="button">나가기</button>
+      </div>
 
-  <div id="joy" aria-label="가상 조이스틱">
-    <div id="joy-base">
-      <div id="joy-knob"></div>
-    </div>
+      <div id="joy" aria-label="가상 조이스틱">
+        <div id="joy-base">
+          <div id="joy-knob"></div>
+        </div>
+      </div>
+    </section>
+
+    <nav id="dock" aria-label="메인 메뉴">
+      <div class="dock-grid">
+        <button class="dock-btn c-coral" type="button" data-menu="battle">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M9.5 6.5 21 18v3h-3L6.5 9.5"/><path d="m11 5-3-2H5v3l2 3"/></svg></span>
+          <span class="dock-label">전투</span>
+        </button>
+        <button class="dock-btn c-amber" type="button" data-menu="bag">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
+          <span class="dock-label">가방</span>
+        </button>
+        <button class="dock-btn c-mint" type="button" data-menu="party">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          <span class="dock-label">동료</span>
+        </button>
+        <button class="dock-btn c-blue is-current" type="button" data-menu="explore">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/></svg></span>
+          <span class="dock-label">탐험</span>
+        </button>
+        <button class="dock-btn c-violet" type="button" data-menu="dex">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+          <span class="dock-label">도감</span>
+        </button>
+        <button class="dock-btn c-sky" type="button" data-menu="char">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+          <span class="dock-label">캐릭터</span>
+        </button>
+      </div>
+    </nav>
   </div>
 
   <script src="js/sprites.js"></script>

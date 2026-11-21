@@ -42,10 +42,23 @@ body {
   font-family: var(--font);
 }
 
-body {
+/* 게임 화면: 위 탐험 필드 + 아래 메인 메뉴 */
+#app {
+  height: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: minmax(0, 53fr) minmax(0, 47fr);
+  background: #151922;
+}
+
+#field {
+  position: relative;
+  overflow: hidden; /* 필드 밖으로 그려지지 않도록 클리핑 */
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #1c2b1f;
 }
 
 #game {
@@ -56,18 +69,16 @@ body {
 }
 
 /* ---------- 화면 전환 ---------- */
-body[data-screen="menu"] #game,
-body[data-screen="menu"] #joy,
-body[data-screen="menu"] #hud,
+body[data-screen="menu"] #app,
 body[data-screen="play"] #menu {
   display: none;
 }
 
 /* ---------- 가상 조이스틱 ---------- */
 #joy {
-  position: fixed;
-  left: calc(env(safe-area-inset-left, 0px) + 12px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
   width: 150px;
   height: 150px;
   display: flex;
@@ -105,7 +116,7 @@ body[data-screen="play"] #menu {
 
 /* ---------- 탐험 중 상단 UI ---------- */
 #hud {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -113,7 +124,7 @@ body[data-screen="play"] #menu {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-right, 0px) + 14px) 0 calc(env(safe-area-inset-left, 0px) + 14px);
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 0 12px;
   pointer-events: none;
   z-index: 3;
   font-size: 15px;
@@ -272,6 +283,84 @@ body[data-screen="play"] #menu {
   background: #e6e9f0;
   color: var(--text-muted);
 }
+
+/* ---------- 하단 메인 메뉴 ---------- */
+#dock {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 14px 14px calc(env(safe-area-inset-bottom, 0px) + 14px);
+  background: #151922;
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.06), 0 -8px 20px rgba(0, 0, 0, 0.35);
+  touch-action: none;
+  z-index: 4;
+}
+
+.dock-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: clamp(84px, 17vh, 124px);
+  gap: 10px;
+}
+
+.dock-btn {
+  --c: #4b5de6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 64px;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  background: #1f2533;
+  color: #e9ecf5;
+  font: 700 14px/1 var(--font);
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.12s, background 0.12s;
+}
+
+.dock-btn:active {
+  transform: scale(0.96);
+  background: #262d3e;
+}
+
+.dock-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+  color: var(--c);
+}
+
+.dock-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dock-btn.is-current {
+  background: #252c40;
+  border-color: color-mix(in srgb, var(--c) 55%, transparent);
+}
+
+.c-coral { --c: #ff7a6b; }
+.c-amber { --c: #f2b035; }
+.c-mint { --c: #3fd0bd; }
+.c-blue { --c: #7a8cff; }
+.c-violet { --c: #b583f2; }
+.c-sky { --c: #5cc2f0; }
 </style>
 </head>
 <body data-screen="menu">
@@ -285,17 +374,50 @@ body[data-screen="play"] #menu {
     </div>
   </main>
 
-  <canvas id="game"></canvas>
+  <div id="app">
+    <section id="field">
+      <canvas id="game"></canvas>
 
-  <div id="hud">
-    <span id="hud-name"></span>
-    <button id="exit-btn" type="button">나가기</button>
-  </div>
+      <div id="hud">
+        <span id="hud-name"></span>
+        <button id="exit-btn" type="button">나가기</button>
+      </div>
 
-  <div id="joy" aria-label="가상 조이스틱">
-    <div id="joy-base">
-      <div id="joy-knob"></div>
-    </div>
+      <div id="joy" aria-label="가상 조이스틱">
+        <div id="joy-base">
+          <div id="joy-knob"></div>
+        </div>
+      </div>
+    </section>
+
+    <nav id="dock" aria-label="메인 메뉴">
+      <div class="dock-grid">
+        <button class="dock-btn c-coral" type="button" data-menu="battle">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M9.5 6.5 21 18v3h-3L6.5 9.5"/><path d="m11 5-3-2H5v3l2 3"/></svg></span>
+          <span class="dock-label">전투</span>
+        </button>
+        <button class="dock-btn c-amber" type="button" data-menu="bag">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
+          <span class="dock-label">가방</span>
+        </button>
+        <button class="dock-btn c-mint" type="button" data-menu="party">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          <span class="dock-label">동료</span>
+        </button>
+        <button class="dock-btn c-blue is-current" type="button" data-menu="explore">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/></svg></span>
+          <span class="dock-label">탐험</span>
+        </button>
+        <button class="dock-btn c-violet" type="button" data-menu="dex">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+          <span class="dock-label">도감</span>
+        </button>
+        <button class="dock-btn c-sky" type="button" data-menu="char">
+          <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+          <span class="dock-label">캐릭터</span>
+        </button>
+      </div>
+    </nav>
   </div>
 
   <script>
@@ -1306,6 +1428,7 @@ const Input = (() => {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const hudName = document.getElementById('hud-name');
+  const field = document.getElementById('field');
 
   const SPEED = 46;                  // 최대 이동 속도 (논리 픽셀/초)
   const HALF_W = 3;                  // 발 판정 박스 반너비
@@ -1328,10 +1451,12 @@ const Input = (() => {
   // 논리 해상도는 정수 배율로 맞추고, 캔버스 백버퍼는 기기 픽셀 단위로 만든다.
   // 이렇게 하면 이동을 기기 픽셀 단위로 표현할 수 있어 대각선에서도 끊김이 줄어든다.
   function fit() {
-    const cw = window.innerWidth, ch = window.innerHeight;
+    // 탐험 필드 영역을 기준으로 화면 크기를 계산한다 (하단 메뉴 영역은 제외)
+    const cw = field.clientWidth, ch = field.clientHeight;
+    if (!cw || !ch) return;
     const dpr = window.devicePixelRatio || 1;
     view.dpr = dpr;
-    view.zoom = Math.max(1, Math.min(Math.floor(cw / 160), Math.floor(ch / 200)));
+    view.zoom = Math.max(1, Math.min(Math.floor(cw / 160), Math.floor(ch / 140)));
     view.w = Math.floor(cw / view.zoom);
     view.h = Math.floor(ch / view.zoom);
     const cssW = view.w * view.zoom, cssH = view.h * view.zoom;
@@ -1600,6 +1725,7 @@ const Input = (() => {
 
   document.getElementById('exit-btn').addEventListener('click', exitRegion);
   window.addEventListener('resize', fit);
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(field);
   buildMenu();
 
   // 테스트용 참조
