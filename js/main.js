@@ -14,7 +14,10 @@
   const player = { x: 0, y: 0, vx: 0, vy: 0, dir: 'down', walkT: 0, frame: 2 };
 
   let running = false;
-  let paused = false;     // 메뉴 화면이 열려 있는 동안 월드 갱신을 멈춘다
+  let paused = false;     // 메뉴 화면/대화가 열려 있는 동안 월드 갱신을 멈춘다
+  const pauseLocks = new Set();
+  let target = null;      // 지금 상호작용할 수 있는 NPC
+  const INTERACT_RANGE = 28;
   let region = null;      // 지금 있는 장소(마을 또는 탐험 필드)
   let lastTrigger = null; // 직전에 밟고 있던 트리거 (들어올 때 한 번만 발동)
   let rafId = 0;
@@ -207,7 +210,7 @@
     for (const n of Npcs.entities) {
       const d = Math.hypot(n.x - px, n.y - py);
       if (d >= LABEL_HIDE + 20) continue;
-      out.push({ text: n.name, color: 'rgba(47, 177, 160, 0.95)', x: n.x, y: n.y - 17, alpha: fade(d, LABEL_FULL + 20, LABEL_HIDE + 20) });
+      out.push({ text: n.name, color: 'rgba(47, 177, 160, 0.95)', x: n.x, y: n.y - 17, alpha: fade(d, LABEL_FULL + 20, LABEL_HIDE + 20), talk: n === target });
     }
     for (const o of World.objects) {
       if (!o.label) continue;
@@ -219,6 +222,26 @@
   }
 
   const fade = (d, full, hide) => Math.max(0, Math.min(1, (hide - d) / (hide - full)));
+
+  // 대화 가능한 NPC 머리 위의 말풍선 표시 (위아래로 살짝 떠다닌다)
+  function drawTalkMark(cx, bottom, d0) {
+    const bob = Math.sin(performance.now() / 220) * 2 * d0;
+    const w = 26 * d0, h = 18 * d0, x = cx - w / 2, y = bottom - h - bob;
+    ctx.fillStyle = '#ffffff';
+    pill(x, y, w, h);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx - 3 * d0, y + h - 1);
+    ctx.lineTo(cx, y + h + 4 * d0);
+    ctx.lineTo(cx + 3 * d0, y + h - 1);
+    ctx.fill();
+    ctx.fillStyle = '#f2a920';
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.arc(cx + i * 6 * d0, y + h / 2, 1.8 * d0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 
   function drawLabels() {
     const d0 = view.dpr;
@@ -237,6 +260,7 @@
       ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.fillText(l.text, cx, bottom - h / 2 + 0.5 * d0);
+      if (l.talk) drawTalkMark(cx, bottom - h - 3 * d0, d0);
     }
     ctx.globalAlpha = 1;
   }
@@ -250,8 +274,25 @@
     Monsters.update(dt, player, { x: cam.x, y: cam.y, w: view.w, h: view.h });
     Npcs.update(dt, player);
     checkTrigger();
+    updateTarget();
     render();
     rafId = requestAnimationFrame(frame);
+  }
+
+  // 가장 가까운 NPC 가 상호작용 범위 안이면 대상으로 삼고, 바뀔 때만 이벤트를 보낸다
+  function setTarget(t) {
+    if (target === t) return;
+    target = t;
+    Events.emit('interact:target', t ? { kind: 'npc', npc: t } : null);
+  }
+
+  function updateTarget() {
+    let best = null, bestD = INTERACT_RANGE;
+    for (const n of Npcs.entities) {
+      const d = Math.hypot(n.x - player.x, n.y - player.y);
+      if (d < bestD) { best = n; bestD = d; }
+    }
+    setTarget(best);
   }
 
   // 트리거 영역(마을 게이트 등)에 새로 들어서면 이벤트를 보낸다
@@ -276,8 +317,11 @@
     player.walkT = 0;
     player.frame = 2;
     lastTrigger = null;
+    setTarget(null);
     Input.reset();
     Screens.close();
+    Dialog.close();
+    pauseLocks.clear();
     paused = false;
 
     GameState.patch('location', { id: r.id, name: r.name, type: r.type || 'field' });
@@ -292,18 +336,27 @@
     rafId = requestAnimationFrame(frame);
   }
 
-  // 메뉴 화면이 열리면 월드(플레이어/몬스터/카메라)를 그대로 멈추고, 닫으면 이어서 진행한다
-  function setPaused(p) {
+  // 메뉴 화면이나 대화가 열리면 월드(플레이어/몬스터/NPC/카메라)를 그대로 멈추고, 모두 닫히면 이어서 진행한다
+  function setPauseLock(name, on) {
+    if (on) pauseLocks.add(name); else pauseLocks.delete(name);
+    const p = pauseLocks.size > 0;
     if (paused === p) return;
     paused = p;
     cancelAnimationFrame(rafId);
     Input.setEnabled(!p);
-    if (!p && running) {
+    if (p) {
+      setTarget(null);
+      if (running) render(); // 대화 표시(말풍선)를 지운 모습으로 한 번 다시 그린다
+    } else if (running) {
       last = performance.now();
       rafId = requestAnimationFrame(frame);
     }
   }
-  Screens.onChange((id) => setPaused(!!id));
+  Screens.onChange((id) => {
+    if (id && Dialog.isOpen()) Dialog.close();
+    setPauseLock('screen', !!id);
+  });
+  Dialog.onChange((open) => setPauseLock('dialog', open));
 
   // 다른 화면은 이벤트로만 장소 이동/게이트 진입을 알려 온다
   Events.on('location:request', ({ id }) => {

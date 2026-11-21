@@ -52,12 +52,12 @@ const Regions = [
       ],
       // NPC: role 은 추후 상호작용 시스템(상점/제작/의뢰 등)이 사용한다. look 은 Sprites.npcs 의 키
       npcs: [
-        { id: 'merchant', name: '상인 모모', role: 'shop', look: 'merchant', tx: 9, ty: 14 },
-        { id: 'innkeeper', name: '여관 주인 하나', role: 'inn', look: 'innkeeper', tx: 22, ty: 14 },
-        { id: 'smith', name: '대장장이 쿠로', role: 'crafting', look: 'smith', tx: 9, ty: 24 },
-        { id: 'clerk', name: '의뢰소 직원 리코', role: 'quest', look: 'clerk', tx: 22, ty: 24 },
-        { id: 'kid', name: '꼬마 콩이', role: 'villager', look: 'kid', tx: 13, ty: 22 },
-        { id: 'guard', name: '문지기 도리', role: 'guard', look: 'guard', tx: 18, ty: 5 },
+        { id: 'merchant', name: '상인 모모', role: 'shop', look: 'merchant', tx: 9, ty: 14, lines: ['어서 오세요! 솔빛 마을 상점이에요.', '물건은 곧 들여올 예정이니 조금만 기다려 주세요.'] },
+        { id: 'innkeeper', name: '여관 주인 하나', role: 'inn', look: 'innkeeper', tx: 22, ty: 14, lines: ['여관에 오신 걸 환영해요. 푹 쉬고 가세요.', '따뜻한 차도 준비해 둘게요.'] },
+        { id: 'smith', name: '대장장이 쿠로', role: 'crafting', look: 'smith', tx: 9, ty: 24, lines: ['쿵쿵! 지금 한창 망치질 중이야.', '나중에 장비 제작과 강화는 나한테 맡겨.'] },
+        { id: 'clerk', name: '의뢰소 직원 리코', role: 'quest', look: 'clerk', tx: 22, ty: 24, lines: ['의뢰소에 오셨군요!', '의뢰는 아직 준비 중이에요. 조금만 기다려 주세요.'] },
+        { id: 'kid', name: '꼬마 콩이', role: 'villager', look: 'kid', tx: 13, ty: 22, lines: ['안녕! 나는 콩이야.', '게이트 너머 초록숲에는 슬라임이 살아!'] },
+        { id: 'guard', name: '문지기 도리', role: 'guard', look: 'guard', tx: 18, ty: 5, lines: ['여기는 탐험 게이트다.', '초록숲으로 가려면 이 문을 지나가라. 조심해서 다녀와!'] },
       ],
       // 밟으면 이벤트가 발생하는 영역. action 'explore' 는 탐험 화면을 연다
       triggers: [{ id: 'gate', tx: 15, ty: 3, w: 2, h: 2, action: 'explore' }],
