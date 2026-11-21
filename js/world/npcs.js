@@ -9,7 +9,10 @@ const Npcs = (() => {
     if (!region.village) return;
     for (const n of region.village.npcs) {
       entities.push({
-        id: n.id, name: n.name, role: n.role, lines: n.lines || ['안녕하세요!'], set: Sprites.npcs[n.look],
+        id: n.id, name: n.name, role: n.role, lines: n.lines || ['안녕하세요!'], gift: n.gift || null,
+        // 처음 한 번 받을 선물이 있으면 그 전용 대사를 먼저 보여 준다
+        currentLines() { return this.gift && !GameState.get('flags')[this.gift.flag] ? this.gift.lines : this.lines; },
+        set: Sprites.npcs[n.look],
         x: n.tx * World.TILE + World.TILE / 2, y: n.ty * World.TILE + 13,
         dir: 'down', phase: Math.random() * 4,
       });

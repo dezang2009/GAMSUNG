@@ -59,7 +59,17 @@ const Regions = [
         { id: 'smith', name: '대장장이 쿠로', role: 'crafting', look: 'smith', tx: 9, ty: 24, lines: ['쿵쿵! 지금 한창 망치질 중이야.', '나중에 장비 제작과 강화는 나한테 맡겨.'] },
         { id: 'clerk', name: '의뢰소 직원 리코', role: 'quest', look: 'clerk', tx: 22, ty: 24, lines: ['의뢰소에 오셨군요!', '의뢰는 아직 준비 중이에요. 조금만 기다려 주세요.'] },
         { id: 'witch', name: '마녀 루나', role: 'villager', look: 'witch', tx: 28, ty: 25, lines: ['후후, 숲에는 신기한 것이 많단다.', '달빛 여우를 만나면 행운이 따른다지.'] },
-        { id: 'elder', name: '촌장 할아버지', role: 'villager', look: 'elder', tx: 20, ty: 17, lines: ['솔빛 마을에 잘 왔네, 젊은 모험가.', '북쪽 게이트 너머가 초록숲이라네.'] },
+        {
+          id: 'elder', name: '촌장 할아버지', role: 'villager', look: 'elder', tx: 20, ty: 17,
+          lines: ['솔빛 마을에 잘 왔네, 젊은 모험가.', '북쪽 게이트 너머가 초록숲이라네.'],
+          // 처음 말을 걸었을 때 한 번만 지급 (flag 로 기록)
+          gift: {
+            flag: 'starterPackage',
+            lines: ['오오, 새로운 모험가로구나! 솔빛 마을에 잘 왔네.', '길을 떠나기 전에 이 초보자 패키지를 받게나.', '가방에서 열어 보면 쓸 만한 물건이 들어 있을 걸세.'],
+            items: [{ id: 'starter_package', count: 1 }],
+            toast: '초보자 패키지를 받았어요! 가방에서 열어 보세요.',
+          },
+        },
         { id: 'kid', name: '꼬마 콩이', role: 'villager', look: 'kid', tx: 13, ty: 22, lines: ['안녕! 나는 콩이야.', '게이트 너머 초록숲에는 슬라임이 살아!'] },
         { id: 'guard', name: '문지기 도리', role: 'guard', look: 'guard', tx: 18, ty: 5, lines: ['여기는 탐험 게이트다.', '초록숲으로 가려면 이 문을 지나가라. 조심해서 다녀와!'] },
       ],

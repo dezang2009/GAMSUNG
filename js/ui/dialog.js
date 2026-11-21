@@ -8,6 +8,7 @@ const Dialog = (() => {
   const listeners = [];
   let lines = [];
   let index = 0;
+  let current = null;
 
   const isOpen = () => !root.hidden;
   const isLast = () => index >= lines.length - 1;
@@ -23,7 +24,9 @@ const Dialog = (() => {
   }
 
   function open(npc) {
-    lines = npc.lines && npc.lines.length ? npc.lines : ['...'];
+    current = npc;
+    const src = npc.currentLines ? npc.currentLines() : npc.lines;
+    lines = src && src.length ? src : ['...'];
     index = 0;
     nameEl.textContent = npc.name;
     render();
@@ -34,7 +37,9 @@ const Dialog = (() => {
   function close() {
     if (!isOpen()) return;
     root.hidden = true;
+    const ended = { npc: current, reachedEnd: isLast() };
     notify(false);
+    Events.emit('dialog:end', ended); // 대화가 끝났음을 알린다 (선물 지급 등은 이 이벤트를 듣는 시스템이 처리)
   }
 
   function next() {

@@ -182,7 +182,7 @@
 
   // 이름표: 기기 해상도로 그린 깔끔한 알약 모양. 멀어지면 서서히 사라진다
   const LABEL_FULL = 80, LABEL_HIDE = 115;
-  const FONT = '"Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif';
+  const FONT = '"Paperlogy", "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif';
   function pill(x, y, w, h) {
     const r = Math.min(h / 2, 5 * view.dpr); // 알약보다 각진 작은 라벨
     ctx.beginPath();
@@ -357,6 +357,8 @@
     setPauseLock('screen', !!id);
   });
   Dialog.onChange((open) => setPauseLock('dialog', open));
+
+  if (document.fonts) document.fonts.load('700 11px Paperlogy'); // 이름표용 폰트 미리 불러오기
 
   // 다른 화면은 이벤트로만 장소 이동/게이트 진입을 알려 온다
   Events.on('location:request', ({ id }) => {

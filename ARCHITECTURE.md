@@ -36,12 +36,16 @@ HTML/CSS/JavaScript만 사용한다. 빌드 도구 없이 `index.html`의 `<scri
 | --- | --- | --- |
 | World | `systems/world.js` → `world/world.js`, `world/npcs.js` | 구현됨 (마을/필드 맵) |
 | Exploration | `systems/exploration.js` → `world/monsters.js` | 몬스터 출현 구현됨. 채집/보물/던전은 추후 |
-| Battle, Character, Companion, Inventory, Equipment, Economy, Shop, Crafting, Collection, Quest | `systems/<이름>.js` | 뼈대만 있음 |
+| Inventory | `systems/inventory.js` (+ `data/items.js`, `ui/bag-screen.js`) | 구현됨: 아이템 보유, 꾸러미 열기 |
+| Starter | `systems/starter.js` | 구현됨: NPC `gift` 설정으로 처음 한 번 지급 (촌장 → 초보자 패키지) |
+| Battle, Character, Companion, Equipment, Economy, Shop, Crafting, Collection, Quest | `systems/<이름>.js` | 뼈대만 있음 |
 
 ## 확장 방법
 
 - **새 탐험 지역**: `data/regions.js` 에 항목 추가 (`gen`, `monsters` 규칙). 몬스터는 `data/monster-data.js`.
 - **새 몬스터/등급**: `MonsterData` 항목 추가, 등급은 `MonsterRarities`에 추가 (엘리트/보스 확장 지점).
 - **새 건물/NPC**: `regions.js` 마을 블록의 `buildings`/`npcs` 추가, 스프라이트는 `gfx/village-sprites.js`.
+- **새 아이템**: `data/items.js` 에 항목 추가, 아이콘은 `gfx/item-sprites.js`. 획득은 `Events.emit('item:gain', { id, count })`.
+- **처음 한 번 주는 선물**: NPC 데이터에 `gift { flag, lines, items, toast }` 를 넣는다.
 - **새 메뉴 화면 기능**: `Screens.register('bag', { render(body) { ... } })` 로 임시 화면을 교체.
 - **새 시스템 기능**: 해당 `systems/*.js` 의 `init(ctx)` 에서 `ctx.Events`로 연결.
