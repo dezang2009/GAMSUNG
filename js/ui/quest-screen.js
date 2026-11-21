@@ -1,5 +1,5 @@
-// 의뢰소 화면: 의뢰 목록(새 의뢰 / 진행 중 / 완료 가능 / 완료). 건물(의뢰소)에 들어가면 열린다.
-//   ▲▼ 선택, 확인: 수락 또는 보상 받기 (직접 눌러도 됨: 한 번 누르면 선택, 선택된 의뢰를 다시 누르면 실행)
+// 의뢰소 화면: 게시판에 의뢰서가 붙어 있는 형태 (새 의뢰 / 진행 중 / 완료 가능 / 완료). 건물(의뢰소)에 들어가면 열린다.
+//   방향 버튼으로 의뢰서를 고르고, 확인: 수락 또는 보상 받기 (직접 눌러도 됨: 한 번 누르면 선택, 선택된 의뢰를 다시 누르면 실행)
 (() => {
   const el = (tag, cls, text) => {
     const e = document.createElement(tag);
@@ -76,10 +76,12 @@
     rows = [];
     list = QuestData.filter((q) => statusOf(q) !== 'locked').sort((a, b) => ORDER[statusOf(a)] - ORDER[statusOf(b)]);
     if (!list.length) { root.append(el('p', 'bag-empty', '지금은 받을 수 있는 의뢰가 없어요.')); return; }
-    const ul = el('ul', 'bag-list');
+    const board = el('div', 'board');
+    const ul = el('ul', 'board-notes');
     list.forEach((q, idx) => {
       const st = statusOf(q);
-      const li = el('li', 'bag-row' + (st === 'done' ? ' is-done' : ''));
+      const li = el('li', 'note bag-row' + (st === 'done' ? ' is-done' : ''));
+      li.append(el('i', 'note-pin'));
       const main = el('div', 'quest-main');
       const text = el('div', 'bag-name', q.name);
       text.append(el('span', 'bag-type', `의뢰인 ${q.giver}`));
@@ -89,7 +91,8 @@
       ul.append(li);
       rows.push(li);
     });
-    root.append(ul);
+    board.append(ul);
+    root.append(board);
     selected = Math.min(selected, list.length - 1);
     select(selected);
   }
@@ -107,9 +110,9 @@
     title: '의뢰소',
     render(body) { root = body; selected = 0; build(); },
     onClose() { root = null; },
-    onNav(dir) {
-      if (dir === 'up') select(selected - 1);
-      else if (dir === 'down') select(selected + 1);
+    onNav(dir) {   // 의뢰서는 위→아래, 왼쪽→오른쪽 순서로 이어진다
+      if (dir === 'up' || dir === 'left') select(selected - 1);
+      else select(selected + 1);
     },
     onConfirm: confirm,
   });

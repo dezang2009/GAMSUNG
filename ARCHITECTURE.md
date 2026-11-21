@@ -1,7 +1,7 @@
 # 구조 안내
 
 HTML/CSS/JavaScript만 사용한다. 빌드 도구 없이 `index.html`의 `<script>` 순서대로 로드한다.
-단일 파일 배포본(`dist/play.html`)은 같은 스크립트를 한 파일로 합친 것이다.
+단일 파일 배포본(`dist/play.html`)은 같은 스크립트를 한 파일로 합친 것이다. 저장소 루트에서 `python3 tools/build.py` 로 다시 만든다.
 
 ## 폴더
 
