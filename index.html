@@ -4,35 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>픽셀 탐험</title>
+  <title>픽셀 모험</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body data-screen="menu">
-  <main id="menu">
-    <div class="menu-inner">
-      <header class="menu-head">
-        <h1>탐험지 선택</h1>
-        <p class="menu-sub">가고 싶은 지역을 골라 입장하세요.</p>
-      </header>
-      <ul id="region-list"></ul>
-    </div>
-  </main>
-
+<body>
   <div id="app">
+    <!-- 위: 마을/탐험 필드 -->
     <section id="field">
       <canvas id="game"></canvas>
 
       <div id="hud">
-        <span id="hud-name"></span>
-        <button id="exit-btn" type="button">나가기</button>
-      </div>
-
-      <div id="joy" aria-label="가상 조이스틱">
-        <div id="joy-base">
-          <div id="joy-knob"></div>
+        <div class="hud-card">
+          <span class="hud-lv" id="hud-lv">Lv.1</span>
+          <div class="hud-bars">
+            <div class="bar hp"><i id="hud-hp-fill"></i><span id="hud-hp-text"></span></div>
+            <div class="bar mp"><i id="hud-mp-fill"></i><span id="hud-mp-text"></span></div>
+          </div>
+        </div>
+        <div class="hud-right">
+          <span class="pill"><b class="coin"></b><span id="hud-gold">0</span></span>
+          <span class="pill" id="hud-loc"><b class="dot"></b><span id="hud-loc-name"></span></span>
         </div>
       </div>
 
+      <!-- 메뉴 화면: 필드 위에 덮인다 -->
       <section id="screen" hidden>
         <header class="screen-bar">
           <button id="screen-back" type="button">‹ 뒤로</button>
@@ -42,6 +37,7 @@
       </section>
     </section>
 
+    <!-- 아래: 메인 메뉴 + 조이스틱 패드 -->
     <nav id="dock" aria-label="메인 메뉴">
       <div class="dock-grid">
         <button class="dock-btn c-coral" type="button" data-menu="battle">
@@ -56,7 +52,7 @@
           <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
           <span class="dock-label">동료</span>
         </button>
-        <button class="dock-btn c-blue is-current" type="button" data-menu="explore">
+        <button class="dock-btn c-blue" type="button" data-menu="explore">
           <span class="dock-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/></svg></span>
           <span class="dock-label">탐험</span>
         </button>
@@ -69,16 +65,38 @@
           <span class="dock-label">캐릭터</span>
         </button>
       </div>
+      <div id="pad" aria-label="이동 패드">
+        <div id="joy-base"><div id="joy-knob"></div></div>
+      </div>
     </nav>
   </div>
 
-  <script src="js/sprites.js"></script>
-  <script src="js/regions.js"></script>
-  <script src="js/monster-data.js"></script>
-  <script src="js/world.js"></script>
-  <script src="js/monsters.js"></script>
-  <script src="js/input.js"></script>
-  <script src="js/screens.js"></script>
+  <script src="js/core/events.js"></script>
+  <script src="js/core/state.js"></script>
+  <script src="js/core/game.js"></script>
+  <script src="js/gfx/sprites.js"></script>
+  <script src="js/gfx/village-sprites.js"></script>
+  <script src="js/data/regions.js"></script>
+  <script src="js/data/monster-data.js"></script>
+  <script src="js/world/world.js"></script>
+  <script src="js/world/monsters.js"></script>
+  <script src="js/world/npcs.js"></script>
+  <script src="js/systems/world.js"></script>
+  <script src="js/systems/exploration.js"></script>
+  <script src="js/systems/battle.js"></script>
+  <script src="js/systems/character.js"></script>
+  <script src="js/systems/companion.js"></script>
+  <script src="js/systems/inventory.js"></script>
+  <script src="js/systems/equipment.js"></script>
+  <script src="js/systems/economy.js"></script>
+  <script src="js/systems/shop.js"></script>
+  <script src="js/systems/crafting.js"></script>
+  <script src="js/systems/collection.js"></script>
+  <script src="js/systems/quest.js"></script>
+  <script src="js/ui/input.js"></script>
+  <script src="js/ui/screens.js"></script>
+  <script src="js/ui/hud.js"></script>
+  <script src="js/ui/explore-screen.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

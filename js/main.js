@@ -1,14 +1,13 @@
-// 게임 루프: 탐험지 선택/입장, 플레이어 이동/충돌, 카메라, 렌더링
+// 게임 루프: 장소 이동(마을/탐험 필드), 플레이어 이동/충돌, 카메라, 렌더링
 (() => {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const hudName = document.getElementById('hud-name');
   const field = document.getElementById('field');
 
   const SPEED = 46;                  // 최대 이동 속도 (논리 픽셀/초)
   const HALF_W = 3;                  // 발 판정 박스 반너비
   const HEIGHT_FEET = 3;             // 발 판정 박스 높이
-  const BG = '#1c2b1f';
+  const BG = '#8bd36a';
 
   const view = { w: 0, h: 0, zoom: 1, sx: 1, sy: 1, dpr: 1 }; // sx, sy: 논리 픽셀 -> 실제 기기 픽셀 배율
   const cam = { x: 0, y: 0 };
@@ -16,6 +15,8 @@
 
   let running = false;
   let paused = false;     // 메뉴 화면이 열려 있는 동안 월드 갱신을 멈춘다
+  let region = null;      // 지금 있는 장소(마을 또는 탐험 필드)
+  let lastTrigger = null; // 직전에 밟고 있던 트리거 (들어올 때 한 번만 발동)
   let rafId = 0;
   let last = 0;
 
@@ -118,6 +119,7 @@
     // 플레이어/몬스터는 카메라와 같은 원본 좌표 차이로 그려 화면 위치가 흔들리지 않는다
     const dyn = [{ y: player.y, draw: drawPlayer }];
     for (const m of Monsters.entities) dyn.push({ y: m.y, draw: () => drawMonster(m) });
+    for (const n of Npcs.entities) dyn.push({ y: n.y, draw: () => drawNpc(n) });
     dyn.sort((a, b) => a.y - b.y);
 
     // 오브젝트(baseY)와 움직이는 개체(발 위치 y)를 깊이 순서대로 섞어 그린다
@@ -130,12 +132,19 @@
     }
     while (di < dyn.length) dyn[di++].draw();
 
-    drawMonsterLabels();
+    drawLabels();
   }
 
   function drawPlayer() {
     const img = Sprites.player[player.dir][player.frame];
     ctx.drawImage(img, snapX(player.x - 7 - cam.x), snapY(player.y - 17 - cam.y));
+  }
+
+  // NPC: 가만히 서서 1px 씩 숨 쉬듯 위아래로 움직인다
+  function drawNpc(n) {
+    const img = n.set[n.dir][2];
+    const bob = Math.floor(n.phase * 1.6) % 2;
+    ctx.drawImage(img, snapX(n.x - 7 - cam.x), snapY(n.y - 17 - bob - cam.y));
   }
 
   function drawMonster(m) {
@@ -181,27 +190,53 @@
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
   }
-  function drawMonsterLabels() {
+  // 이름표 목록(몬스터/NPC/건물)을 모아 한 번에 그린다. 멀어지면 서서히 사라진다
+  function collectLabels() {
+    const out = [];
+    const px = player.x, py = player.y;
+    for (const m of Monsters.entities) {
+      const d = Math.hypot(m.x - px, m.y - py);
+      if (d >= LABEL_HIDE) continue;
+      const rarity = MonsterRarities[m.def.rarity];
+      const img = Sprites.monsters[m.def.sprite].right[0];
+      out.push({
+        text: (rarity.mark ? rarity.mark + ' ' : '') + m.def.name, color: rarity.pillColor,
+        x: m.x, y: m.y - (img.height - 1), alpha: fade(d, LABEL_FULL, LABEL_HIDE) * Math.max(0, m.fade),
+      });
+    }
+    for (const n of Npcs.entities) {
+      const d = Math.hypot(n.x - px, n.y - py);
+      if (d >= LABEL_HIDE + 20) continue;
+      out.push({ text: n.name, color: 'rgba(47, 177, 160, 0.95)', x: n.x, y: n.y - 17, alpha: fade(d, LABEL_FULL + 20, LABEL_HIDE + 20) });
+    }
+    for (const o of World.objects) {
+      if (!o.label) continue;
+      const d = Math.hypot(o.label.cx - px, o.baseY - py);
+      if (d >= 190) continue;
+      out.push({ text: o.label.text, color: 'rgba(122, 84, 52, 0.92)', x: o.label.cx, y: o.label.y, alpha: fade(d, 120, 190) });
+    }
+    return out;
+  }
+
+  const fade = (d, full, hide) => Math.max(0, Math.min(1, (hide - d) / (hide - full)));
+
+  function drawLabels() {
     const d0 = view.dpr;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.font = `700 ${Math.round(11 * d0)}px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    for (const m of Monsters.entities) {
-      const d = Math.hypot(m.x - player.x, m.y - player.y);
-      if (d >= LABEL_HIDE) continue;
-      const rarity = MonsterRarities[m.def.rarity];
-      const img = Sprites.monsters[m.def.sprite].right[0];
-      const cx = snapX(m.x - cam.x) * view.sx;
-      const bottom = snapY(m.y - (img.height - 1) - cam.y) * view.sy - 3 * d0;
-      const text = (rarity.mark ? rarity.mark + ' ' : '') + m.def.name;
-      const h = 18 * d0, w = ctx.measureText(text).width + 16 * d0;
-      ctx.globalAlpha = Math.min(1, (LABEL_HIDE - d) / (LABEL_HIDE - LABEL_FULL)) * Math.max(0, m.fade);
-      ctx.fillStyle = rarity.pillColor;
+    for (const l of collectLabels()) {
+      if (l.alpha <= 0) continue;
+      const cx = snapX(l.x - cam.x) * view.sx;
+      const bottom = snapY(l.y - cam.y) * view.sy - 3 * d0;
+      const h = 18 * d0, w = ctx.measureText(l.text).width + 16 * d0;
+      ctx.globalAlpha = l.alpha;
+      ctx.fillStyle = l.color;
       pill(cx - w / 2, bottom - h, w, h);
       ctx.fill();
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(text, cx, bottom - h / 2 + 0.5 * d0);
+      ctx.fillText(l.text, cx, bottom - h / 2 + 0.5 * d0);
     }
     ctx.globalAlpha = 1;
   }
@@ -213,93 +248,48 @@
     update(dt);
     updateCamera();
     Monsters.update(dt, player, { x: cam.x, y: cam.y, w: view.w, h: view.h });
+    Npcs.update(dt, player);
+    checkTrigger();
     render();
     rafId = requestAnimationFrame(frame);
   }
 
-  // ---------- 탐험지 입장 / 나가기 ----------
-  function enterRegion(region) {
-    World.load(region);
-    player.x = region.spawn.tx * World.TILE + World.TILE / 2;
-    player.y = region.spawn.ty * World.TILE + 12;
+  // 트리거 영역(마을 게이트 등)에 새로 들어서면 이벤트를 보낸다
+  function checkTrigger() {
+    const t = World.triggerAt(player.x, player.y);
+    const id = t ? t.id : null;
+    if (id !== lastTrigger) {
+      lastTrigger = id;
+      if (t) Events.emit('trigger', t);
+    }
+  }
+
+  // ---------- 장소 이동 (마을 <-> 탐험 필드) ----------
+  function enterRegion(r) {
+    region = r;
+    World.load(r);
+    player.x = r.spawn.tx * World.TILE + World.TILE / 2;
+    player.y = r.spawn.ty * World.TILE + 12;
     player.vx = 0;
     player.vy = 0;
     player.dir = 'down';
     player.walkT = 0;
     player.frame = 2;
+    lastTrigger = null;
     Input.reset();
     Screens.close();
     paused = false;
 
-    hudName.textContent = region.name;
-    document.body.dataset.screen = 'play';
+    GameState.patch('location', { id: r.id, name: r.name, type: r.type || 'field' });
     running = true;
     fit();
     updateCamera();
-    Monsters.init(region, player, { x: cam.x, y: cam.y, w: view.w, h: view.h });
+    const rect = { x: cam.x, y: cam.y, w: view.w, h: view.h };
+    Npcs.init(r);
+    if (r.monsters) Monsters.init(r, player, rect); else Monsters.clear();
     last = performance.now();
     cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(frame);
-  }
-
-  function exitRegion() {
-    running = false;
-    cancelAnimationFrame(rafId);
-    Monsters.clear();
-    Input.reset();
-    Screens.close();
-    document.body.dataset.screen = 'menu';
-  }
-
-  // ---------- 선택 화면 ----------
-  function resolveSprite(key, i) {
-    let o = Sprites;
-    for (const part of key.split('.')) o = o[part];
-    return o.right ? o.right[i] : o[i];
-  }
-
-  // 지역 카드 썸네일: 잔디 바탕에 지역 대표 오브젝트를 배치 (잠긴 지역은 자물쇠)
-  function makeThumb(region) {
-    const c = document.createElement('canvas');
-    c.className = 'thumb';
-    c.width = 44;
-    c.height = 44;
-    const g = c.getContext('2d');
-    g.drawImage(Sprites.makeGrassPattern(44, 44), 0, 0);
-    if (region.locked) {
-      g.fillStyle = '#e6e9f0';
-      g.fillRect(0, 0, 44, 44);
-      const r = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
-      r(15, 12, 14, 4, '#a2a8b5'); r(15, 12, 4, 12, '#a2a8b5'); r(25, 12, 4, 12, '#a2a8b5');
-      r(16, 13, 2, 11, '#f6f7fb'); r(26, 13, 2, 11, '#f6f7fb'); r(16, 13, 12, 2, '#f6f7fb');
-      r(11, 22, 22, 15, '#a2a8b5'); r(12, 23, 20, 13, '#c9cfdb'); r(12, 33, 20, 3, '#b3bac9');
-      r(21, 27, 2, 5, '#8a91a1');
-    } else {
-      for (const [key, i, x, y] of region.thumb || []) g.drawImage(resolveSprite(key, i), x, y);
-    }
-    return c;
-  }
-
-  function buildMenu() {
-    const list = document.getElementById('region-list');
-    for (const region of Regions) {
-      const li = document.createElement('li');
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'region-card' + (region.locked ? ' locked' : '');
-      btn.disabled = !!region.locked;
-
-      const text = document.createElement('div');
-      text.innerHTML = '<h2></h2><p></p><span class="badge"></span>';
-      text.querySelector('h2').textContent = region.name;
-      text.querySelector('p').textContent = region.desc;
-      text.querySelector('.badge').textContent = region.locked ? '준비 중' : '입장 가능';
-
-      btn.append(makeThumb(region), text);
-      if (!region.locked) btn.addEventListener('click', () => enterRegion(region));
-      li.appendChild(btn);
-      list.appendChild(li);
-    }
   }
 
   // 메뉴 화면이 열리면 월드(플레이어/몬스터/카메라)를 그대로 멈추고, 닫으면 이어서 진행한다
@@ -307,20 +297,30 @@
     if (paused === p) return;
     paused = p;
     cancelAnimationFrame(rafId);
-    if (p) {
-      Input.reset();
-    } else if (running) {
+    Input.setEnabled(!p);
+    if (!p && running) {
       last = performance.now();
       rafId = requestAnimationFrame(frame);
     }
   }
   Screens.onChange((id) => setPaused(!!id));
 
-  document.getElementById('exit-btn').addEventListener('click', exitRegion);
+  // 다른 화면은 이벤트로만 장소 이동/게이트 진입을 알려 온다
+  Events.on('location:request', ({ id }) => {
+    const r = Regions.find((x) => x.id === id);
+    if (r && !r.locked) enterRegion(r);
+  });
+  Events.on('trigger', (t) => {
+    if (t.action === 'explore') Screens.open('explore');
+  });
+
   window.addEventListener('resize', fit);
   if (window.ResizeObserver) new ResizeObserver(fit).observe(field);
-  buildMenu();
+
+  // 시작: 마을에서 출발
+  Game.init();
+  enterRegion(Regions[0]);
 
   // 테스트용 참조
-  window.__game = { player, cam, view, World, Monsters, enterRegion, exitRegion };
+  window.__game = { player, cam, view, World, Monsters, Npcs, GameState, enterRegion };
 })();

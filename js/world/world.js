@@ -1,4 +1,5 @@
-// 타일 기반 탐험 맵: 지형 생성, 장애물 배치, 바닥 렌더링, 충돌 판정
+// 타일 기반 월드: 마을/탐험 필드 지형 생성, 장애물 배치, 바닥 렌더링, 충돌 판정
+// region.type 이 'village' 면 손으로 배치한 마을(region.village), 그 외에는 무작위 탐험 필드(region.gen)를 만든다
 const World = (() => {
   const TILE = 16;
   let COLS = 0;
@@ -9,12 +10,16 @@ const World = (() => {
   const GRASS = 0;
   const PATH = 1;
   const TALL = 2; // 걸을 수 있는 풀숲
+  const PLAZA = 3; // 마을 광장 (돌바닥)
 
   const GRASS_C = [[108, 186, 76], [100, 178, 70], [122, 200, 90], [86, 160, 62]];
   const TALL_C = [[78, 150, 56], [70, 140, 50]];
   const TALL_BLADE = [104, 180, 74];
   const PATH_RIM = [176, 140, 88];
   const PATH_C = [[218, 188, 126], [208, 176, 114], [226, 202, 146], [190, 156, 100]];
+  const PLAZA_C = [[226, 218, 202], [216, 208, 192]];
+  const PLAZA_GROUT = [196, 187, 170];
+  const PLAZA_RIM = [170, 160, 142];
   const FLOWER_COLORS = ['#fff6e0', '#ffd84a', '#ff8fb1', '#b3a6ff'];
 
   let kind = null;
@@ -22,6 +27,9 @@ const World = (() => {
   const objects = [];
   const flowers = [];
   let ground = null;
+  let grassC = GRASS_C;   // 지역별 잔디 색상표
+  let reserved = null;    // 마을: 길/건물/소품 자리라 나무를 심지 않는 타일
+  const triggers = [];    // 밟으면 이벤트가 발생하는 영역(마을 게이트 등)
 
   const idx = (tx, ty) => ty * COLS + tx;
   const inMap = (tx, ty) => tx >= 0 && ty >= 0 && tx < COLS && ty < ROWS;
@@ -49,12 +57,21 @@ const World = (() => {
   }
 
   function canPlace(tx, ty) {
-    return inMap(tx, ty) && kind[idx(tx, ty)] !== PATH && !solid[idx(tx, ty)] && !nearSpawn(tx, ty);
+    return inMap(tx, ty) && kind[idx(tx, ty)] !== PATH && kind[idx(tx, ty)] !== PLAZA &&
+           !solid[idx(tx, ty)] && !nearSpawn(tx, ty) && !(reserved && reserved[idx(tx, ty)]);
   }
 
-  function addObject(img, x, y, shadow, tx, ty) {
-    solid[idx(tx, ty)] = 1;
-    objects.push({ img, x, y, w: img.width, h: img.height, baseY: (ty + 1) * TILE, shadow });
+  // extra: { fw, fh } 발판 크기(타일), { solidTiles } 막힐 타일 목록, { label } 이름표
+  function addObject(img, x, y, shadow, tx, ty, extra) {
+    const e = extra || {};
+    const fh = e.fh || 1;
+    let tiles = e.solidTiles;
+    if (!tiles) {
+      tiles = [];
+      for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < (e.fw || 1); dx++) tiles.push([dx, dy]);
+    }
+    for (const [dx, dy] of tiles) if (inMap(tx + dx, ty + dy)) solid[idx(tx + dx, ty + dy)] = 1;
+    objects.push({ img, x, y, w: img.width, h: img.height, baseY: (ty + fh) * TILE, shadow, label: e.label || null });
   }
 
   function placeTree(tx, ty) {
@@ -173,9 +190,90 @@ const World = (() => {
     }
   }
 
+  // ---------- 마을 ----------
+  function fillRect(r, k) {
+    const [x, y, w, h] = r;
+    for (let ty = y; ty < y + h; ty++) {
+      for (let tx = x; tx < x + w; tx++) {
+        if (!inMap(tx, ty)) continue;
+        kind[idx(tx, ty)] = k;
+        reserved[idx(tx, ty)] = 1;
+      }
+    }
+  }
+
+  function reserveRect(x, y, w, h) {
+    for (let ty = y; ty < y + h; ty++) for (let tx = x; tx < x + w; tx++) if (inMap(tx, ty)) reserved[idx(tx, ty)] = 1;
+  }
+
+  function placeBuilding(b) {
+    const img = Sprites.buildings[b.sprite];
+    const by = (b.ty + 2) * TILE;
+    const x = b.tx * TILE - 1, y = by - 57;
+    addObject(img, x, y, { cx: (b.tx + 1.5) * TILE, cy: by - 2, rx: 26, ry: 4 }, b.tx, b.ty, {
+      fw: 3, fh: 2, label: { text: b.name, cx: x + img.width / 2, y: y + 8 },
+    });
+    reserveRect(b.tx - 1, b.ty - 2, 5, 5);
+  }
+
+  function placeProp(p) {
+    if (p.type === 'fountain') {
+      const img = Sprites.props.fountain, by = (p.ty + 2) * TILE;
+      addObject(img, p.tx * TILE - 1, by - 33, { cx: (p.tx + 1) * TILE, cy: by - 3, rx: 14, ry: 3 }, p.tx, p.ty, { fw: 2, fh: 2 });
+    } else if (p.type === 'lamp') {
+      const img = Sprites.props.lamp, by = (p.ty + 1) * TILE;
+      addObject(img, p.tx * TILE + 4, by - 23, { cx: p.tx * TILE + 8, cy: by - 2, rx: 4, ry: 1.5 }, p.tx, p.ty);
+    } else if (p.type === 'gate') {
+      const img = Sprites.props.gate, by = (p.ty + 1) * TILE;
+      addObject(img, p.tx * TILE - 1, by - 49, { cx: (p.tx + 2) * TILE, cy: by - 2, rx: 30, ry: 3 }, p.tx, p.ty, {
+        solidTiles: [[0, 0], [3, 0]], label: p.name ? { text: p.name, cx: (p.tx + 2) * TILE, y: by - 49 } : null,
+      });
+      reserveRect(p.tx - 1, p.ty - 2, 6, 4);
+    }
+  }
+
+  function generateVillage(v) {
+    reserved = new Uint8Array(COLS * ROWS);
+    for (const r of v.roads) fillRect(r, PATH);
+    if (v.plaza) fillRect(v.plaza, PLAZA);
+    for (const b of v.buildings) placeBuilding(b);
+    for (const p of v.props) placeProp(p);
+    for (const n of v.npcs) {            // NPC 는 서 있는 타일을 막는다
+      solid[idx(n.tx, n.ty)] = 1;
+      reserveRect(n.tx - 1, n.ty - 1, 3, 3);
+    }
+    for (const t of v.triggers || []) triggers.push(t);
+
+    // 가장자리 나무 담
+    for (let ty = 0; ty < ROWS; ty++) {
+      for (let tx = 0; tx < COLS; tx++) {
+        const edge = tx < 2 || ty < 2 || tx >= COLS - 2 || ty >= ROWS - 2;
+        if (edge && !solid[idx(tx, ty)] && !reserved[idx(tx, ty)]) placeTree(tx, ty);
+      }
+    }
+    // 흩어진 나무와 덤불
+    for (let i = 0, n = 0; i < 400 && n < v.trees; i++) {
+      const tx = 2 + Math.floor(rand() * (COLS - 4)), ty = 2 + Math.floor(rand() * (ROWS - 4));
+      if (canPlace(tx, ty)) { placeTree(tx, ty); n++; }
+    }
+    for (let i = 0, n = 0; i < 400 && n < v.bushes; i++) {
+      const tx = 2 + Math.floor(rand() * (COLS - 4)), ty = 2 + Math.floor(rand() * (ROWS - 4));
+      if (canPlace(tx, ty)) { placeBush(tx, ty); n++; }
+    }
+  }
+
+  // 발 위치(px)가 들어 있는 트리거 id (없으면 null)
+  function triggerAt(x, y) {
+    const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
+    for (const t of triggers) {
+      if (tx >= t.tx && tx < t.tx + t.w && ty >= t.ty && ty < t.ty + t.h) return t;
+    }
+    return null;
+  }
+
   // 길 타일 가장자리는 풀과 섞이도록 픽셀을 일부 풀색으로 바꾼다
   function edgeOfPath(tx, ty, lx, ly) {
-    const isPath = (x, y) => !inMap(x, y) || kind[idx(x, y)] === PATH;
+    const isPath = (x, y) => !inMap(x, y) || kind[idx(x, y)] === PATH || kind[idx(x, y)] === PLAZA;
     return (lx < 2 && !isPath(tx - 1, ty)) || (lx > 13 && !isPath(tx + 1, ty)) ||
            (ly < 2 && !isPath(tx, ty - 1)) || (ly > 13 && !isPath(tx, ty + 1));
   }
@@ -200,7 +298,11 @@ const World = (() => {
         }
 
         let c;
-        if (k === PATH) {
+        if (k === PLAZA) {
+          const edge = (lx === 0 && kind[idx(Math.max(tx - 1, 0), ty)] !== PLAZA) || (lx === 15 && kind[idx(Math.min(tx + 1, COLS - 1), ty)] !== PLAZA) ||
+                       (ly === 0 && kind[idx(tx, Math.max(ty - 1, 0))] !== PLAZA) || (ly === 15 && kind[idx(tx, Math.min(ty + 1, ROWS - 1))] !== PLAZA);
+          c = edge ? PLAZA_RIM : (px & 7) === 0 || (py & 7) === 0 ? PLAZA_GROUT : PLAZA_C[((px >> 3) + (py >> 3)) & 1];
+        } else if (k === PATH) {
           const n = hash(px >> 1, py >> 1, 4);
           c = rim && n < 0.75 ? PATH_RIM : n < 0.55 ? PATH_C[0] : n < 0.8 ? PATH_C[1] : n < 0.92 ? PATH_C[2] : PATH_C[3];
         } else if (k === TALL) {
@@ -208,7 +310,7 @@ const World = (() => {
           if (hash(px, py, 7) > 0.93) c = TALL_BLADE;
         } else {
           const n = hash(px >> 1, py >> 1, 3);
-          c = n < 0.55 ? GRASS_C[0] : n < 0.8 ? GRASS_C[1] : n < 0.93 ? GRASS_C[2] : GRASS_C[3];
+          c = n < 0.55 ? grassC[0] : n < 0.8 ? grassC[1] : n < 0.93 ? grassC[2] : grassC[3];
         }
 
         const i = (py * W + px) * 4;
@@ -258,7 +360,11 @@ const World = (() => {
 
   // 지역 데이터(Regions)로 맵을 새로 만든다
   function load(region) {
-    cfg = region.gen;
+    const village = region.type === 'village';
+    cfg = village ? region.village : region.gen;
+    grassC = (region.palette && region.palette.grass) || GRASS_C;
+    reserved = null;
+    triggers.length = 0;
     COLS = region.cols;
     ROWS = region.rows;
     SPAWN = region.spawn;
@@ -267,9 +373,13 @@ const World = (() => {
     objects.length = 0;
     flowers.length = 0;
     rand = mulberry32(cfg.seed);
-    generatePath();
-    generateObstacles();
-    generateTallGrass();
+    if (village) {
+      generateVillage(cfg);
+    } else {
+      generatePath();
+      generateObstacles();
+      generateTallGrass();
+    }
     generateFlowers();
     objects.sort((a, b) => a.baseY - b.baseY);
     renderGround();
@@ -295,6 +405,7 @@ const World = (() => {
     objects,
     load,
     blocked,
+    triggerAt,
     get ground() { return ground; },
   };
 })();

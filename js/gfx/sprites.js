@@ -69,38 +69,39 @@ const Sprites = (() => {
   }
 
   // ---- 플레이어 (12x16) ----
-  function drawPlayer(ctx, ox, oy, dir, legs) {
+  function drawPlayer(ctx, ox, oy, dir, legs, pal) {
+    const P = pal || C; // 색상표: 생략하면 플레이어, NPC 는 자기 색상표를 넘긴다
     const r = (x, y, w, h, c) => rect(ctx, ox + x, oy + y, w, h, c);
     const leg = (x, bottom) => {
-      r(x, 13, 2, bottom - 13, C.pants);
-      r(x, bottom, 2, 1, C.shoe);
+      r(x, 13, 2, bottom - 13, P.pants);
+      r(x, bottom, 2, 1, P.shoe);
     };
 
     if (dir === 'side') {
-      r(3, 2, 2, 6, C.hair);            // 뒤통수
-      r(3, 0, 7, 3, C.cap);             // 모자
-      r(4, 3, 5, 5, C.skin);            // 얼굴
-      r(7, 5, 1, 2, C.eye);             // 눈
-      r(4, 8, 5, 5, C.shirt);           // 몸통
-      r(4, 9, 1, 4, C.shirtSh);         // 뒤팔
+      r(3, 2, 2, 6, P.hair);            // 뒤통수
+      r(3, 0, 7, 3, P.cap);             // 모자
+      r(4, 3, 5, 5, P.skin);            // 얼굴
+      r(7, 5, 1, 2, P.eye);             // 눈
+      r(4, 8, 5, 5, P.shirt);           // 몸통
+      r(4, 9, 1, 4, P.shirtSh);         // 뒤팔
       leg(4, legs[0]);
       leg(6, legs[1]);
-      r(6, 9, 2, 4, C.shirt);           // 앞팔
-      r(6, 12, 2, 1, C.skin);           // 손
+      r(6, 9, 2, 4, P.shirt);           // 앞팔
+      r(6, 12, 2, 1, P.skin);           // 손
       return;
     }
 
-    r(3, 0, 6, 3, C.cap);               // 모자
-    r(3, 3, 6, 5, dir === 'up' ? C.hair : C.skin);
+    r(3, 0, 6, 3, P.cap);               // 모자
+    r(3, 3, 6, 5, dir === 'up' ? P.hair : P.skin);
     if (dir === 'down') {
-      r(4, 5, 1, 2, C.eye);
-      r(7, 5, 1, 2, C.eye);
+      r(4, 5, 1, 2, P.eye);
+      r(7, 5, 1, 2, P.eye);
     }
-    r(3, 8, 6, 5, C.shirt);             // 몸통
-    r(2, 8, 1, 4, C.shirt);             // 왼팔
-    r(9, 8, 1, 4, C.shirt);             // 오른팔
-    r(2, 12, 1, 1, C.skin);
-    r(9, 12, 1, 1, C.skin);
+    r(3, 8, 6, 5, P.shirt);             // 몸통
+    r(2, 8, 1, 4, P.shirt);             // 왼팔
+    r(9, 8, 1, 4, P.shirt);             // 오른팔
+    r(2, 12, 1, 1, P.skin);
+    r(9, 12, 1, 1, P.skin);
     leg(3, legs[0]);
     leg(7, legs[1]);
   }
@@ -269,6 +270,13 @@ const Sprites = (() => {
     return c;
   }
 
+  // 색상표(pal)로 사람 스프라이트 세트를 만든다 (플레이어/NPC 공용)
+  function makePerson(pal) {
+    const mk = (dir) => LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, dir, legs, pal)));
+    const side = mk('side');
+    return { down: mk('down'), up: mk('up'), right: side, left: side.map(flip) };
+  }
+
   const playerFront = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'down', legs)));
   const playerBack = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'up', legs)));
   const playerSide = LEGS.map((legs) => build(12, 16, (ctx, ox, oy) => drawPlayer(ctx, ox, oy, 'side', legs)));
@@ -291,5 +299,7 @@ const Sprites = (() => {
     },
     alert: makeAlert(),
     makeGrassPattern,
+    makePerson,
+    tools: { build, rect, flip }, // 다른 스프라이트 파일에서 재사용
   };
 })();

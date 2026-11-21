@@ -174,6 +174,7 @@ const Monsters = (() => {
   }
 
   function update(dt, player, rect) {
+    if (!rules) return; // 몬스터가 없는 장소(마을)
     // 비어 있으면 일정 시간 뒤에 새 몬스터 출현
     if (entities.length >= rules.target) {
       respawnTimer = rnd(rules.respawn[0], rules.respawn[1]);
@@ -207,6 +208,7 @@ const Monsters = (() => {
 
   function clear() {
     entities.length = 0;
+    rules = null;
   }
 
   return { entities, init, clear, update, blocksPlayer, rollDef };

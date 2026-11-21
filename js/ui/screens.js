@@ -1,4 +1,4 @@
-// 메인 메뉴 화면 전환. 탐험 필드(게임 상태)는 건드리지 않고 그 위에 화면만 덮는다.
+// 메인 메뉴 화면 전환. 마을/탐험 필드(게임 상태)는 건드리지 않고 그 위에 화면만 덮는다.
 // 실제 기능을 붙일 때는 Screens.register(id, { render(body), onOpen(), onClose() }) 로 교체하면 된다.
 const Screens = (() => {
   const overlay = document.getElementById('screen');
@@ -12,6 +12,7 @@ const Screens = (() => {
   // 임시 화면 정의 (아이콘은 하단 메뉴 버튼의 것을 재사용)
   const defs = {
     battle: { title: '전투', desc: '전투 화면이 들어갈 자리예요.' },
+    explore: { title: '탐험', desc: '탐험 지역 목록이 들어갈 자리예요.' }, // ui/explore-screen.js 가 실제 화면을 등록
     bag: { title: '가방', desc: '아이템 목록이 들어갈 자리예요.' },
     party: { title: '동료', desc: '동료 목록이 들어갈 자리예요.' },
     dex: { title: '도감', desc: '도감이 들어갈 자리예요.' },
@@ -35,13 +36,12 @@ const Screens = (() => {
   }
 
   function setCurrent(id) {
-    // 열린 화면이 없으면 탐험(필드)이 현재 위치
-    const active = id || 'explore';
-    dockButtons.forEach((b) => b.classList.toggle('is-current', b.dataset.menu === active));
+    // 열린 화면의 버튼만 강조한다 (화면이 없으면 필드를 보고 있는 상태)
+    dockButtons.forEach((b) => b.classList.toggle('is-current', b.dataset.menu === id));
   }
 
   function open(id) {
-    if (id === 'explore' || !defs[id]) return close();
+    if (!defs[id]) return close();
     const prev = current;
     if (prev && prev !== id && defs[prev].onClose) defs[prev].onClose();
     const def = defs[id];
