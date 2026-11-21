@@ -1,4 +1,4 @@
-// 대장간 강화 화면. 건물에 들어가면 위쪽은 강화 장면, 아래쪽은 장비 선택 / 재료 선택으로 바뀐다.
+// 대장간 강화 화면. 건물에 들어가면 위쪽은 장비 선택 / 재료 선택, 아래쪽은 강화 진행 장면(모루, 별, 확률)으로 바뀐다.
 //   ◀▶ 장비/재료 열 전환, ▲▼ 선택, 확인(강화), 뒤로(나가기). 목록은 직접 눌러도 된다.
 //   강화 규칙(확률, 재료 소모, 등급 상승)은 systems/crafting.js 가 처리한다 ('forge:enhance' -> 'forge:result').
 const ForgeUI = (() => {
@@ -9,7 +9,8 @@ const ForgeUI = (() => {
   const colGear = $('fp-gear');
   const colMat = $('fp-mats');
   const msg = $('fg-msg');
-  const stage = root.querySelector('.fg-stage');
+  const stage = panel.querySelector('.fg-stage');
+  let sc = 3;            // 강화 장면 스프라이트 배율 (아래 패널 높이에 맞춘다)
 
   const SMITH_LINES = {
     hello: '어서 와! 강화할 장비와 재료를 골라 봐.',
@@ -110,7 +111,7 @@ const ForgeUI = (() => {
     }
     const def = ItemData[inst.id];
     $('fg-gear').style.visibility = 'visible';
-    drawCanvas($('fg-gear'), Sprites.items[def.icon], 5);
+    drawCanvas($('fg-gear'), Sprites.items[def.icon], sc);
     for (let i = 1; i <= Forge.maxGrade; i++) {
       stars.append(el('span', 'fg-star' + (i <= inst.grade ? ' on' : i === inst.grade + 1 ? ' next' : ''), '★'));
     }
@@ -177,8 +178,6 @@ const ForgeUI = (() => {
     focus = 0;
     gi = 0;
     mi = 0;
-    drawCanvas($('fg-smith'), Sprites.npcs.smith.down[2], 6);
-    drawCanvas($('fg-anvil'), Sprites.props.anvil, 5);
     $('fg-fx').replaceChildren();
     root.hidden = false;
     root.classList.remove('intro');
@@ -186,6 +185,9 @@ const ForgeUI = (() => {
     root.classList.add('intro');
     dock.dataset.mode = 'forge';
     panel.hidden = false;
+    sc = panel.clientHeight >= 140 ? 3 : 2;   // 낮은 화면에서는 작게
+    drawCanvas($('fg-smith'), Sprites.npcs.smith.down[2], sc);
+    drawCanvas($('fg-anvil'), Sprites.props.anvil, sc);
     setMsg(gearList().length ? SMITH_LINES.hello : SMITH_LINES.noGear);
     render();
     Events.emit('forge:opened');

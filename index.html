@@ -48,22 +48,13 @@
         <div id="screen-body"></div>
       </section>
 
-      <!-- 대장간 강화 화면: 위쪽은 강화 장면 (아래쪽 메뉴는 장비/재료 선택으로 바뀐다) -->
+      <!-- 대장간: 위쪽은 장비/재료 선택 (아래쪽 메뉴 자리에 강화 진행 장면이 나온다) -->
       <section id="forge" hidden>
-        <div class="fg-scene">
-          <div class="fg-wall"></div>
-          <div class="fg-floor"></div>
-          <div class="fg-glow"></div>
-          <canvas id="fg-smith" class="fg-smith"></canvas>
-          <div class="fg-stage">
-            <div class="fg-stars" id="fg-stars"></div>
-            <canvas id="fg-gear" class="fg-gear"></canvas>
-            <canvas id="fg-anvil" class="fg-anvil"></canvas>
-          </div>
-          <div class="fg-info" id="fg-info"></div>
-          <div class="fg-fx" id="fg-fx"></div>
+        <header class="fg-head"><h2>대장간</h2><p>강화할 장비와 재료를 골라 주세요</p></header>
+        <div class="fg-lists">
+          <div class="fp-col" id="fp-gear"></div>
+          <div class="fp-col" id="fp-mats"></div>
         </div>
-        <div class="fg-msg" id="fg-msg"></div>
       </section>
 
       <!-- 전투 화면 (포켓몬 스타일): 필드 전체를 덮는다 -->
@@ -115,10 +106,22 @@
       <!-- 전투 중에는 메인 메뉴 대신 전투 명령이 나온다 -->
       <div id="battle-cmds" hidden></div>
 
-      <!-- 대장간 중에는 장비 선택 / 재료 선택 -->
+      <!-- 대장간 중에는 강화 진행 장면 -->
       <div id="forge-panel" hidden>
-        <div class="fp-col" id="fp-gear"></div>
-        <div class="fp-col" id="fp-mats"></div>
+        <div class="fg-scene">
+          <div class="fg-wall"></div>
+          <div class="fg-floor"></div>
+          <div class="fg-glow"></div>
+          <canvas id="fg-smith" class="fg-smith"></canvas>
+          <div class="fg-stage">
+            <div class="fg-stars" id="fg-stars"></div>
+            <canvas id="fg-gear" class="fg-gear"></canvas>
+            <canvas id="fg-anvil" class="fg-anvil"></canvas>
+          </div>
+          <div class="fg-info" id="fg-info"></div>
+          <div class="fg-fx" id="fg-fx"></div>
+          <div class="fg-msg" id="fg-msg"></div>
+        </div>
       </div>
 
       <div id="pad" data-mode="field">
