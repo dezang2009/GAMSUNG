@@ -34,13 +34,11 @@
     return '★'.repeat(inst.grade) + (ItemData[inst.id].weapon ? `  숙련 Lv.${inst.level}` : '');
   }
 
+  // 설명/비교는 선택한 장비 카드 바로 아래에만 나온다
   function showCompare() {
     compare.replaceChildren();
     const inst = list[selected];
-    if (!inst) {
-      compare.append(el('p', 'bag-empty', '이 종류의 장비가 없어요.'));
-      return;
-    }
+    if (!inst) return;
     const type = ItemData[inst.id].type;
     const cur = GameState.get('gear').list.find((g) => g.uid === equippedUid(type));
     const now = statOf(inst);
@@ -59,11 +57,13 @@
   }
 
   function select(i) {
-    if (!list.length) { showCompare(); return; }
+    if (!list.length) return;
     selected = (i + list.length) % list.length;
     rows.forEach((r, n) => r.classList.toggle('is-selected', n === selected));
-    if (rows[selected]) rows[selected].scrollIntoView({ block: 'nearest' });
+    compare.remove();
+    rows[selected].append(compare);
     showCompare();
+    rows[selected].scrollIntoView({ block: 'nearest' });
   }
 
   function build() {
@@ -96,17 +96,20 @@
     list.forEach((inst, idx) => {
       const def = ItemData[inst.id];
       const li = el('li', 'bag-row');
-      li.addEventListener('click', () => (idx === selected ? confirm() : select(idx)));
+      const main = el('div', 'bag-row-main');
+      li.addEventListener('click', (e) => { if (e.target.closest('.bag-desc')) return; idx === selected ? confirm() : select(idx); });
       const text = el('div', 'bag-name', def.name);
       text.append(el('span', 'bag-type', gradeText(inst)));
       const right = el('div', 'bag-count', `+${statOf(inst).toFixed(1)}`);
       if (inst.uid === equippedUid(type)) right.append(el('span', 'bag-eq', '장착 중'));
-      li.append(iconCanvas(def), text, right);
+      main.append(iconCanvas(def), text, right);
+      li.append(main);
       ul.append(li);
       rows.push(li);
     });
-    compare = el('div', 'bag-detail');
-    root.append(summary, tabs, ul, compare);
+    compare = el('div', 'bag-desc');
+    root.append(summary, tabs, ul);
+    if (!list.length) root.append(el('p', 'bag-empty', '이 종류의 장비가 없어요.'));
     selected = Math.min(selected, Math.max(0, list.length - 1));
     select(selected);
   }

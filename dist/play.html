@@ -387,7 +387,8 @@ body {
 
 #pad[data-mode="screen"] #dpad,
 #pad[data-mode="battle"] #dpad,
-#pad[data-mode="forge"] #dpad {
+#pad[data-mode="forge"] #dpad,
+#pad[data-mode="shop"] #dpad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
@@ -397,6 +398,7 @@ body {
 #pad[data-mode="screen"] #joy-zone,
 #pad[data-mode="battle"] #joy-zone,
 #pad[data-mode="forge"] #joy-zone,
+#pad[data-mode="shop"] #joy-zone,
 #pad[data-mode="dialog"] #joy-zone {
   display: none;
 }
@@ -716,15 +718,32 @@ body {
 }
 
 .bag-row {
-  display: grid;
-  grid-template-columns: 36px 1fr auto;
-  gap: 10px;
-  align-items: center;
+  display: block;
   padding: 7px 10px 7px 8px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
 }
+
+.bag-row-main {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+/* 선택한 아이템 카드 안쪽 아래에 나오는 설명 */
+.bag-desc:empty { display: none; }
+
+.bag-desc {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  cursor: default;
+}
+
+.bag-desc h3 { display: none; }
+.bag-desc p { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
 
 .bag-row.is-selected {
   border-color: var(--accent);
@@ -1475,6 +1494,101 @@ body {
   font-weight: 600;
   line-height: 1.35;
 }
+
+/* ---------- 판매소 (위: 판매 목록 / 아래: 판매 장면) ---------- */
+#shop {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+#shop[hidden] { display: none; }
+#shop.intro { animation: bt-in 0.5s ease-out; }
+
+.sh-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.sh-price { color: var(--accent); font-size: 13px; font-weight: 700; text-align: right; }
+.sh-price small { display: block; color: var(--ink-soft); font-size: 11px; font-weight: 600; }
+
+#dock[data-mode="shop"] .dock-grid { display: none; }
+#shop-panel { display: none; flex: 1; min-height: 0; }
+#dock[data-mode="shop"] #shop-panel { display: block; }
+#shop-panel[hidden] { display: none !important; }
+#dock[data-mode="shop"] #pad { flex: 0 0 40%; }
+
+.sh-merchant { position: absolute; left: 4%; bottom: 26px; image-rendering: pixelated; }
+
+.sh-counter {
+  position: absolute;
+  left: 20%;
+  width: 36%;
+  bottom: 26px;
+  height: 22px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(#b98a58, #9a7044);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.25);
+}
+
+.sh-item {
+  position: absolute;
+  left: 32%;
+  bottom: 46px;
+  image-rendering: pixelated;
+}
+
+.sh-info {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 44%;
+  display: grid;
+  gap: 4px;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.95);
+  font-size: 11px;
+}
+
+.sh-info b { font-size: 12px; }
+.sh-total { color: var(--accent); font-size: 13px; font-weight: 700; }
+
+.sh-qty { display: grid; grid-template-columns: 26px 1fr 26px 38px; gap: 4px; align-items: center; text-align: center; }
+.sh-qty button {
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 13px/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.sh-float {
+  position: absolute;
+  left: 30%;
+  bottom: 60px;
+  color: #b8860b;
+  font-size: 15px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.sh-float.go { animation: sh-rise 1.1s ease-out forwards; }
+@keyframes sh-rise { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-34px); } }
 </style>
 </head>
 <body>
@@ -1525,6 +1639,12 @@ body {
           <div class="fp-col" id="fp-gear"></div>
           <div class="fp-col" id="fp-mats"></div>
         </div>
+      </section>
+
+      <!-- 판매소: 위쪽은 팔 수 있는 아이템 목록 (아래쪽 메뉴 자리에 판매 장면이 나온다) -->
+      <section id="shop" hidden>
+        <header class="fg-head"><h2>판매소</h2><p>몬스터에게서 얻은 전리품을 골드로 바꿔요</p></header>
+        <div class="sh-list" id="sh-list"></div>
       </section>
 
       <!-- 전투 화면 (포켓몬 스타일): 필드 전체를 덮는다 -->
@@ -1591,6 +1711,20 @@ body {
           <div class="fg-info" id="fg-info"></div>
           <div class="fg-fx" id="fg-fx"></div>
           <div class="fg-msg" id="fg-msg"></div>
+        </div>
+      </div>
+
+      <!-- 판매소 중에는 판매 장면 -->
+      <div id="shop-panel" hidden>
+        <div class="fg-scene">
+          <div class="fg-wall"></div>
+          <div class="fg-floor"></div>
+          <canvas id="sh-merchant" class="sh-merchant"></canvas>
+          <div class="sh-counter"></div>
+          <canvas id="sh-item" class="sh-item"></canvas>
+          <div class="sh-info" id="sh-info"></div>
+          <div class="fg-msg" id="sh-msg"></div>
+          <div class="sh-float" id="sh-float"></div>
         </div>
       </div>
 
@@ -2599,7 +2733,7 @@ const Regions = [
       plaza: [12, 16, 8, 6],
       // 건물 (3x2 타일 발판, sprite 는 Sprites.buildings 의 키). 이름표로 표시된다.
       buildings: [
-        { id: 'shop', name: '상점', sprite: 'shop', tx: 5, ty: 11 },
+        { id: 'shop', name: '판매소', sprite: 'shop', tx: 5, ty: 11, enter: 'shop' },
         { id: 'inn', name: '여관', sprite: 'inn', tx: 24, ty: 11 },
         { id: 'forge', name: '대장간', sprite: 'forge', tx: 5, ty: 22, enter: 'forge' },   // enter: 들어가면 열리는 화면
         { id: 'hall', name: '의뢰소', sprite: 'hall', tx: 24, ty: 22 },
@@ -2615,7 +2749,7 @@ const Regions = [
       ],
       // NPC: role 은 추후 상호작용 시스템(상점/제작/의뢰 등)이 사용한다. look 은 Sprites.npcs 의 키
       npcs: [
-        { id: 'merchant', name: '상인 모모', role: 'shop', look: 'merchant', tx: 9, ty: 14, lines: ['어서 오세요! 솔빛 마을 상점이에요.', '물건은 곧 들여올 예정이니 조금만 기다려 주세요.'] },
+        { id: 'merchant', name: '상인 모모', role: 'shop', look: 'merchant', tx: 9, ty: 14, lines: ['어서 오세요! 솔빛 마을 판매소예요.', '몬스터에게서 얻은 전리품을 가져오면 좋은 값에 사 드릴게요.'] },
         { id: 'shopkeeper', name: '상점 주인 도라', role: 'shop', look: 'shopF', tx: 3, ty: 15, lines: ['남편이 또 물건을 쌓아 두네요.', '필요한 게 있으면 말씀하세요.'] },
         { id: 'innkeeper', name: '여관 주인 하나', role: 'inn', look: 'innkeeper', tx: 22, ty: 14, lines: ['여관에 오신 걸 환영해요. 푹 쉬고 가세요.', '따뜻한 차도 준비해 둘게요.'] },
         { id: 'maid', name: '여관 일꾼 미나', role: 'villager', look: 'maid', tx: 28, ty: 15, lines: ['어서 오세요! 방은 늘 깨끗해요.'] },
@@ -2660,12 +2794,12 @@ const Regions = [
       flowers: 80,
     },
     monsters: {
-      target: 6,              // 필드에 유지할 일반 몬스터 수 (3종)
+      target: 12,             // 필드에 유지할 일반 몬스터 수 (3종)
       // 중간보스: 맵 가장 위쪽에 자리 잡고, 쓰러뜨리면 respawn 초 뒤에 다시 나타난다
       boss: { id: 'goblin_chief', tx: 17, ty: 6, respawn: 120 },
-      respawn: [5, 9],        // 빈자리가 생긴 뒤 새로 출현하기까지 걸리는 시간(초)
-      minSpawnDist: 80,       // 플레이어와 최소 거리(px)
-      lifetime: [40, 80],     // 몬스터가 필드에 머무는 시간(초)
+      respawn: [2, 4],        // 빈자리가 생긴 뒤 새로 출현하기까지 걸리는 시간(초)
+      minSpawnDist: 64,       // 플레이어와 최소 거리(px)
+      lifetime: [60, 120],    // 몬스터가 필드에 머무는 시간(초)
     },
   },
   {
@@ -2714,17 +2848,17 @@ const MonsterData = [
   // ---- 초록숲: 일반 3종 ----
   {
     id: 'blue_slime', exp: 6, gold: [2, 5], name: '푸른 슬라임', rarity: 'normal', regions: ['greenforest'], level: [1, 2],
-    spawnChance: 50, maxCount: 3, stats: { hp: 18, atk: 4, def: 1, spd: 3 },
+    spawnChance: 50, maxCount: 5, stats: { hp: 18, atk: 4, def: 1, spd: 3 },
     moveSpeed: 16, detectRange: 56, sprite: 'slime', wanderRadius: 36,
   },
   {
     id: 'forest_rat', exp: 7, gold: [2, 6], name: '들쥐', rarity: 'normal', regions: ['greenforest'], level: [1, 3],
-    spawnChance: 40, maxCount: 3, stats: { hp: 14, atk: 5, def: 0, spd: 8 },
+    spawnChance: 40, maxCount: 4, stats: { hp: 14, atk: 5, def: 0, spd: 8 },
     moveSpeed: 24, detectRange: 52, sprite: 'rat', wanderRadius: 48,
   },
   {
     id: 'mushroom_kid', exp: 10, gold: [4, 8], name: '버섯돌이', rarity: 'normal', regions: ['greenforest'], level: [2, 3],
-    spawnChance: 35, maxCount: 2, stats: { hp: 26, atk: 6, def: 2, spd: 2 },
+    spawnChance: 35, maxCount: 3, stats: { hp: 26, atk: 6, def: 2, spd: 2 },
     moveSpeed: 13, detectRange: 48, sprite: 'mushroom', wanderRadius: 44,
   },
   // ---- 초록숲: 중간보스 (맵 가장 위쪽에 자리 잡고 있다) ----
@@ -2855,6 +2989,7 @@ const SkillData = {
   <script>
 // 아이템 데이터. 새 아이템은 ItemData 에 항목만 추가한다.
 //   type     : 'package'(열면 다른 아이템이 나옴) | 'weapon' | 'armor' | 'potion' | 'material'(강화재료) | 'loot'(몬스터 소재)
+//   sell     : 판매소에 팔 때 받는 골드(개당). 없으면 팔 수 없다
 //   rarity   : 'common' | 'uncommon' | 'rare' (소재/재료의 희귀도)
 //   icon     : Sprites.items 의 키
 //   contents : 꾸러미(package)를 열었을 때 나오는 아이템 목록
@@ -2891,23 +3026,23 @@ const ItemData = {
     armor: { def: 2 },
   },
   hp_potion: {
-    id: 'hp_potion', name: 'HP 회복물약', type: 'potion', icon: 'hpPotion',
+    id: 'hp_potion', sell: 12, name: 'HP 회복물약', type: 'potion', icon: 'hpPotion',
     desc: '붉은 약초를 달인 물약. 마시면 체력이 회복된다. (HP +50)',
     use: { hp: 50 },
   },
   upgrade_stone: {
-    id: 'upgrade_stone', name: '강화석', type: 'material', icon: 'gem',
+    id: 'upgrade_stone', sell: 25, name: '강화석', type: 'material', icon: 'gem',
     desc: '대장간에서 장비의 등급을 올릴 때 쓰는 기본 강화재료. 몬스터가 가끔 떨어뜨린다.',
     // 강화재료: chanceBonus 는 대장간 기본 성공 확률에 더해진다 (더 희귀한 재료는 보너스가 크다)
     forge: { rarity: 'common', chanceBonus: 0 },
   },
   // ---- 몬스터 소재(전리품): 아직 쓸 곳은 없고, 상점 판매/제작이 생기면 쓰인다 ----
-  slime_jelly: { id: 'slime_jelly', name: '슬라임 젤리', type: 'loot', icon: 'jelly', rarity: 'common', desc: '푸른 슬라임의 몸에서 나온 말랑한 젤리.' },
-  rat_tail: { id: 'rat_tail', name: '들쥐 꼬리', type: 'loot', icon: 'tail', rarity: 'common', desc: '들쥐의 가늘고 긴 꼬리.' },
-  mushroom_cap: { id: 'mushroom_cap', name: '버섯 갓', type: 'loot', icon: 'cap', rarity: 'common', desc: '버섯돌이의 머리에서 떨어진 붉은 갓.' },
-  goblin_horn: { id: 'goblin_horn', name: '고블린 대장의 뿔', type: 'loot', icon: 'horn', rarity: 'rare', desc: '고블린 대장의 투구에 달려 있던 단단한 뿔.' },
+  slime_jelly: { id: 'slime_jelly', sell: 6, name: '슬라임 젤리', type: 'loot', icon: 'jelly', rarity: 'common', desc: '푸른 슬라임의 몸에서 나온 말랑한 젤리.' },
+  rat_tail: { id: 'rat_tail', sell: 5, name: '들쥐 꼬리', type: 'loot', icon: 'tail', rarity: 'common', desc: '들쥐의 가늘고 긴 꼬리.' },
+  mushroom_cap: { id: 'mushroom_cap', sell: 9, name: '버섯 갓', type: 'loot', icon: 'cap', rarity: 'common', desc: '버섯돌이의 머리에서 떨어진 붉은 갓.' },
+  goblin_horn: { id: 'goblin_horn', sell: 80, name: '고블린 대장의 뿔', type: 'loot', icon: 'horn', rarity: 'rare', desc: '고블린 대장의 투구에 달려 있던 단단한 뿔.' },
   mp_potion: {
-    id: 'mp_potion', name: 'MP 회복물약', type: 'potion', icon: 'mpPotion',
+    id: 'mp_potion', sell: 12, name: 'MP 회복물약', type: 'potion', icon: 'mpPotion',
     desc: '푸른 이슬을 모아 만든 물약. 마시면 마력이 회복된다. (MP +20)',
     use: { mp: 20 },
   },
@@ -2936,7 +3071,7 @@ const DropTables = {
   blue_slime: [
     { id: 'slime_jelly', chance: 0.5 },
     { id: 'upgrade_stone', chance: 0.25 },
-    { id: 'hp_potion', chance: 0.08 },
+    { id: 'hp_potion', chance: 0.05 },
   ],
   forest_rat: [
     { id: 'rat_tail', chance: 0.5 },
@@ -3944,7 +4079,7 @@ Game.register('companion', {
 // 쌓이는 아이템(꾸러미/물약)은 GameState.inventory, 장비(무기/방어구)는 한 개씩 레벨·등급을 가지므로 GameState.gear 에 둔다.
 //   수신 'item:gain'      { id, count }  아이템 획득 (장비는 count 개의 새 장비가 만들어진다)
 //   수신 'inventory:use'  { id }         꾸러미 열기
-//   수신 'inventory:consume' { id }      한 개 소모 (전투 중 물약 사용)
+//   수신 'inventory:consume' { id, count } 소모 (전투 중 물약 사용, 판매 등. count 생략 시 1개)
 //   발신 'inventory:changed'              가방 내용이 바뀜
 //   발신 'gear:added' { uid }             새 장비가 생김 (장착 여부는 Equipment 가 정한다)
 //   발신 'inventory:opened' { id, gained } 꾸러미를 열어 gained 를 얻음
@@ -4000,19 +4135,17 @@ Game.register('inventory', {
     });
     Events.on('game:new', () => { uidSeq = 1; });
 
-    function consume(id) {
+    function consume(id, count = 1) {
       const items = GameState.get('inventory').items;
       const held = items.find((it) => it.id === id);
-      if (!held) return false;
-      const list = items.map((it) => ({ ...it })).filter((it) => it.id !== id || it.count > 1);
-      const left = list.find((it) => it.id === id);
-      if (left) left.count -= 1;
+      if (!held || held.count < count) return false;
+      const list = items.map((it) => ({ ...it, count: it.id === id ? it.count - count : it.count })).filter((it) => it.count > 0);
       GameState.patch('inventory', { items: list });
       return true;
     }
 
-    Events.on('inventory:consume', ({ id }) => {
-      if (consume(id)) Events.emit('inventory:changed');
+    Events.on('inventory:consume', ({ id, count }) => {
+      if (consume(id, count || 1)) Events.emit('inventory:changed');
     });
 
     Events.on('inventory:use', ({ id }) => {
@@ -4152,12 +4285,24 @@ Game.register('economy', {
 });
 </script>
   <script>
-// Shop(NPC 상점) 시스템 — 아직 구현하지 않음 (구조만 마련).
-// 담당: NPC 상점 목록과 매매
-// 통신(예정): 수신 'npc:interact' / 발신 'item:gain', 'gold:spend'
+// Shop 시스템 — NPC 판매소: 몬스터 전리품 등을 골드로 바꾼다. (사는 기능은 아직 없다)
+//   수신 'shop:sell' { id, count }          아이템 판매
+//   발신 'inventory:consume' { id, count }  판 아이템 소모
+//   발신 'gold:gain' { amount }             골드 지급 (Economy 가 처리)
+//   발신 'shop:sold' { id, count, amount }  판매 결과
+// 판매 가격은 data/items.js 의 sell(개당 골드). sell 이 없는 아이템은 팔 수 없다.
 Game.register('shop', {
-  init(ctx) {
-    // 실제 기능을 구현할 때 ctx.Events / ctx.GameState 로만 다른 시스템과 연결한다.
+  init({ Events, GameState }) {
+    Events.on('shop:sell', ({ id, count }) => {
+      const def = ItemData[id];
+      const held = GameState.get('inventory').items.find((it) => it.id === id);
+      if (!def || !def.sell || !held) return;
+      const n = Math.max(1, Math.min(count || 1, held.count));
+      const amount = def.sell * n;
+      Events.emit('inventory:consume', { id, count: n });
+      Events.emit('gold:gain', { amount });
+      Events.emit('shop:sold', { id, count: n, amount });
+    });
   },
 });
 </script>
@@ -4681,7 +4826,8 @@ const Toast = (() => {
   let selected = 0;
   let result = null;   // 방금 꾸러미를 열어 얻은 목록 (보여 주는 중이면 값이 있다)
   let rows = [];
-  let detail = null;
+  let detail = null;   // 선택한 아이템 카드 안쪽(아래)에 붙는 설명 영역
+  let resultBox = null; // 꾸러미를 열고 난 뒤 얻은 목록
   let list = [];       // 화면에 그리는 항목: { kind: 'stack' | 'gear', def, it | inst }
 
   // 쌓이는 아이템과 장비를 종류 순서(꾸러미, 무기, 방어구, 물약)로 합친다
@@ -4740,20 +4886,22 @@ const Toast = (() => {
     return wrap;
   }
 
+  // 설명은 선택한 아이템 카드 바로 아래에만 나온다 (별도 카드를 띄우지 않는다)
   function showDetail() {
     detail.replaceChildren();
+    resultBox.replaceChildren();
     if (result) {
-      detail.className = 'bag-detail bag-result';
+      resultBox.className = 'bag-detail bag-result';
       const ul = el('ul');
       for (const g of result.gained) {
         const li = el('li');
         li.append(el('span', '', ItemData[g.id].name), el('b', '', '×' + g.count));
         ul.appendChild(li);
       }
-      detail.append(el('h3', '', ItemData[result.id].name + '을(를) 열었어요!'), ul);
+      resultBox.append(el('h3', '', ItemData[result.id].name + '을(를) 열었어요!'), ul);
       return;
     }
-    detail.className = 'bag-detail';
+    resultBox.className = '';
     const entry = list[selected];
     if (!entry) return;
     const { def } = entry;
@@ -4783,8 +4931,10 @@ const Toast = (() => {
     if (!list.length) return;
     selected = (i + list.length) % list.length;
     rows.forEach((r, n) => r.classList.toggle('is-selected', n === selected));
-    if (rows[selected]) rows[selected].scrollIntoView({ block: 'nearest' });
+    detail.remove();
+    rows[selected].append(detail);      // 선택한 카드 안쪽 아래에 설명을 붙인다
     showDetail();
+    rows[selected].scrollIntoView({ block: 'nearest' });
   }
 
   function build() {
@@ -4800,8 +4950,9 @@ const Toast = (() => {
     for (const entry of list) {
       const { def } = entry;
       const li = el('li', 'bag-row');
+      const main = el('div', 'bag-row-main');
       const idx = rows.length;
-      li.addEventListener('click', () => { result = null; select(idx); }); // 눌러서 선택
+      li.addEventListener('click', (e) => { if (e.target.closest('.bag-desc')) return; result = null; select(idx); }); // 눌러서 선택
       const text = el('div', 'bag-name', def.name);
       text.append(el('span', 'bag-type', ItemTypes[def.type].label));
       let right;
@@ -4811,12 +4962,14 @@ const Toast = (() => {
       } else {
         right = el('div', 'bag-count', '×' + entry.it.count);
       }
-      li.append(iconCanvas(def), text, right);
+      main.append(iconCanvas(def), text, right);
+      li.append(main);
       ul.appendChild(li);
       rows.push(li);
     }
-    detail = el('div');
-    root.append(ul, detail);
+    detail = el('div', 'bag-desc');
+    resultBox = el('div');
+    root.append(ul, resultBox);
     selected = Math.min(selected, list.length - 1);
     select(selected);
   }
@@ -4966,13 +5119,11 @@ const Toast = (() => {
     return '★'.repeat(inst.grade) + (ItemData[inst.id].weapon ? `  숙련 Lv.${inst.level}` : '');
   }
 
+  // 설명/비교는 선택한 장비 카드 바로 아래에만 나온다
   function showCompare() {
     compare.replaceChildren();
     const inst = list[selected];
-    if (!inst) {
-      compare.append(el('p', 'bag-empty', '이 종류의 장비가 없어요.'));
-      return;
-    }
+    if (!inst) return;
     const type = ItemData[inst.id].type;
     const cur = GameState.get('gear').list.find((g) => g.uid === equippedUid(type));
     const now = statOf(inst);
@@ -4991,11 +5142,13 @@ const Toast = (() => {
   }
 
   function select(i) {
-    if (!list.length) { showCompare(); return; }
+    if (!list.length) return;
     selected = (i + list.length) % list.length;
     rows.forEach((r, n) => r.classList.toggle('is-selected', n === selected));
-    if (rows[selected]) rows[selected].scrollIntoView({ block: 'nearest' });
+    compare.remove();
+    rows[selected].append(compare);
     showCompare();
+    rows[selected].scrollIntoView({ block: 'nearest' });
   }
 
   function build() {
@@ -5028,17 +5181,20 @@ const Toast = (() => {
     list.forEach((inst, idx) => {
       const def = ItemData[inst.id];
       const li = el('li', 'bag-row');
-      li.addEventListener('click', () => (idx === selected ? confirm() : select(idx)));
+      const main = el('div', 'bag-row-main');
+      li.addEventListener('click', (e) => { if (e.target.closest('.bag-desc')) return; idx === selected ? confirm() : select(idx); });
       const text = el('div', 'bag-name', def.name);
       text.append(el('span', 'bag-type', gradeText(inst)));
       const right = el('div', 'bag-count', `+${statOf(inst).toFixed(1)}`);
       if (inst.uid === equippedUid(type)) right.append(el('span', 'bag-eq', '장착 중'));
-      li.append(iconCanvas(def), text, right);
+      main.append(iconCanvas(def), text, right);
+      li.append(main);
       ul.append(li);
       rows.push(li);
     });
-    compare = el('div', 'bag-detail');
-    root.append(summary, tabs, ul, compare);
+    compare = el('div', 'bag-desc');
+    root.append(summary, tabs, ul);
+    if (!list.length) root.append(el('p', 'bag-empty', '이 종류의 장비가 없어요.'));
     selected = Math.min(selected, Math.max(0, list.length - 1));
     select(selected);
   }
@@ -5162,7 +5318,7 @@ const Toast = (() => {
 
   document.getElementById('sys-btn').addEventListener('click', () => {
     if (Screens.current === 'system') Screens.close();
-    else if (!BattleUI.active && !ForgeUI.active) Screens.open('system');
+    else if (!BattleUI.active && !ForgeUI.active && !ShopUI.active) Screens.open('system');
   });
 })();
 </script>
@@ -5415,6 +5571,194 @@ const ForgeUI = (() => {
     confirm,
     back: close,
     close,
+  };
+})();
+</script>
+  <script>
+// 판매소 화면. 위쪽은 팔 수 있는 아이템 목록, 아래쪽(메뉴 자리)은 판매 장면(상인, 개수, 합계).
+//   ▲▼ 아이템 선택, ◀▶ 개수 조절, 확인(판매), 뒤로(나가기). 목록과 개수 버튼은 직접 눌러도 된다.
+//   판매 규칙(가격, 골드 지급)은 systems/shop.js 가 처리한다 ('shop:sell' -> 'shop:sold').
+const ShopUI = (() => {
+  const $ = (id) => document.getElementById(id);
+  const root = $('shop');
+  const dock = $('dock');
+  const panel = $('shop-panel');
+  const listEl = $('sh-list');
+
+  let active = false;
+  let sel = 0;
+  let qty = 1;
+  let sc = 3;
+
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+
+  // 팔 수 있는 아이템(sell 가격이 있는 것), 종류 순서대로
+  function sellables() {
+    return GameState.get('inventory').items
+      .filter((it) => ItemData[it.id].sell)
+      .sort((a, b) => ItemTypes[ItemData[a.id].type].order - ItemTypes[ItemData[b.id].type].order);
+  }
+
+  const setMsg = (t) => { $('sh-msg').textContent = t; };
+
+  function drawIcon(canvas, def, scale) {
+    const img = Sprites.items[def.icon];
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    canvas.style.width = img.width * scale + 'px';
+    canvas.style.height = img.height * scale + 'px';
+  }
+
+  // ---------- 위: 목록 ----------
+  function renderList() {
+    const items = sellables();
+    sel = Math.min(sel, Math.max(0, items.length - 1));
+    listEl.replaceChildren();
+    if (!items.length) {
+      listEl.append(el('p', 'bag-empty', '팔 수 있는 아이템이 없어요. 몬스터를 사냥해 전리품을 모아 오세요.'));
+      return;
+    }
+    items.forEach((it, i) => {
+      const def = ItemData[it.id];
+      const li = el('div', 'bag-row' + (i === sel ? ' is-selected' : ''));
+      const main = el('div', 'bag-row-main');
+      const icon = el('canvas', 'bag-icon');
+      icon.width = 16;
+      icon.height = 16;
+      icon.getContext('2d').drawImage(Sprites.items[def.icon], 0, 0);
+      const text = el('div', 'bag-name', def.name);
+      text.append(el('span', 'bag-type', `${ItemTypes[def.type].label} · 보유 ${it.count}개`));
+      const price = el('div', 'sh-price', def.sell + ' G');
+      price.append(el('small', '', '개당'));
+      main.append(icon, text, price);
+      li.append(main);
+      if (i === sel) li.append(el('div', 'bag-desc', '')), li.lastChild.append(el('p', '', def.desc));  // 설명은 선택한 카드 아래에만
+      li.addEventListener('click', (e) => { if (e.target.closest('.bag-desc')) return; if (i !== sel) { sel = i; qty = 1; render(); } });
+      listEl.append(li);
+    });
+    const cur = listEl.querySelector('.is-selected');
+    if (cur) cur.scrollIntoView({ block: 'nearest' });
+  }
+
+  // ---------- 아래: 판매 장면 ----------
+  function renderScene() {
+    const items = sellables();
+    const it = items[sel];
+    const info = $('sh-info');
+    info.replaceChildren();
+    const itemCanvas = $('sh-item');
+    if (!it) {
+      itemCanvas.style.visibility = 'hidden';
+      info.append(el('b', '', '팔 물건이 없어요'));
+      return;
+    }
+    const def = ItemData[it.id];
+    qty = Math.max(1, Math.min(qty, it.count));
+    itemCanvas.style.visibility = 'visible';
+    drawIcon(itemCanvas, def, sc);
+
+    const row = el('div', 'sh-qty');
+    const minus = el('button', '', '−');
+    const plus = el('button', '', '+');
+    const all = el('button', '', '전부');
+    for (const b of [minus, plus, all]) b.type = 'button';
+    minus.addEventListener('click', () => { qty = Math.max(1, qty - 1); renderScene(); });
+    plus.addEventListener('click', () => { qty = Math.min(it.count, qty + 1); renderScene(); });
+    all.addEventListener('click', () => { qty = it.count; renderScene(); });
+    row.append(minus, el('span', '', `${qty}개`), plus, all);
+    info.append(el('b', '', def.name), row, el('span', 'sh-total', `합계 ${(def.sell * qty).toLocaleString('ko-KR')} 골드`));
+  }
+
+  function render() {
+    renderList();
+    renderScene();
+  }
+
+  // ---------- 판매 ----------
+  function sell() {
+    const it = sellables()[sel];
+    if (!it) { setMsg('팔 물건이 없네요. 사냥해서 전리품을 모아 오세요!'); return; }
+    Events.emit('shop:sell', { id: it.id, count: qty });
+  }
+
+  Events.on('shop:sold', ({ id, count, amount }) => {
+    if (!active) return;
+    setMsg(`${ItemData[id].name} ${count}개를 팔아서 ${amount}골드를 받았어요!`);
+    const f = $('sh-float');
+    f.textContent = `+${amount} G`;
+    f.classList.remove('go');
+    void f.offsetWidth;
+    f.classList.add('go');
+    qty = 1;
+    render();
+  });
+
+  // ---------- 열기 / 닫기 ----------
+  function open() {
+    if (active) return;
+    active = true;
+    sel = 0;
+    qty = 1;
+    root.hidden = false;
+    root.classList.remove('intro');
+    void root.offsetWidth;
+    root.classList.add('intro');
+    dock.dataset.mode = 'shop';
+    panel.hidden = false;
+    sc = panel.clientHeight >= 140 ? 3 : 2;
+    const merchant = Sprites.npcs.merchant.down[2];
+    const mc = $('sh-merchant');
+    mc.width = merchant.width;
+    mc.height = merchant.height;
+    mc.getContext('2d').drawImage(merchant, 0, 0);
+    mc.style.width = merchant.width * sc + 'px';
+    mc.style.height = merchant.height * sc + 'px';
+    setMsg('어서 오세요! 팔고 싶은 전리품을 골라 주세요.');
+    render();
+    Events.emit('shop:opened');
+    Events.emit('ui:changed');
+  }
+
+  function close() {
+    if (!active) return;
+    active = false;
+    root.hidden = true;
+    dock.dataset.mode = '';
+    panel.hidden = true;
+    Events.emit('shop:closed');
+    Events.emit('ui:changed');
+  }
+
+  // ---------- 하단 컨트롤에서 부르는 조작 ----------
+  function nav(dir) {
+    const items = sellables();
+    if (!items.length) return;
+    if (dir === 'up' || dir === 'down') {
+      sel = (sel + (dir === 'up' ? -1 : 1) + items.length) % items.length;
+      qty = 1;
+    } else {
+      qty = Math.max(1, Math.min(items[sel].count, qty + (dir === 'right' ? 1 : -1)));
+    }
+    render();
+  }
+
+  Events.on('building:enter', ({ id }) => { if (id === 'shop') open(); });
+  Events.on('game:quit', close);
+  Events.on('inventory:changed', () => { if (active) render(); });
+
+  return {
+    get active() { return active; },
+    confirmLabel: () => '판매',
+    canBack: () => active,
+    nav,
+    confirm: sell,
+    back: close,
   };
 })();
 </script>
@@ -5762,6 +6106,7 @@ const Controls = (() => {
   function mode() {
     if (BattleUI.active) return 'battle';
     if (ForgeUI.active) return 'forge';
+    if (ShopUI.active) return 'shop';
     if (Dialog.isOpen()) return 'dialog';
     if (Screens.current) return 'screen';
     return 'field';
@@ -5771,12 +6116,13 @@ const Controls = (() => {
   function refresh() {
     const m = mode();
     pad.dataset.mode = m;
-    back.hidden = m === 'field' || (m === 'battle' && !BattleUI.canBack()) || (m === 'forge' && !ForgeUI.canBack());
-    back.textContent = m === 'dialog' ? '닫기' : m === 'forge' ? '나가기' : '뒤로';
+    back.hidden = m === 'field' || (m === 'battle' && !BattleUI.canBack()) || (m === 'forge' && !ForgeUI.canBack()) || (m === 'shop' && !ShopUI.canBack());
+    back.textContent = m === 'dialog' ? '닫기' : m === 'forge' || m === 'shop' ? '나가기' : '뒤로';
 
     let label = null;
     if (m === 'battle') label = BattleUI.confirmLabel();
     else if (m === 'forge') label = ForgeUI.confirmLabel();
+    else if (m === 'shop') label = ShopUI.confirmLabel();
     else if (m === 'dialog') label = Dialog.confirmLabel();
     else if (m === 'screen') label = '확인';
     else if (target) label = target.kind === 'building' ? '입장' : '대화';
@@ -5795,6 +6141,7 @@ const Controls = (() => {
   function pressConfirm() {
     if (BattleUI.active) BattleUI.confirm();
     else if (ForgeUI.active) ForgeUI.confirm();
+    else if (ShopUI.active) ShopUI.confirm();
     else if (Dialog.isOpen()) Dialog.next();
     else if (Screens.current) Screens.confirm();
     else if (target && target.kind === 'building') Events.emit('building:enter', { id: target.id });
@@ -5804,6 +6151,7 @@ const Controls = (() => {
   function pressBack() {
     if (BattleUI.active) BattleUI.back();
     else if (ForgeUI.active) ForgeUI.back();
+    else if (ShopUI.active) ShopUI.back();
     else if (Dialog.isOpen()) Dialog.close();
     else if (Screens.current) Screens.back();
   }
@@ -5814,12 +6162,14 @@ const Controls = (() => {
     b.addEventListener('click', () => {
       if (BattleUI.active) BattleUI.nav(b.dataset.nav);
       else if (ForgeUI.active) ForgeUI.nav(b.dataset.nav);
+      else if (ShopUI.active) ShopUI.nav(b.dataset.nav);
       else if (Screens.current && !Dialog.isOpen()) Screens.nav(b.dataset.nav);
     }));
 
   Events.on('interact:target', (t) => { target = t; refresh(); });
   Events.on('ui:changed', refresh);
   Events.on('forge:opened', refresh);
+  Events.on('shop:opened', refresh);
   refresh();
 
   return { refresh };
@@ -6349,6 +6699,8 @@ const TitleUI = (() => {
   });
   Events.on('forge:opened', () => setPauseLock('forge', true));
   Events.on('forge:closed', () => setPauseLock('forge', false));
+  Events.on('shop:opened', () => setPauseLock('shop', true));
+  Events.on('shop:closed', () => setPauseLock('shop', false));
 
   Game.init();
   TitleUI.show();

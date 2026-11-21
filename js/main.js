@@ -439,6 +439,8 @@
   });
   Events.on('forge:opened', () => setPauseLock('forge', true));
   Events.on('forge:closed', () => setPauseLock('forge', false));
+  Events.on('shop:opened', () => setPauseLock('shop', true));
+  Events.on('shop:closed', () => setPauseLock('shop', false));
 
   Game.init();
   TitleUI.show();

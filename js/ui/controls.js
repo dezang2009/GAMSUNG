@@ -17,6 +17,7 @@ const Controls = (() => {
   function mode() {
     if (BattleUI.active) return 'battle';
     if (ForgeUI.active) return 'forge';
+    if (ShopUI.active) return 'shop';
     if (Dialog.isOpen()) return 'dialog';
     if (Screens.current) return 'screen';
     return 'field';
@@ -26,12 +27,13 @@ const Controls = (() => {
   function refresh() {
     const m = mode();
     pad.dataset.mode = m;
-    back.hidden = m === 'field' || (m === 'battle' && !BattleUI.canBack()) || (m === 'forge' && !ForgeUI.canBack());
-    back.textContent = m === 'dialog' ? '닫기' : m === 'forge' ? '나가기' : '뒤로';
+    back.hidden = m === 'field' || (m === 'battle' && !BattleUI.canBack()) || (m === 'forge' && !ForgeUI.canBack()) || (m === 'shop' && !ShopUI.canBack());
+    back.textContent = m === 'dialog' ? '닫기' : m === 'forge' || m === 'shop' ? '나가기' : '뒤로';
 
     let label = null;
     if (m === 'battle') label = BattleUI.confirmLabel();
     else if (m === 'forge') label = ForgeUI.confirmLabel();
+    else if (m === 'shop') label = ShopUI.confirmLabel();
     else if (m === 'dialog') label = Dialog.confirmLabel();
     else if (m === 'screen') label = '확인';
     else if (target) label = target.kind === 'building' ? '입장' : '대화';
@@ -50,6 +52,7 @@ const Controls = (() => {
   function pressConfirm() {
     if (BattleUI.active) BattleUI.confirm();
     else if (ForgeUI.active) ForgeUI.confirm();
+    else if (ShopUI.active) ShopUI.confirm();
     else if (Dialog.isOpen()) Dialog.next();
     else if (Screens.current) Screens.confirm();
     else if (target && target.kind === 'building') Events.emit('building:enter', { id: target.id });
@@ -59,6 +62,7 @@ const Controls = (() => {
   function pressBack() {
     if (BattleUI.active) BattleUI.back();
     else if (ForgeUI.active) ForgeUI.back();
+    else if (ShopUI.active) ShopUI.back();
     else if (Dialog.isOpen()) Dialog.close();
     else if (Screens.current) Screens.back();
   }
@@ -69,12 +73,14 @@ const Controls = (() => {
     b.addEventListener('click', () => {
       if (BattleUI.active) BattleUI.nav(b.dataset.nav);
       else if (ForgeUI.active) ForgeUI.nav(b.dataset.nav);
+      else if (ShopUI.active) ShopUI.nav(b.dataset.nav);
       else if (Screens.current && !Dialog.isOpen()) Screens.nav(b.dataset.nav);
     }));
 
   Events.on('interact:target', (t) => { target = t; refresh(); });
   Events.on('ui:changed', refresh);
   Events.on('forge:opened', refresh);
+  Events.on('shop:opened', refresh);
   refresh();
 
   return { refresh };

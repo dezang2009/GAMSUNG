@@ -27,17 +27,17 @@ const MonsterData = [
   // ---- 초록숲: 일반 3종 ----
   {
     id: 'blue_slime', exp: 6, gold: [2, 5], name: '푸른 슬라임', rarity: 'normal', regions: ['greenforest'], level: [1, 2],
-    spawnChance: 50, maxCount: 3, stats: { hp: 18, atk: 4, def: 1, spd: 3 },
+    spawnChance: 50, maxCount: 5, stats: { hp: 18, atk: 4, def: 1, spd: 3 },
     moveSpeed: 16, detectRange: 56, sprite: 'slime', wanderRadius: 36,
   },
   {
     id: 'forest_rat', exp: 7, gold: [2, 6], name: '들쥐', rarity: 'normal', regions: ['greenforest'], level: [1, 3],
-    spawnChance: 40, maxCount: 3, stats: { hp: 14, atk: 5, def: 0, spd: 8 },
+    spawnChance: 40, maxCount: 4, stats: { hp: 14, atk: 5, def: 0, spd: 8 },
     moveSpeed: 24, detectRange: 52, sprite: 'rat', wanderRadius: 48,
   },
   {
     id: 'mushroom_kid', exp: 10, gold: [4, 8], name: '버섯돌이', rarity: 'normal', regions: ['greenforest'], level: [2, 3],
-    spawnChance: 35, maxCount: 2, stats: { hp: 26, atk: 6, def: 2, spd: 2 },
+    spawnChance: 35, maxCount: 3, stats: { hp: 26, atk: 6, def: 2, spd: 2 },
     moveSpeed: 13, detectRange: 48, sprite: 'mushroom', wanderRadius: 44,
   },
   // ---- 초록숲: 중간보스 (맵 가장 위쪽에 자리 잡고 있다) ----

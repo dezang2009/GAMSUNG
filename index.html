@@ -57,6 +57,12 @@
         </div>
       </section>
 
+      <!-- 판매소: 위쪽은 팔 수 있는 아이템 목록 (아래쪽 메뉴 자리에 판매 장면이 나온다) -->
+      <section id="shop" hidden>
+        <header class="fg-head"><h2>판매소</h2><p>몬스터에게서 얻은 전리품을 골드로 바꿔요</p></header>
+        <div class="sh-list" id="sh-list"></div>
+      </section>
+
       <!-- 전투 화면 (포켓몬 스타일): 필드 전체를 덮는다 -->
       <section id="battle" hidden>
         <div class="bt-box bt-box-e">
@@ -121,6 +127,20 @@
           <div class="fg-info" id="fg-info"></div>
           <div class="fg-fx" id="fg-fx"></div>
           <div class="fg-msg" id="fg-msg"></div>
+        </div>
+      </div>
+
+      <!-- 판매소 중에는 판매 장면 -->
+      <div id="shop-panel" hidden>
+        <div class="fg-scene">
+          <div class="fg-wall"></div>
+          <div class="fg-floor"></div>
+          <canvas id="sh-merchant" class="sh-merchant"></canvas>
+          <div class="sh-counter"></div>
+          <canvas id="sh-item" class="sh-item"></canvas>
+          <div class="sh-info" id="sh-info"></div>
+          <div class="fg-msg" id="sh-msg"></div>
+          <div class="sh-float" id="sh-float"></div>
         </div>
       </div>
 
@@ -205,6 +225,7 @@
   <script src="js/ui/equip-screen.js"></script>
   <script src="js/ui/system-screen.js"></script>
   <script src="js/ui/forge-screen.js"></script>
+  <script src="js/ui/shop-screen.js"></script>
   <script src="js/ui/battle-screen.js"></script>
   <script src="js/ui/controls.js"></script>
   <script src="js/ui/title-screen.js"></script>

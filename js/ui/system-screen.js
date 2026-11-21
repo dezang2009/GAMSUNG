@@ -94,6 +94,6 @@
 
   document.getElementById('sys-btn').addEventListener('click', () => {
     if (Screens.current === 'system') Screens.close();
-    else if (!BattleUI.active && !ForgeUI.active) Screens.open('system');
+    else if (!BattleUI.active && !ForgeUI.active && !ShopUI.active) Screens.open('system');
   });
 })();

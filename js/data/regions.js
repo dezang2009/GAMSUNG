@@ -36,7 +36,7 @@ const Regions = [
       plaza: [12, 16, 8, 6],
       // 건물 (3x2 타일 발판, sprite 는 Sprites.buildings 의 키). 이름표로 표시된다.
       buildings: [
-        { id: 'shop', name: '상점', sprite: 'shop', tx: 5, ty: 11 },
+        { id: 'shop', name: '판매소', sprite: 'shop', tx: 5, ty: 11, enter: 'shop' },
         { id: 'inn', name: '여관', sprite: 'inn', tx: 24, ty: 11 },
         { id: 'forge', name: '대장간', sprite: 'forge', tx: 5, ty: 22, enter: 'forge' },   // enter: 들어가면 열리는 화면
         { id: 'hall', name: '의뢰소', sprite: 'hall', tx: 24, ty: 22 },
@@ -52,7 +52,7 @@ const Regions = [
       ],
       // NPC: role 은 추후 상호작용 시스템(상점/제작/의뢰 등)이 사용한다. look 은 Sprites.npcs 의 키
       npcs: [
-        { id: 'merchant', name: '상인 모모', role: 'shop', look: 'merchant', tx: 9, ty: 14, lines: ['어서 오세요! 솔빛 마을 상점이에요.', '물건은 곧 들여올 예정이니 조금만 기다려 주세요.'] },
+        { id: 'merchant', name: '상인 모모', role: 'shop', look: 'merchant', tx: 9, ty: 14, lines: ['어서 오세요! 솔빛 마을 판매소예요.', '몬스터에게서 얻은 전리품을 가져오면 좋은 값에 사 드릴게요.'] },
         { id: 'shopkeeper', name: '상점 주인 도라', role: 'shop', look: 'shopF', tx: 3, ty: 15, lines: ['남편이 또 물건을 쌓아 두네요.', '필요한 게 있으면 말씀하세요.'] },
         { id: 'innkeeper', name: '여관 주인 하나', role: 'inn', look: 'innkeeper', tx: 22, ty: 14, lines: ['여관에 오신 걸 환영해요. 푹 쉬고 가세요.', '따뜻한 차도 준비해 둘게요.'] },
         { id: 'maid', name: '여관 일꾼 미나', role: 'villager', look: 'maid', tx: 28, ty: 15, lines: ['어서 오세요! 방은 늘 깨끗해요.'] },
@@ -97,12 +97,12 @@ const Regions = [
       flowers: 80,
     },
     monsters: {
-      target: 6,              // 필드에 유지할 일반 몬스터 수 (3종)
+      target: 12,             // 필드에 유지할 일반 몬스터 수 (3종)
       // 중간보스: 맵 가장 위쪽에 자리 잡고, 쓰러뜨리면 respawn 초 뒤에 다시 나타난다
       boss: { id: 'goblin_chief', tx: 17, ty: 6, respawn: 120 },
-      respawn: [5, 9],        // 빈자리가 생긴 뒤 새로 출현하기까지 걸리는 시간(초)
-      minSpawnDist: 80,       // 플레이어와 최소 거리(px)
-      lifetime: [40, 80],     // 몬스터가 필드에 머무는 시간(초)
+      respawn: [2, 4],        // 빈자리가 생긴 뒤 새로 출현하기까지 걸리는 시간(초)
+      minSpawnDist: 64,       // 플레이어와 최소 거리(px)
+      lifetime: [60, 120],    // 몬스터가 필드에 머무는 시간(초)
     },
   },
   {

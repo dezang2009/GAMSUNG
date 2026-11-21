@@ -40,11 +40,12 @@ HTML/CSS/JavaScript만 사용한다. 빌드 도구 없이 `index.html`의 `<scri
 | Character | `systems/character.js` (+ `data/progression.js`, `ui/character-screen.js`) | 구현됨: 경험치/레벨업, 기술 4개 습득·교체 |
 | Equipment | `systems/equipment.js` (+ `core/stats.js`) | 구현됨: 장착, 무기 숙련 레벨, 무기별 기술 제안, 등급(대장장이가 올릴 예정) |
 | Economy | `systems/economy.js` | 골드 획득만 구현 (가격/상점은 Shop 에서) |
+| Shop | `systems/shop.js` + `ui/shop-screen.js` | 구현됨: 판매소(전리품 판매). 가격은 `data/items.js` 의 `sell`. 사는 기능은 아직 없음 |
 | Crafting | `systems/crafting.js` + `ui/forge-screen.js` (+ `data/forge.js`) | 구현됨: 대장간 강화(등급 ★ 올리기). 확률 = `Forge.successRate[등급]` + 재료 `forge.chanceBonus` |
 | Save | `systems/save.js` (+ `core/save-store.js`, `ui/title-screen.js`, `ui/system-screen.js`) | 구현됨: 파일 3개, 10분 자동 저장, 타이틀 화면 |
 | Inventory | `systems/inventory.js` (+ `data/items.js`, `ui/bag-screen.js`) | 구현됨: 아이템 보유, 꾸러미 열기 |
 | Starter | `systems/starter.js` | 구현됨: NPC `gift` 설정으로 처음 한 번 지급 (촌장 → 초보자 패키지) |
-| Companion, Shop, Collection, Quest | `systems/<이름>.js` | 뼈대만 있음 |
+| Companion, Collection, Quest | `systems/<이름>.js` | 뼈대만 있음 |
 
 ## 확장 방법
 

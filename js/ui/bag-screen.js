@@ -6,7 +6,8 @@
   let selected = 0;
   let result = null;   // 방금 꾸러미를 열어 얻은 목록 (보여 주는 중이면 값이 있다)
   let rows = [];
-  let detail = null;
+  let detail = null;   // 선택한 아이템 카드 안쪽(아래)에 붙는 설명 영역
+  let resultBox = null; // 꾸러미를 열고 난 뒤 얻은 목록
   let list = [];       // 화면에 그리는 항목: { kind: 'stack' | 'gear', def, it | inst }
 
   // 쌓이는 아이템과 장비를 종류 순서(꾸러미, 무기, 방어구, 물약)로 합친다
@@ -65,20 +66,22 @@
     return wrap;
   }
 
+  // 설명은 선택한 아이템 카드 바로 아래에만 나온다 (별도 카드를 띄우지 않는다)
   function showDetail() {
     detail.replaceChildren();
+    resultBox.replaceChildren();
     if (result) {
-      detail.className = 'bag-detail bag-result';
+      resultBox.className = 'bag-detail bag-result';
       const ul = el('ul');
       for (const g of result.gained) {
         const li = el('li');
         li.append(el('span', '', ItemData[g.id].name), el('b', '', '×' + g.count));
         ul.appendChild(li);
       }
-      detail.append(el('h3', '', ItemData[result.id].name + '을(를) 열었어요!'), ul);
+      resultBox.append(el('h3', '', ItemData[result.id].name + '을(를) 열었어요!'), ul);
       return;
     }
-    detail.className = 'bag-detail';
+    resultBox.className = '';
     const entry = list[selected];
     if (!entry) return;
     const { def } = entry;
@@ -108,8 +111,10 @@
     if (!list.length) return;
     selected = (i + list.length) % list.length;
     rows.forEach((r, n) => r.classList.toggle('is-selected', n === selected));
-    if (rows[selected]) rows[selected].scrollIntoView({ block: 'nearest' });
+    detail.remove();
+    rows[selected].append(detail);      // 선택한 카드 안쪽 아래에 설명을 붙인다
     showDetail();
+    rows[selected].scrollIntoView({ block: 'nearest' });
   }
 
   function build() {
@@ -125,8 +130,9 @@
     for (const entry of list) {
       const { def } = entry;
       const li = el('li', 'bag-row');
+      const main = el('div', 'bag-row-main');
       const idx = rows.length;
-      li.addEventListener('click', () => { result = null; select(idx); }); // 눌러서 선택
+      li.addEventListener('click', (e) => { if (e.target.closest('.bag-desc')) return; result = null; select(idx); }); // 눌러서 선택
       const text = el('div', 'bag-name', def.name);
       text.append(el('span', 'bag-type', ItemTypes[def.type].label));
       let right;
@@ -136,12 +142,14 @@
       } else {
         right = el('div', 'bag-count', '×' + entry.it.count);
       }
-      li.append(iconCanvas(def), text, right);
+      main.append(iconCanvas(def), text, right);
+      li.append(main);
       ul.appendChild(li);
       rows.push(li);
     }
-    detail = el('div');
-    root.append(ul, detail);
+    detail = el('div', 'bag-desc');
+    resultBox = el('div');
+    root.append(ul, resultBox);
     selected = Math.min(selected, list.length - 1);
     select(selected);
   }

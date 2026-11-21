@@ -10,7 +10,7 @@ const DropTables = {
   blue_slime: [
     { id: 'slime_jelly', chance: 0.5 },
     { id: 'upgrade_stone', chance: 0.25 },
-    { id: 'hp_potion', chance: 0.08 },
+    { id: 'hp_potion', chance: 0.05 },
   ],
   forest_rat: [
     { id: 'rat_tail', chance: 0.5 },
