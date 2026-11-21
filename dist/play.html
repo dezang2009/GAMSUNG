@@ -6,24 +6,21 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>픽셀 모험</title>
   <style>
-/* 밝고 아기자기한 모험 마을 테마: 크림색 바탕 + 파스텔 포인트 + 둥근 모서리 */
+/* 차분하고 깔끔한 테마: 따뜻한 회백색 바탕, 얇은 선, 작은 모서리, 절제된 포인트 색 */
 :root {
-  --cream: #fff8ec;
-  --cream-2: #fbeccf;
-  --line: #f0dfbd;
-  --ink: #4a3a2c;
-  --ink-soft: #8a7560;
-  --white: #fff;
-  --coral: #ff7a6b;
-  --amber: #f2a920;
-  --mint: #2fbfa8;
-  --blue: #5a8cf0;
-  --violet: #a77be8;
-  --sky: #3fb0e8;
-  --green: #52c47f;
-  --radius: 16px;
-  --radius-lg: 20px;
-  --shadow-float: 0 3px 12px rgba(74, 58, 44, 0.2);
+  --bg: #f2f0ea;
+  --surface: #fff;
+  --surface-2: #e9e6dd;
+  --line: #d9d5ca;
+  --ink: #2a2926;
+  --ink-soft: #7a766b;
+  --accent: #2f6f5a;
+  --accent-soft: #dcebe4;
+  --hp: #c2493d;
+  --mp: #3f6fb5;
+  --radius: 10px;
+  --radius-sm: 7px;
+  --shadow: 0 1px 3px rgba(30, 28, 22, 0.18);
   --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
 }
 
@@ -36,7 +33,7 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--cream);
+  background: var(--bg);
   overscroll-behavior: none;
   -webkit-user-select: none;
   user-select: none;
@@ -45,14 +42,14 @@ body {
   color: var(--ink);
 }
 
-/* ---------- 전체 구조: 위 필드 + 아래 메뉴 ---------- */
+/* ---------- 전체 구조: 위 필드 + 아래 메뉴 (겹치지 않게 깔끔히 분리) ---------- */
 #app {
   height: 100%;
   max-width: 520px;
   margin: 0 auto;
   display: grid;
-  grid-template-rows: minmax(0, 54fr) minmax(0, 46fr);
-  background: var(--cream);
+  grid-template-rows: minmax(0, 62fr) minmax(0, 38fr);
+  background: var(--bg);
 }
 
 #field {
@@ -61,7 +58,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #8bd36a;
+  background: #7fbf63;
 }
 
 #game {
@@ -81,45 +78,45 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 10px 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) 8px 0;
   pointer-events: none;
   z-index: 3;
 }
 
 .hud-card,
 .pill {
-  background: rgba(255, 252, 244, 0.95);
-  box-shadow: var(--shadow-float);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow);
 }
 
 .hud-card {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 10px 7px 7px;
+  gap: 7px;
+  padding: 6px 8px 6px 6px;
   border-radius: var(--radius);
 }
 
 .hud-lv {
-  padding: 6px 8px;
-  border-radius: 11px;
-  background: #ffd24a;
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 800;
+  padding: 5px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .hud-bars {
   display: grid;
-  gap: 4px;
-  width: 112px;
+  gap: 3px;
+  width: 104px;
 }
 
 .bar {
   position: relative;
-  height: 15px;
-  border-radius: 8px;
-  background: #efe3cc;
+  height: 13px;
+  border-radius: 3px;
+  background: #e3dfd5;
   overflow: hidden;
 }
 
@@ -127,12 +124,11 @@ body {
   position: absolute;
   inset: 0 auto 0 0;
   width: 100%;
-  border-radius: 8px;
   transition: width 0.25s;
 }
 
-.bar.hp i { background: var(--coral); }
-.bar.mp i { background: var(--blue); }
+.bar.hp i { background: var(--hp); }
+.bar.mp i { background: var(--mp); }
 
 .bar span {
   position: absolute;
@@ -140,146 +136,133 @@ body {
   display: grid;
   place-items: center;
   color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  font-size: 9px;
+  font-weight: 700;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
 }
 
 .hud-right {
   display: grid;
   justify-items: end;
-  gap: 6px;
+  gap: 5px;
 }
 
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
+  gap: 6px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: var(--radius-sm);
   color: var(--ink);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .coin {
-  width: 14px;
-  height: 14px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
-  background: #ffd24a;
-  box-shadow: inset 0 0 0 2px #f2a920;
+  background: #d9a93a;
+  box-shadow: inset 0 0 0 2px #b88a22;
 }
 
 .dot {
-  width: 9px;
-  height: 9px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--accent);
 }
 
 #hud-loc[data-type="field"] .dot {
-  background: var(--coral);
+  background: var(--hp);
 }
 
-/* ---------- 하단 메인 메뉴 ---------- */
+/* ---------- 하단: 메인 메뉴 + 조작 패드 ---------- */
 #dock {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
-  background: var(--cream);
-  border-radius: 22px 22px 0 0;
-  margin-top: -14px; /* 필드 위로 살짝 겹쳐 올라온다 */
-  box-shadow: 0 -4px 14px rgba(74, 58, 44, 0.16);
+  gap: 8px;
+  padding: 8px 10px calc(env(safe-area-inset-bottom, 0px) + 8px);
+  background: var(--bg);
+  border-top: 1px solid var(--line);
   z-index: 4;
 }
 
 .dock-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-auto-rows: clamp(58px, 9vh, 72px);
-  gap: 8px;
+  grid-auto-rows: clamp(40px, 6vh, 48px);
+  gap: 6px;
   flex: none;
 }
 
 .dock-btn {
-  --c: var(--blue);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 7px;
   margin: 0;
-  padding: 4px;
+  padding: 0 4px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--white);
-  box-shadow: 0 2px 0 var(--line);
+  background: var(--surface);
   color: var(--ink);
-  font: 800 13px/1 var(--font);
+  font: 700 13px/1 var(--font);
   letter-spacing: -0.01em;
   cursor: pointer;
   touch-action: manipulation;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: background 0.1s, border-color 0.1s;
 }
 
 .dock-btn:active {
-  transform: translateY(2px);
-  box-shadow: 0 0 0 var(--line);
+  background: var(--surface-2);
 }
 
 .dock-icon {
-  width: 32px;
-  height: 32px;
   display: grid;
   place-items: center;
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--c) 18%, white);
-  color: var(--c);
+  color: var(--ink-soft);
 }
 
 .dock-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 19px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.2;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .dock-btn.is-current {
-  border-color: var(--c);
-  box-shadow: 0 2px 0 var(--c);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
-.c-coral { --c: var(--coral); }
-.c-amber { --c: var(--amber); }
-.c-mint { --c: var(--mint); }
-.c-blue { --c: var(--blue); }
-.c-violet { --c: var(--violet); }
-.c-sky { --c: var(--sky); }
+.dock-btn.is-current .dock-icon {
+  color: var(--accent);
+}
 
-/* ---------- 조이스틱 패드 (메뉴 아래쪽): 왼쪽 조이스틱 + 오른쪽 대화 버튼 ---------- */
+/* ---------- 조작 패드: 왼쪽 조이스틱 + 오른쪽 대화/확인/뒤로 ---------- */
 #pad {
-  --joy: clamp(84px, 16vh, 112px);
+  --joy: clamp(72px, 12.5vh, 96px);
   position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   align-items: center;
-  border-radius: var(--radius-lg);
-  background: var(--cream-2);
-  box-shadow: inset 0 2px 6px rgba(74, 58, 44, 0.1);
+  border-radius: var(--radius);
+  background: var(--surface-2);
   overflow: hidden;
 }
 
 #joy-zone {
   position: relative;
   flex: none;
-  width: calc(var(--joy) + 40px);
+  width: calc(var(--joy) + 32px);
   height: 100%;
   touch-action: none;
   cursor: pointer;
@@ -293,9 +276,8 @@ body {
   height: var(--joy);
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.75);
-  border: 3px solid #ecd6a8;
-  box-shadow: 0 2px 0 #e3cb98;
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid #c9c4b6;
   pointer-events: none;
 }
 
@@ -303,96 +285,88 @@ body {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 46%;
-  height: 46%;
-  margin: calc(var(--joy) * -0.23) 0 0 calc(var(--joy) * -0.23);
+  width: 44%;
+  height: 44%;
+  margin: calc(var(--joy) * -0.22) 0 0 calc(var(--joy) * -0.22);
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ffb08a, #ff7a6b 70%);
-  box-shadow: 0 3px 8px rgba(255, 122, 107, 0.45);
+  background: #4a4842;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 /* 오른쪽 버튼 묶음: 확인(대화/다음)은 항상 같은 자리에 있다 */
 #act-cluster {
   position: absolute;
-  right: 20px;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
 #back-btn {
-  width: calc(var(--joy) * 0.58);
-  height: calc(var(--joy) * 0.58);
-  margin: 0 0 4px;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  background: var(--white);
-  box-shadow: 0 3px 0 var(--line);
-  color: var(--ink);
-  font: 800 13px/1 var(--font);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-#back-btn[hidden] {
-  display: none;
-}
-
-#back-btn:active {
-  transform: translateY(3px);
-  box-shadow: none;
-}
-
-#act-btn {
-  position: relative;
-  flex: none;
-  width: calc(var(--joy) * 0.82);
-  height: calc(var(--joy) * 0.82);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
+  width: calc(var(--joy) * 0.6);
+  height: calc(var(--joy) * 0.6);
   margin: 0;
   padding: 0;
-  border: 0;
+  border: 1px solid #c9c4b6;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ffd86a, #f2a920 75%);
-  box-shadow: 0 4px 0 #cf8a10, 0 6px 14px rgba(242, 169, 32, 0.45);
-  color: #fff;
-  font: 800 14px/1 var(--font);
-  text-shadow: 0 1px 1px rgba(120, 70, 0, 0.35);
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 12px/1 var(--font);
   cursor: pointer;
   touch-action: manipulation;
 }
 
+#back-btn[hidden],
 #act-btn[hidden] {
   display: none;
 }
 
+#back-btn:active {
+  background: var(--surface-2);
+}
+
+#act-btn {
+  flex: none;
+  width: calc(var(--joy) * 0.84);
+  height: calc(var(--joy) * 0.84);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 1px 3px rgba(20, 50, 40, 0.4);
+  color: #fff;
+  font: 700 13px/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
 #act-btn.pop {
-  animation: act-pop 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: act-pop 0.18s ease-out;
 }
 
 #act-btn:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 #cf8a10, 0 3px 8px rgba(242, 169, 32, 0.4);
+  background: #265b4a;
 }
 
 @keyframes act-pop {
-  from { opacity: 0; scale: 0.5; }
+  from { opacity: 0; scale: 0.7; }
   to { opacity: 1; scale: 1; }
 }
 
 .act-icon svg {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   fill: none;
   stroke: #fff;
-  stroke-width: 2.4;
+  stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -401,7 +375,7 @@ body {
 #dpad {
   display: none;
   flex: none;
-  width: calc(var(--joy) + 40px);
+  width: calc(var(--joy) + 32px);
   height: 100%;
   align-items: center;
   justify-content: center;
@@ -409,9 +383,11 @@ body {
 
 #pad[data-mode="screen"] #dpad {
   display: grid;
-  grid-template-columns: repeat(3, calc((var(--joy) + 30px) / 3));
-  grid-template-rows: repeat(3, calc((var(--joy) + 30px) / 3));
+  grid-template-columns: repeat(3, calc((var(--joy) + 24px) / 3));
+  grid-template-rows: repeat(3, calc((var(--joy) + 24px) / 3));
   place-content: center;
+  align-items: stretch;
+  justify-items: stretch;
 }
 
 #pad[data-mode="screen"] #joy-zone,
@@ -422,9 +398,8 @@ body {
 .dp {
   margin: 0;
   padding: 0;
-  border: 1px solid var(--line);
-  background: var(--white);
-  box-shadow: 0 2px 0 var(--line);
+  border: 1px solid #c9c4b6;
+  background: var(--surface);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -432,33 +407,31 @@ body {
 }
 
 .dp svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   fill: none;
   stroke: var(--ink);
-  stroke-width: 3;
+  stroke-width: 2.6;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .dp:active {
-  background: #fff3d6;
-  transform: translateY(2px);
-  box-shadow: none;
+  background: var(--surface-2);
 }
 
-.dp-up { grid-area: 1 / 2; border-radius: 12px 12px 4px 4px; }
-.dp-left { grid-area: 2 / 1; border-radius: 12px 4px 4px 12px; }
-.dp-right { grid-area: 2 / 3; border-radius: 4px 12px 12px 4px; }
-.dp-down { grid-area: 3 / 2; border-radius: 4px 4px 12px 12px; }
+.dp-up { grid-area: 1 / 2; border-radius: 8px 8px 2px 2px; }
+.dp-left { grid-area: 2 / 1; border-radius: 8px 2px 2px 8px; }
+.dp-right { grid-area: 2 / 3; border-radius: 2px 8px 8px 2px; }
+.dp-down { grid-area: 3 / 2; border-radius: 2px 2px 8px 8px; }
 
 /* ---------- NPC 대화창 (보여 주기만 함: 조작은 하단 컨트롤) ---------- */
 #dialog {
   pointer-events: none;
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 28px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
   z-index: 4;
 }
 
@@ -468,54 +441,55 @@ body {
 
 .dialog-card {
   position: relative;
-  padding: 22px 16px 14px;
-  border-radius: var(--radius-lg);
-  background: rgba(255, 252, 244, 0.98);
-  box-shadow: var(--shadow-float);
+  padding: 20px 14px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: var(--shadow);
 }
 
 .dialog-name {
   position: absolute;
-  left: 14px;
-  top: -14px;
-  padding: 5px 13px;
-  border-radius: 999px;
-  background: var(--mint);
+  left: 12px;
+  top: -12px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
   color: #fff;
-  font-size: 13px;
-  font-weight: 800;
-  box-shadow: 0 2px 6px rgba(47, 191, 168, 0.4);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 #dialog-text {
-  margin: 0 0 10px;
-  min-height: 42px;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.5;
+  margin: 0;
+  min-height: 40px;
+  padding-right: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.55;
 }
 
 .dialog-more {
   position: absolute;
-  right: 16px;
+  right: 14px;
   bottom: 10px;
-  color: var(--amber);
-  font-size: 13px;
+  color: var(--ink-soft);
+  font-size: 11px;
   animation: dialog-blink 0.9s ease-in-out infinite;
 }
 
 @keyframes dialog-blink {
-  50% { opacity: 0.25; transform: translateY(2px); }
+  50% { opacity: 0.25; }
 }
 
-/* ---------- 메뉴 화면 (필드 위에 덮임) ---------- */
+/* ---------- 메뉴 화면 (필드 위에 덮임, 필드 안에서만) ---------- */
 #screen {
   position: absolute;
   inset: 0;
   z-index: 5;
   display: flex;
   flex-direction: column;
-  background: var(--cream);
+  background: var(--bg);
   color: var(--ink);
   pointer-events: none; /* 조작은 모두 하단 컨트롤로 한다 */
 }
@@ -525,77 +499,72 @@ body {
 }
 
 .screen-bar {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(env(safe-area-inset-top, 0px) + 58px);
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
+  min-height: calc(env(safe-area-inset-top, 0px) + 48px);
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
+  border-bottom: 1px solid var(--line);
 }
 
 #screen-title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 #screen-body {
   flex: 1;
   min-height: 0;
-  padding: 4px 14px 30px; /* 아래 메뉴가 겹쳐 올라오는 높이만큼 여유 */
+  padding: 12px 12px 14px;
   overflow-y: auto;
 }
 
 .screen-placeholder {
   height: 100%;
-  min-height: 160px;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border: 2px dashed var(--line);
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.6);
+  gap: 6px;
+  border: 1px dashed #c9c4b6;
+  border-radius: 12px;
   text-align: center;
 }
 
 .screen-placeholder-icon {
-  width: 48px;
-  height: 48px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--blue) 16%, white);
-  color: var(--blue);
+  color: var(--ink-soft);
 }
 
 .screen-placeholder-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.2;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .screen-placeholder strong {
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .screen-placeholder p {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 /* ---------- 탐험 화면: 이동 가능한 지역 목록 ---------- */
 .explore-hint {
-  margin: 0 4px 12px;
+  margin: 0 2px 10px;
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .region-list {
@@ -603,42 +572,32 @@ body {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .region-card {
-  width: 100%;
   display: grid;
-  grid-template-columns: 76px 1fr;
-  gap: 14px;
+  grid-template-columns: 64px 1fr;
+  gap: 12px;
   align-items: center;
-  padding: 11px;
+  padding: 9px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--white);
-  box-shadow: 0 2px 0 var(--line);
-  color: inherit;
-  font: inherit;
-  text-align: left;
-}
-
-.region-card.is-selected {
-  outline: 3px solid var(--amber);
-  outline-offset: 1px;
+  border-radius: 12px;
+  background: var(--surface);
 }
 
 .region-card .thumb {
-  width: 76px;
-  height: 76px;
+  width: 64px;
+  height: 64px;
   display: block;
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   image-rendering: pixelated;
 }
 
 .region-card h3 {
-  margin: 0 0 3px;
-  font-size: 16px;
-  font-weight: 800;
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .region-card p {
@@ -650,33 +609,33 @@ body {
 
 .badge {
   display: inline-block;
-  margin-top: 7px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--green) 20%, white);
-  color: #2f8f57;
+  margin-top: 6px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
-.region-card.is-here {
-  border-color: var(--green);
-  box-shadow: 0 2px 0 var(--green);
+.region-card.is-here .badge {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.region-card.is-selected {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
 }
 
 .region-card.locked {
-  background: #f6efe0;
-  box-shadow: none;
+  background: #f6f4ee;
 }
 
 .region-card.locked h3,
 .region-card.locked p {
-  color: #b5a58b;
-}
-
-.region-card.locked .badge {
-  background: #eadfc8;
-  color: #a39073;
+  color: #aaa69a;
 }
 </style>
 </head>
@@ -1212,22 +1171,22 @@ const Sprites = (() => {
         r(x + 4, wy + 7, 1, 7, o.trim);
         r(x + 1, wy + 10, 7, 1, o.trim);
         r(x, wy + 15, 9, 3, '#9b6a44');
-        r(x + 1, wy + 14, 1, 1, '#ff8fb1');
-        r(x + 4, wy + 14, 1, 1, '#ffd24a');
-        r(x + 7, wy + 14, 1, 1, '#ff8fb1');
+        r(x + 1, wy + 14, 1, 1, '#9fbf86');
+        r(x + 4, wy + 14, 1, 1, '#c9d49a');
+        r(x + 7, wy + 14, 1, 1, '#9fbf86');
       }
     });
   }
 
   const roofs = (base, mid, lt, dk) => ({ roof: base, roofMid: mid, roofLt: lt, roofDk: dk });
-  const walls = { wall: '#fff1d6', wallLn: '#f3e2bd', wallDk: '#e8d3a8', trim: '#fffaf0', door: '#9b6a44', doorDk: '#7a4e2e' };
+  const walls = { wall: '#efe3cc', wallLn: '#e3d4b6', wallDk: '#d5c4a2', trim: '#f8f1e2', door: '#8a5f3e', doorDk: '#6d4a2f' };
 
   const buildings = {
-    shop: makeBuilding({ ...roofs('#f2705c', '#e8604c', '#ff9a86', '#bf4533'), ...walls, awning: '#ff7a6b', awningDk: '#d9604f' }),
-    inn: makeBuilding({ ...roofs('#5a8cf0', '#4f86e8', '#86aef7', '#3562c0'), ...walls, wall: '#fff6e3', door: '#8b5a9e', doorDk: '#6d4380' }),
-    forge: makeBuilding({ ...roofs('#8a93a6', '#7b8494', '#aab2c2', '#5a6272'), ...walls, wall: '#ece6da', wallLn: '#ddd5c6', wallDk: '#cfc6b4', door: '#6b4a34', doorDk: '#4e3524', chimney: true }),
-    hall: makeBuilding({ ...roofs('#a77be8', '#9b6fe0', '#c4a3f3', '#7650b8'), ...walls, wall: '#fdf3ff', wallLn: '#efdcf7', wallDk: '#e0c8ee', flag: '#ffd24a' }),
-    home: makeBuilding({ ...roofs('#52c47f', '#47b873', '#85dca6', '#2f8f57'), ...walls, chimney: true }),
+    shop: makeBuilding({ ...roofs('#b9604e', '#ad5645', '#cf806d', '#8a4335'), ...walls, awning: '#c0705f', awningDk: '#9d5446' }),
+    inn: makeBuilding({ ...roofs('#5b78a8', '#506c9b', '#7d96c0', '#3d557f'), ...walls, wall: '#f1e8d4', door: '#6d5a80', doorDk: '#54446a' }),
+    forge: makeBuilding({ ...roofs('#7a8191', '#6f7686', '#98a0ae', '#555c6a'), ...walls, wall: '#ece6da', wallLn: '#ddd5c6', wallDk: '#cfc6b4', door: '#6b4a34', doorDk: '#4e3524', chimney: true }),
+    hall: makeBuilding({ ...roofs('#7f6a9e', '#74608f', '#9d89b8', '#5b4a75'), ...walls, wall: '#efe6ee', wallLn: '#e1d4e0', wallDk: '#d2c1d0', flag: '#c9a03a' }),
+    home: makeBuilding({ ...roofs('#5f9370', '#558866', '#7fae8e', '#3f6b50'), ...walls, chimney: true }),
   };
 
   // ---- 소품 ----
@@ -1287,12 +1246,12 @@ const Sprites = (() => {
   // ---- NPC (플레이어와 같은 12x16 몸, 색만 다름) ----
   const base = { skin: '#f4c99b', skinSh: '#d9a074', eye: '#231c2e', shoe: '#2d211b' };
   const looks = {
-    merchant: { ...base, hair: '#6b4a2e', cap: '#ff9f43', capSh: '#d9802a', shirt: '#3fc9b5', shirtSh: '#2a9e8d', pants: '#5a4a7a' },
-    innkeeper: { ...base, hair: '#8a4b2d', cap: '#ff8fb1', capSh: '#d96b8f', shirt: '#fffaf0', shirtSh: '#e6dccb', pants: '#7a6cc4' },
+    merchant: { ...base, hair: '#6b4a2e', cap: '#c98a3f', capSh: '#a66f2c', shirt: '#4f9a8a', shirtSh: '#3b7a6c', pants: '#5a4a7a' },
+    innkeeper: { ...base, hair: '#8a4b2d', cap: '#c27a8a', capSh: '#9d5c6b', shirt: '#fffaf0', shirtSh: '#e6dccb', pants: '#7a6cc4' },
     smith: { ...base, hair: '#2f2a33', cap: '#6b7385', capSh: '#4e5565', shirt: '#c25b3a', shirtSh: '#9c4529', pants: '#3b3f63' },
-    clerk: { ...base, hair: '#3d2a55', cap: '#a77be8', capSh: '#7f57c0', shirt: '#eadcf8', shirtSh: '#cbb6e8', pants: '#4a4466' },
-    kid: { ...base, hair: '#b3702f', cap: '#ffd24a', capSh: '#d9a92a', shirt: '#ff7a6b', shirtSh: '#d9594a', pants: '#4f86e8' },
-    guard: { ...base, hair: '#4a3a2e', cap: '#9aa3b8', capSh: '#747d92', shirt: '#4f86e8', shirtSh: '#3562c0', pants: '#3b3f63' },
+    clerk: { ...base, hair: '#3d2a55', cap: '#7f6a9e', capSh: '#5f4d7a', shirt: '#e3dae9', shirtSh: '#c7bad2', pants: '#4a4466' },
+    kid: { ...base, hair: '#b3702f', cap: '#d4b04a', capSh: '#aa8a30', shirt: '#c26a58', shirtSh: '#9d5042', pants: '#506c9b' },
+    guard: { ...base, hair: '#4a3a2e', cap: '#8f97a8', capSh: '#6d7586', shirt: '#506c9b', shirtSh: '#3d557f', pants: '#3b3f63' },
   };
   const npcs = {};
   for (const [name, pal] of Object.entries(looks)) npcs[name] = Sprites.makePerson(pal);
@@ -1326,12 +1285,12 @@ const Regions = [
     cols: 32,
     rows: 36,
     spawn: { tx: 16, ty: 29 },
-    palette: { grass: [[134, 208, 94], [126, 200, 88], [150, 216, 108], [108, 186, 78]] },
+    palette: { grass: [[118, 184, 88], [110, 176, 82], [130, 194, 98], [96, 164, 72]] },
     village: {
       seed: 777,
       trees: 26,
       bushes: 14,
-      flowers: 120,
+      flowers: 50,
       // 길과 광장: [x, y, 가로, 세로] (타일)
       roads: [
         [15, 3, 2, 29], [5, 18, 23, 2], [5, 26, 23, 2],
@@ -1425,8 +1384,8 @@ const Regions = [
 
 // 등급 정의. 엘리트/필드 보스는 여기에 항목을 추가하는 방식으로 확장한다.
 const MonsterRarities = {
-  normal: { label: '일반', pillColor: 'rgba(23, 26, 35, 0.7)', mark: '' },
-  rare: { label: '희귀', pillColor: 'rgba(224, 154, 18, 0.96)', mark: '★', sparkle: true },
+  normal: { label: '일반', pillColor: 'rgba(42, 41, 38, 0.82)', mark: '' },
+  rare: { label: '희귀', pillColor: 'rgba(176, 120, 20, 0.95)', mark: '★', sparkle: true },
   // elite: { label: '엘리트', ... },
   // boss:  { label: '필드 보스', ... },
 };
@@ -2695,7 +2654,7 @@ const Controls = (() => {
   const SPEED = 46;                  // 최대 이동 속도 (논리 픽셀/초)
   const HALF_W = 3;                  // 발 판정 박스 반너비
   const HEIGHT_FEET = 3;             // 발 판정 박스 높이
-  const BG = '#8bd36a';
+  const BG = '#7fbf63';
 
   const view = { w: 0, h: 0, zoom: 1, sx: 1, sy: 1, dpr: 1 }; // sx, sy: 논리 픽셀 -> 실제 기기 픽셀 배율
   const cam = { x: 0, y: 0 };
@@ -2872,7 +2831,7 @@ const Controls = (() => {
   const LABEL_FULL = 80, LABEL_HIDE = 115;
   const FONT = '"Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif';
   function pill(x, y, w, h) {
-    const r = h / 2;
+    const r = Math.min(h / 2, 5 * view.dpr); // 알약보다 각진 작은 라벨
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -2898,13 +2857,13 @@ const Controls = (() => {
     for (const n of Npcs.entities) {
       const d = Math.hypot(n.x - px, n.y - py);
       if (d >= LABEL_HIDE + 20) continue;
-      out.push({ text: n.name, color: 'rgba(47, 177, 160, 0.95)', x: n.x, y: n.y - 17, alpha: fade(d, LABEL_FULL + 20, LABEL_HIDE + 20), talk: n === target });
+      out.push({ text: n.name, color: 'rgba(36, 92, 76, 0.92)', x: n.x, y: n.y - 17, alpha: fade(d, LABEL_FULL + 20, LABEL_HIDE + 20), talk: n === target });
     }
     for (const o of World.objects) {
       if (!o.label) continue;
       const d = Math.hypot(o.label.cx - px, o.baseY - py);
       if (d >= 190) continue;
-      out.push({ text: o.label.text, color: 'rgba(122, 84, 52, 0.92)', x: o.label.cx, y: o.label.y, alpha: fade(d, 120, 190) });
+      out.push({ text: o.label.text, color: 'rgba(54, 48, 40, 0.88)', x: o.label.cx, y: o.label.y, alpha: fade(d, 120, 190) });
     }
     return out;
   }
@@ -2914,7 +2873,7 @@ const Controls = (() => {
   // 대화 가능한 NPC 머리 위의 말풍선 표시 (위아래로 살짝 떠다닌다)
   function drawTalkMark(cx, bottom, d0) {
     const bob = Math.sin(performance.now() / 220) * 2 * d0;
-    const w = 26 * d0, h = 18 * d0, x = cx - w / 2, y = bottom - h - bob;
+    const w = 24 * d0, h = 16 * d0, x = cx - w / 2, y = bottom - h - bob;
     ctx.fillStyle = '#ffffff';
     pill(x, y, w, h);
     ctx.fill();
@@ -2923,7 +2882,7 @@ const Controls = (() => {
     ctx.lineTo(cx, y + h + 4 * d0);
     ctx.lineTo(cx + 3 * d0, y + h - 1);
     ctx.fill();
-    ctx.fillStyle = '#f2a920';
+    ctx.fillStyle = '#2f6f5a';
     for (let i = -1; i <= 1; i++) {
       ctx.beginPath();
       ctx.arc(cx + i * 6 * d0, y + h / 2, 1.8 * d0, 0, Math.PI * 2);
@@ -2934,14 +2893,14 @@ const Controls = (() => {
   function drawLabels() {
     const d0 = view.dpr;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.font = `700 ${Math.round(11 * d0)}px ${FONT}`;
+    ctx.font = `700 ${Math.round(10.5 * d0)}px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (const l of collectLabels()) {
       if (l.alpha <= 0) continue;
       const cx = snapX(l.x - cam.x) * view.sx;
       const bottom = snapY(l.y - cam.y) * view.sy - 3 * d0;
-      const h = 18 * d0, w = ctx.measureText(l.text).width + 16 * d0;
+      const h = 16 * d0, w = ctx.measureText(l.text).width + 12 * d0;
       ctx.globalAlpha = l.alpha;
       ctx.fillStyle = l.color;
       pill(cx - w / 2, bottom - h, w, h);

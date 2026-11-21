@@ -1,21 +1,18 @@
-/* 밝고 아기자기한 모험 마을 테마: 크림색 바탕 + 파스텔 포인트 + 둥근 모서리 */
+/* 차분하고 깔끔한 테마: 따뜻한 회백색 바탕, 얇은 선, 작은 모서리, 절제된 포인트 색 */
 :root {
-  --cream: #fff8ec;
-  --cream-2: #fbeccf;
-  --line: #f0dfbd;
-  --ink: #4a3a2c;
-  --ink-soft: #8a7560;
-  --white: #fff;
-  --coral: #ff7a6b;
-  --amber: #f2a920;
-  --mint: #2fbfa8;
-  --blue: #5a8cf0;
-  --violet: #a77be8;
-  --sky: #3fb0e8;
-  --green: #52c47f;
-  --radius: 16px;
-  --radius-lg: 20px;
-  --shadow-float: 0 3px 12px rgba(74, 58, 44, 0.2);
+  --bg: #f2f0ea;
+  --surface: #fff;
+  --surface-2: #e9e6dd;
+  --line: #d9d5ca;
+  --ink: #2a2926;
+  --ink-soft: #7a766b;
+  --accent: #2f6f5a;
+  --accent-soft: #dcebe4;
+  --hp: #c2493d;
+  --mp: #3f6fb5;
+  --radius: 10px;
+  --radius-sm: 7px;
+  --shadow: 0 1px 3px rgba(30, 28, 22, 0.18);
   --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
 }
 
@@ -28,7 +25,7 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--cream);
+  background: var(--bg);
   overscroll-behavior: none;
   -webkit-user-select: none;
   user-select: none;
@@ -37,14 +34,14 @@ body {
   color: var(--ink);
 }
 
-/* ---------- 전체 구조: 위 필드 + 아래 메뉴 ---------- */
+/* ---------- 전체 구조: 위 필드 + 아래 메뉴 (겹치지 않게 깔끔히 분리) ---------- */
 #app {
   height: 100%;
   max-width: 520px;
   margin: 0 auto;
   display: grid;
-  grid-template-rows: minmax(0, 54fr) minmax(0, 46fr);
-  background: var(--cream);
+  grid-template-rows: minmax(0, 62fr) minmax(0, 38fr);
+  background: var(--bg);
 }
 
 #field {
@@ -53,7 +50,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #8bd36a;
+  background: #7fbf63;
 }
 
 #game {
@@ -73,45 +70,45 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 10px 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) 8px 0;
   pointer-events: none;
   z-index: 3;
 }
 
 .hud-card,
 .pill {
-  background: rgba(255, 252, 244, 0.95);
-  box-shadow: var(--shadow-float);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow);
 }
 
 .hud-card {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 10px 7px 7px;
+  gap: 7px;
+  padding: 6px 8px 6px 6px;
   border-radius: var(--radius);
 }
 
 .hud-lv {
-  padding: 6px 8px;
-  border-radius: 11px;
-  background: #ffd24a;
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 800;
+  padding: 5px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .hud-bars {
   display: grid;
-  gap: 4px;
-  width: 112px;
+  gap: 3px;
+  width: 104px;
 }
 
 .bar {
   position: relative;
-  height: 15px;
-  border-radius: 8px;
-  background: #efe3cc;
+  height: 13px;
+  border-radius: 3px;
+  background: #e3dfd5;
   overflow: hidden;
 }
 
@@ -119,12 +116,11 @@ body {
   position: absolute;
   inset: 0 auto 0 0;
   width: 100%;
-  border-radius: 8px;
   transition: width 0.25s;
 }
 
-.bar.hp i { background: var(--coral); }
-.bar.mp i { background: var(--blue); }
+.bar.hp i { background: var(--hp); }
+.bar.mp i { background: var(--mp); }
 
 .bar span {
   position: absolute;
@@ -132,146 +128,133 @@ body {
   display: grid;
   place-items: center;
   color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  font-size: 9px;
+  font-weight: 700;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
 }
 
 .hud-right {
   display: grid;
   justify-items: end;
-  gap: 6px;
+  gap: 5px;
 }
 
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
+  gap: 6px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: var(--radius-sm);
   color: var(--ink);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .coin {
-  width: 14px;
-  height: 14px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
-  background: #ffd24a;
-  box-shadow: inset 0 0 0 2px #f2a920;
+  background: #d9a93a;
+  box-shadow: inset 0 0 0 2px #b88a22;
 }
 
 .dot {
-  width: 9px;
-  height: 9px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--accent);
 }
 
 #hud-loc[data-type="field"] .dot {
-  background: var(--coral);
+  background: var(--hp);
 }
 
-/* ---------- 하단 메인 메뉴 ---------- */
+/* ---------- 하단: 메인 메뉴 + 조작 패드 ---------- */
 #dock {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
-  background: var(--cream);
-  border-radius: 22px 22px 0 0;
-  margin-top: -14px; /* 필드 위로 살짝 겹쳐 올라온다 */
-  box-shadow: 0 -4px 14px rgba(74, 58, 44, 0.16);
+  gap: 8px;
+  padding: 8px 10px calc(env(safe-area-inset-bottom, 0px) + 8px);
+  background: var(--bg);
+  border-top: 1px solid var(--line);
   z-index: 4;
 }
 
 .dock-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-auto-rows: clamp(58px, 9vh, 72px);
-  gap: 8px;
+  grid-auto-rows: clamp(40px, 6vh, 48px);
+  gap: 6px;
   flex: none;
 }
 
 .dock-btn {
-  --c: var(--blue);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 7px;
   margin: 0;
-  padding: 4px;
+  padding: 0 4px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--white);
-  box-shadow: 0 2px 0 var(--line);
+  background: var(--surface);
   color: var(--ink);
-  font: 800 13px/1 var(--font);
+  font: 700 13px/1 var(--font);
   letter-spacing: -0.01em;
   cursor: pointer;
   touch-action: manipulation;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: background 0.1s, border-color 0.1s;
 }
 
 .dock-btn:active {
-  transform: translateY(2px);
-  box-shadow: 0 0 0 var(--line);
+  background: var(--surface-2);
 }
 
 .dock-icon {
-  width: 32px;
-  height: 32px;
   display: grid;
   place-items: center;
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--c) 18%, white);
-  color: var(--c);
+  color: var(--ink-soft);
 }
 
 .dock-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 19px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.2;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .dock-btn.is-current {
-  border-color: var(--c);
-  box-shadow: 0 2px 0 var(--c);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
-.c-coral { --c: var(--coral); }
-.c-amber { --c: var(--amber); }
-.c-mint { --c: var(--mint); }
-.c-blue { --c: var(--blue); }
-.c-violet { --c: var(--violet); }
-.c-sky { --c: var(--sky); }
+.dock-btn.is-current .dock-icon {
+  color: var(--accent);
+}
 
-/* ---------- 조이스틱 패드 (메뉴 아래쪽): 왼쪽 조이스틱 + 오른쪽 대화 버튼 ---------- */
+/* ---------- 조작 패드: 왼쪽 조이스틱 + 오른쪽 대화/확인/뒤로 ---------- */
 #pad {
-  --joy: clamp(84px, 16vh, 112px);
+  --joy: clamp(72px, 12.5vh, 96px);
   position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   align-items: center;
-  border-radius: var(--radius-lg);
-  background: var(--cream-2);
-  box-shadow: inset 0 2px 6px rgba(74, 58, 44, 0.1);
+  border-radius: var(--radius);
+  background: var(--surface-2);
   overflow: hidden;
 }
 
 #joy-zone {
   position: relative;
   flex: none;
-  width: calc(var(--joy) + 40px);
+  width: calc(var(--joy) + 32px);
   height: 100%;
   touch-action: none;
   cursor: pointer;
@@ -285,9 +268,8 @@ body {
   height: var(--joy);
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.75);
-  border: 3px solid #ecd6a8;
-  box-shadow: 0 2px 0 #e3cb98;
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid #c9c4b6;
   pointer-events: none;
 }
 
@@ -295,96 +277,88 @@ body {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 46%;
-  height: 46%;
-  margin: calc(var(--joy) * -0.23) 0 0 calc(var(--joy) * -0.23);
+  width: 44%;
+  height: 44%;
+  margin: calc(var(--joy) * -0.22) 0 0 calc(var(--joy) * -0.22);
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ffb08a, #ff7a6b 70%);
-  box-shadow: 0 3px 8px rgba(255, 122, 107, 0.45);
+  background: #4a4842;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 /* 오른쪽 버튼 묶음: 확인(대화/다음)은 항상 같은 자리에 있다 */
 #act-cluster {
   position: absolute;
-  right: 20px;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
 #back-btn {
-  width: calc(var(--joy) * 0.58);
-  height: calc(var(--joy) * 0.58);
-  margin: 0 0 4px;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  background: var(--white);
-  box-shadow: 0 3px 0 var(--line);
-  color: var(--ink);
-  font: 800 13px/1 var(--font);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-#back-btn[hidden] {
-  display: none;
-}
-
-#back-btn:active {
-  transform: translateY(3px);
-  box-shadow: none;
-}
-
-#act-btn {
-  position: relative;
-  flex: none;
-  width: calc(var(--joy) * 0.82);
-  height: calc(var(--joy) * 0.82);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
+  width: calc(var(--joy) * 0.6);
+  height: calc(var(--joy) * 0.6);
   margin: 0;
   padding: 0;
-  border: 0;
+  border: 1px solid #c9c4b6;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ffd86a, #f2a920 75%);
-  box-shadow: 0 4px 0 #cf8a10, 0 6px 14px rgba(242, 169, 32, 0.45);
-  color: #fff;
-  font: 800 14px/1 var(--font);
-  text-shadow: 0 1px 1px rgba(120, 70, 0, 0.35);
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 12px/1 var(--font);
   cursor: pointer;
   touch-action: manipulation;
 }
 
+#back-btn[hidden],
 #act-btn[hidden] {
   display: none;
 }
 
+#back-btn:active {
+  background: var(--surface-2);
+}
+
+#act-btn {
+  flex: none;
+  width: calc(var(--joy) * 0.84);
+  height: calc(var(--joy) * 0.84);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 1px 3px rgba(20, 50, 40, 0.4);
+  color: #fff;
+  font: 700 13px/1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
 #act-btn.pop {
-  animation: act-pop 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: act-pop 0.18s ease-out;
 }
 
 #act-btn:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 #cf8a10, 0 3px 8px rgba(242, 169, 32, 0.4);
+  background: #265b4a;
 }
 
 @keyframes act-pop {
-  from { opacity: 0; scale: 0.5; }
+  from { opacity: 0; scale: 0.7; }
   to { opacity: 1; scale: 1; }
 }
 
 .act-icon svg {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   fill: none;
   stroke: #fff;
-  stroke-width: 2.4;
+  stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -393,7 +367,7 @@ body {
 #dpad {
   display: none;
   flex: none;
-  width: calc(var(--joy) + 40px);
+  width: calc(var(--joy) + 32px);
   height: 100%;
   align-items: center;
   justify-content: center;
@@ -401,9 +375,11 @@ body {
 
 #pad[data-mode="screen"] #dpad {
   display: grid;
-  grid-template-columns: repeat(3, calc((var(--joy) + 30px) / 3));
-  grid-template-rows: repeat(3, calc((var(--joy) + 30px) / 3));
+  grid-template-columns: repeat(3, calc((var(--joy) + 24px) / 3));
+  grid-template-rows: repeat(3, calc((var(--joy) + 24px) / 3));
   place-content: center;
+  align-items: stretch;
+  justify-items: stretch;
 }
 
 #pad[data-mode="screen"] #joy-zone,
@@ -414,9 +390,8 @@ body {
 .dp {
   margin: 0;
   padding: 0;
-  border: 1px solid var(--line);
-  background: var(--white);
-  box-shadow: 0 2px 0 var(--line);
+  border: 1px solid #c9c4b6;
+  background: var(--surface);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -424,33 +399,31 @@ body {
 }
 
 .dp svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   fill: none;
   stroke: var(--ink);
-  stroke-width: 3;
+  stroke-width: 2.6;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .dp:active {
-  background: #fff3d6;
-  transform: translateY(2px);
-  box-shadow: none;
+  background: var(--surface-2);
 }
 
-.dp-up { grid-area: 1 / 2; border-radius: 12px 12px 4px 4px; }
-.dp-left { grid-area: 2 / 1; border-radius: 12px 4px 4px 12px; }
-.dp-right { grid-area: 2 / 3; border-radius: 4px 12px 12px 4px; }
-.dp-down { grid-area: 3 / 2; border-radius: 4px 4px 12px 12px; }
+.dp-up { grid-area: 1 / 2; border-radius: 8px 8px 2px 2px; }
+.dp-left { grid-area: 2 / 1; border-radius: 8px 2px 2px 8px; }
+.dp-right { grid-area: 2 / 3; border-radius: 2px 8px 8px 2px; }
+.dp-down { grid-area: 3 / 2; border-radius: 2px 2px 8px 8px; }
 
 /* ---------- NPC 대화창 (보여 주기만 함: 조작은 하단 컨트롤) ---------- */
 #dialog {
   pointer-events: none;
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 28px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
   z-index: 4;
 }
 
@@ -460,54 +433,55 @@ body {
 
 .dialog-card {
   position: relative;
-  padding: 22px 16px 14px;
-  border-radius: var(--radius-lg);
-  background: rgba(255, 252, 244, 0.98);
-  box-shadow: var(--shadow-float);
+  padding: 20px 14px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: var(--shadow);
 }
 
 .dialog-name {
   position: absolute;
-  left: 14px;
-  top: -14px;
-  padding: 5px 13px;
-  border-radius: 999px;
-  background: var(--mint);
+  left: 12px;
+  top: -12px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
   color: #fff;
-  font-size: 13px;
-  font-weight: 800;
-  box-shadow: 0 2px 6px rgba(47, 191, 168, 0.4);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 #dialog-text {
-  margin: 0 0 10px;
-  min-height: 42px;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.5;
+  margin: 0;
+  min-height: 40px;
+  padding-right: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.55;
 }
 
 .dialog-more {
   position: absolute;
-  right: 16px;
+  right: 14px;
   bottom: 10px;
-  color: var(--amber);
-  font-size: 13px;
+  color: var(--ink-soft);
+  font-size: 11px;
   animation: dialog-blink 0.9s ease-in-out infinite;
 }
 
 @keyframes dialog-blink {
-  50% { opacity: 0.25; transform: translateY(2px); }
+  50% { opacity: 0.25; }
 }
 
-/* ---------- 메뉴 화면 (필드 위에 덮임) ---------- */
+/* ---------- 메뉴 화면 (필드 위에 덮임, 필드 안에서만) ---------- */
 #screen {
   position: absolute;
   inset: 0;
   z-index: 5;
   display: flex;
   flex-direction: column;
-  background: var(--cream);
+  background: var(--bg);
   color: var(--ink);
   pointer-events: none; /* 조작은 모두 하단 컨트롤로 한다 */
 }
@@ -517,77 +491,72 @@ body {
 }
 
 .screen-bar {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(env(safe-area-inset-top, 0px) + 58px);
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
+  min-height: calc(env(safe-area-inset-top, 0px) + 48px);
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
+  border-bottom: 1px solid var(--line);
 }
 
 #screen-title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 #screen-body {
   flex: 1;
   min-height: 0;
-  padding: 4px 14px 30px; /* 아래 메뉴가 겹쳐 올라오는 높이만큼 여유 */
+  padding: 12px 12px 14px;
   overflow-y: auto;
 }
 
 .screen-placeholder {
   height: 100%;
-  min-height: 160px;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border: 2px dashed var(--line);
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.6);
+  gap: 6px;
+  border: 1px dashed #c9c4b6;
+  border-radius: 12px;
   text-align: center;
 }
 
 .screen-placeholder-icon {
-  width: 48px;
-  height: 48px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--blue) 16%, white);
-  color: var(--blue);
+  color: var(--ink-soft);
 }
 
 .screen-placeholder-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.2;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .screen-placeholder strong {
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .screen-placeholder p {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 /* ---------- 탐험 화면: 이동 가능한 지역 목록 ---------- */
 .explore-hint {
-  margin: 0 4px 12px;
+  margin: 0 2px 10px;
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .region-list {
@@ -595,42 +564,32 @@ body {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .region-card {
-  width: 100%;
   display: grid;
-  grid-template-columns: 76px 1fr;
-  gap: 14px;
+  grid-template-columns: 64px 1fr;
+  gap: 12px;
   align-items: center;
-  padding: 11px;
+  padding: 9px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--white);
-  box-shadow: 0 2px 0 var(--line);
-  color: inherit;
-  font: inherit;
-  text-align: left;
-}
-
-.region-card.is-selected {
-  outline: 3px solid var(--amber);
-  outline-offset: 1px;
+  border-radius: 12px;
+  background: var(--surface);
 }
 
 .region-card .thumb {
-  width: 76px;
-  height: 76px;
+  width: 64px;
+  height: 64px;
   display: block;
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   image-rendering: pixelated;
 }
 
 .region-card h3 {
-  margin: 0 0 3px;
-  font-size: 16px;
-  font-weight: 800;
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .region-card p {
@@ -642,31 +601,31 @@ body {
 
 .badge {
   display: inline-block;
-  margin-top: 7px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--green) 20%, white);
-  color: #2f8f57;
+  margin-top: 6px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
-.region-card.is-here {
-  border-color: var(--green);
-  box-shadow: 0 2px 0 var(--green);
+.region-card.is-here .badge {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.region-card.is-selected {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
 }
 
 .region-card.locked {
-  background: #f6efe0;
-  box-shadow: none;
+  background: #f6f4ee;
 }
 
 .region-card.locked h3,
 .region-card.locked p {
-  color: #b5a58b;
-}
-
-.region-card.locked .badge {
-  background: #eadfc8;
-  color: #a39073;
+  color: #aaa69a;
 }

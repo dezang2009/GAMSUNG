@@ -7,7 +7,7 @@
   const SPEED = 46;                  // 최대 이동 속도 (논리 픽셀/초)
   const HALF_W = 3;                  // 발 판정 박스 반너비
   const HEIGHT_FEET = 3;             // 발 판정 박스 높이
-  const BG = '#8bd36a';
+  const BG = '#7fbf63';
 
   const view = { w: 0, h: 0, zoom: 1, sx: 1, sy: 1, dpr: 1 }; // sx, sy: 논리 픽셀 -> 실제 기기 픽셀 배율
   const cam = { x: 0, y: 0 };
@@ -184,7 +184,7 @@
   const LABEL_FULL = 80, LABEL_HIDE = 115;
   const FONT = '"Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif';
   function pill(x, y, w, h) {
-    const r = h / 2;
+    const r = Math.min(h / 2, 5 * view.dpr); // 알약보다 각진 작은 라벨
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -210,13 +210,13 @@
     for (const n of Npcs.entities) {
       const d = Math.hypot(n.x - px, n.y - py);
       if (d >= LABEL_HIDE + 20) continue;
-      out.push({ text: n.name, color: 'rgba(47, 177, 160, 0.95)', x: n.x, y: n.y - 17, alpha: fade(d, LABEL_FULL + 20, LABEL_HIDE + 20), talk: n === target });
+      out.push({ text: n.name, color: 'rgba(36, 92, 76, 0.92)', x: n.x, y: n.y - 17, alpha: fade(d, LABEL_FULL + 20, LABEL_HIDE + 20), talk: n === target });
     }
     for (const o of World.objects) {
       if (!o.label) continue;
       const d = Math.hypot(o.label.cx - px, o.baseY - py);
       if (d >= 190) continue;
-      out.push({ text: o.label.text, color: 'rgba(122, 84, 52, 0.92)', x: o.label.cx, y: o.label.y, alpha: fade(d, 120, 190) });
+      out.push({ text: o.label.text, color: 'rgba(54, 48, 40, 0.88)', x: o.label.cx, y: o.label.y, alpha: fade(d, 120, 190) });
     }
     return out;
   }
@@ -226,7 +226,7 @@
   // 대화 가능한 NPC 머리 위의 말풍선 표시 (위아래로 살짝 떠다닌다)
   function drawTalkMark(cx, bottom, d0) {
     const bob = Math.sin(performance.now() / 220) * 2 * d0;
-    const w = 26 * d0, h = 18 * d0, x = cx - w / 2, y = bottom - h - bob;
+    const w = 24 * d0, h = 16 * d0, x = cx - w / 2, y = bottom - h - bob;
     ctx.fillStyle = '#ffffff';
     pill(x, y, w, h);
     ctx.fill();
@@ -235,7 +235,7 @@
     ctx.lineTo(cx, y + h + 4 * d0);
     ctx.lineTo(cx + 3 * d0, y + h - 1);
     ctx.fill();
-    ctx.fillStyle = '#f2a920';
+    ctx.fillStyle = '#2f6f5a';
     for (let i = -1; i <= 1; i++) {
       ctx.beginPath();
       ctx.arc(cx + i * 6 * d0, y + h / 2, 1.8 * d0, 0, Math.PI * 2);
@@ -246,14 +246,14 @@
   function drawLabels() {
     const d0 = view.dpr;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.font = `700 ${Math.round(11 * d0)}px ${FONT}`;
+    ctx.font = `700 ${Math.round(10.5 * d0)}px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (const l of collectLabels()) {
       if (l.alpha <= 0) continue;
       const cx = snapX(l.x - cam.x) * view.sx;
       const bottom = snapY(l.y - cam.y) * view.sy - 3 * d0;
-      const h = 18 * d0, w = ctx.measureText(l.text).width + 16 * d0;
+      const h = 16 * d0, w = ctx.measureText(l.text).width + 12 * d0;
       ctx.globalAlpha = l.alpha;
       ctx.fillStyle = l.color;
       pill(cx - w / 2, bottom - h, w, h);

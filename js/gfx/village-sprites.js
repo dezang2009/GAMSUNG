@@ -60,22 +60,22 @@
         r(x + 4, wy + 7, 1, 7, o.trim);
         r(x + 1, wy + 10, 7, 1, o.trim);
         r(x, wy + 15, 9, 3, '#9b6a44');
-        r(x + 1, wy + 14, 1, 1, '#ff8fb1');
-        r(x + 4, wy + 14, 1, 1, '#ffd24a');
-        r(x + 7, wy + 14, 1, 1, '#ff8fb1');
+        r(x + 1, wy + 14, 1, 1, '#9fbf86');
+        r(x + 4, wy + 14, 1, 1, '#c9d49a');
+        r(x + 7, wy + 14, 1, 1, '#9fbf86');
       }
     });
   }
 
   const roofs = (base, mid, lt, dk) => ({ roof: base, roofMid: mid, roofLt: lt, roofDk: dk });
-  const walls = { wall: '#fff1d6', wallLn: '#f3e2bd', wallDk: '#e8d3a8', trim: '#fffaf0', door: '#9b6a44', doorDk: '#7a4e2e' };
+  const walls = { wall: '#efe3cc', wallLn: '#e3d4b6', wallDk: '#d5c4a2', trim: '#f8f1e2', door: '#8a5f3e', doorDk: '#6d4a2f' };
 
   const buildings = {
-    shop: makeBuilding({ ...roofs('#f2705c', '#e8604c', '#ff9a86', '#bf4533'), ...walls, awning: '#ff7a6b', awningDk: '#d9604f' }),
-    inn: makeBuilding({ ...roofs('#5a8cf0', '#4f86e8', '#86aef7', '#3562c0'), ...walls, wall: '#fff6e3', door: '#8b5a9e', doorDk: '#6d4380' }),
-    forge: makeBuilding({ ...roofs('#8a93a6', '#7b8494', '#aab2c2', '#5a6272'), ...walls, wall: '#ece6da', wallLn: '#ddd5c6', wallDk: '#cfc6b4', door: '#6b4a34', doorDk: '#4e3524', chimney: true }),
-    hall: makeBuilding({ ...roofs('#a77be8', '#9b6fe0', '#c4a3f3', '#7650b8'), ...walls, wall: '#fdf3ff', wallLn: '#efdcf7', wallDk: '#e0c8ee', flag: '#ffd24a' }),
-    home: makeBuilding({ ...roofs('#52c47f', '#47b873', '#85dca6', '#2f8f57'), ...walls, chimney: true }),
+    shop: makeBuilding({ ...roofs('#b9604e', '#ad5645', '#cf806d', '#8a4335'), ...walls, awning: '#c0705f', awningDk: '#9d5446' }),
+    inn: makeBuilding({ ...roofs('#5b78a8', '#506c9b', '#7d96c0', '#3d557f'), ...walls, wall: '#f1e8d4', door: '#6d5a80', doorDk: '#54446a' }),
+    forge: makeBuilding({ ...roofs('#7a8191', '#6f7686', '#98a0ae', '#555c6a'), ...walls, wall: '#ece6da', wallLn: '#ddd5c6', wallDk: '#cfc6b4', door: '#6b4a34', doorDk: '#4e3524', chimney: true }),
+    hall: makeBuilding({ ...roofs('#7f6a9e', '#74608f', '#9d89b8', '#5b4a75'), ...walls, wall: '#efe6ee', wallLn: '#e1d4e0', wallDk: '#d2c1d0', flag: '#c9a03a' }),
+    home: makeBuilding({ ...roofs('#5f9370', '#558866', '#7fae8e', '#3f6b50'), ...walls, chimney: true }),
   };
 
   // ---- 소품 ----
@@ -135,12 +135,12 @@
   // ---- NPC (플레이어와 같은 12x16 몸, 색만 다름) ----
   const base = { skin: '#f4c99b', skinSh: '#d9a074', eye: '#231c2e', shoe: '#2d211b' };
   const looks = {
-    merchant: { ...base, hair: '#6b4a2e', cap: '#ff9f43', capSh: '#d9802a', shirt: '#3fc9b5', shirtSh: '#2a9e8d', pants: '#5a4a7a' },
-    innkeeper: { ...base, hair: '#8a4b2d', cap: '#ff8fb1', capSh: '#d96b8f', shirt: '#fffaf0', shirtSh: '#e6dccb', pants: '#7a6cc4' },
+    merchant: { ...base, hair: '#6b4a2e', cap: '#c98a3f', capSh: '#a66f2c', shirt: '#4f9a8a', shirtSh: '#3b7a6c', pants: '#5a4a7a' },
+    innkeeper: { ...base, hair: '#8a4b2d', cap: '#c27a8a', capSh: '#9d5c6b', shirt: '#fffaf0', shirtSh: '#e6dccb', pants: '#7a6cc4' },
     smith: { ...base, hair: '#2f2a33', cap: '#6b7385', capSh: '#4e5565', shirt: '#c25b3a', shirtSh: '#9c4529', pants: '#3b3f63' },
-    clerk: { ...base, hair: '#3d2a55', cap: '#a77be8', capSh: '#7f57c0', shirt: '#eadcf8', shirtSh: '#cbb6e8', pants: '#4a4466' },
-    kid: { ...base, hair: '#b3702f', cap: '#ffd24a', capSh: '#d9a92a', shirt: '#ff7a6b', shirtSh: '#d9594a', pants: '#4f86e8' },
-    guard: { ...base, hair: '#4a3a2e', cap: '#9aa3b8', capSh: '#747d92', shirt: '#4f86e8', shirtSh: '#3562c0', pants: '#3b3f63' },
+    clerk: { ...base, hair: '#3d2a55', cap: '#7f6a9e', capSh: '#5f4d7a', shirt: '#e3dae9', shirtSh: '#c7bad2', pants: '#4a4466' },
+    kid: { ...base, hair: '#b3702f', cap: '#d4b04a', capSh: '#aa8a30', shirt: '#c26a58', shirtSh: '#9d5042', pants: '#506c9b' },
+    guard: { ...base, hair: '#4a3a2e', cap: '#8f97a8', capSh: '#6d7586', shirt: '#506c9b', shirtSh: '#3d557f', pants: '#3b3f63' },
   };
   const npcs = {};
   for (const [name, pal] of Object.entries(looks)) npcs[name] = Sprites.makePerson(pal);
