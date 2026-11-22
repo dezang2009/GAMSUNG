@@ -3,86 +3,90 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>축구선수 키우기</title>
 <style>
-body{font-family:system-ui,sans-serif;background:#0b3d1e;color:#fff;margin:0;padding:16px;max-width:480px;margin:auto}
+body{font-family:system-ui,sans-serif;background:#0b3d1e;color:#fff;margin:0;padding:16px;max-width:520px;margin:auto}
 h1{font-size:20px;margin:0 0 8px}
 .card{background:#14532d;border-radius:12px;padding:12px;margin:8px 0}
 .bar{background:#0b3d1e;border-radius:6px;height:10px;overflow:hidden}.bar>i{display:block;height:100%;background:#facc15}
 .row{display:flex;justify-content:space-between;font-size:14px;margin:6px 0 2px}
-button{background:#facc15;border:0;border-radius:8px;padding:12px;font-size:15px;margin:3px;color:#000}
+button{background:#facc15;border:0;border-radius:8px;padding:11px;font-size:14px;margin:3px;color:#000;cursor:pointer}
+button.sub{background:#fff3}button.sub{color:#fff}
 button:disabled{opacity:.4}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-#log{font-size:13px;line-height:1.5;max-height:160px;overflow:auto}
-input{padding:10px;font-size:15px;border-radius:8px;border:0;width:60%}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.head{display:flex;gap:10px;align-items:center}
+.head img{width:44px;height:44px;object-fit:contain;background:#fff;border-radius:8px;padding:2px}
+#log{font-size:12.5px;line-height:1.55;max-height:200px;overflow:auto}
+input,select{padding:10px;font-size:15px;border-radius:8px;border:0;margin:3px 0;width:100%;box-sizing:border-box}
+.up{color:#4ade80;font-size:12px}
+.sq{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:11px;text-align:center}
+.sq img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#0b3d1e}
+.offer{display:flex;align-items:center;gap:10px;background:#0b3d1e;border-radius:10px;padding:8px;margin:6px 0}
+.offer img{width:36px;height:36px;object-fit:contain;background:#fff;border-radius:6px}
+.offer div{flex:1;font-size:13px}
+.fix{display:flex;align-items:center;gap:8px;font-size:14px}.fix img{width:28px;height:28px;object-fit:contain;background:#fff;border-radius:6px}
 </style></head><body>
 <h1>⚽ 축구선수 키우기</h1><div id="app"></div>
+<script src="data/EPL.js"></script>
+<script src="engine.js"></script>
 <script>
-const STATS={shoot:'슈팅',pass:'패스',speed:'속도',defense:'수비'};
-const CLUBS=['동네 클럽','2부 리그','1부 리그','빅클럽'];
-const WEEKS=20, RETIRE=35, KEY='gamsung';
+const KEY='gamsung2';
+const POSN={FW:'공격수',MF:'미드필더',DF:'수비수',GK:'골키퍼'};
+const STATN={att:'공격',def:'수비',sta:'체력',gk:'골키퍼'};
+const TR=[['attack','⚔️ 공격'],['defense','🛡️ 수비'],['stamina','🏃 체력'],['gk','🧤 골키퍼'],['rest','😴 휴식']];
 let g; try{g=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-const save=()=>localStorage.setItem(KEY,JSON.stringify(g));
-const rnd=n=>Math.floor(Math.random()*n);
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const log=t=>{g.log.unshift(t);g.log=g.log.slice(0,30)};
+let tab='main';
+const $=id=>document.getElementById(id);
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(g))}catch(e){}};
+const logo=c=>`<img src="img/${club(DATA,c).logo}" alt="">`;
+const photo=p=>p.photo?`<img src="img/${p.photo}" alt="" onerror="this.style.visibility='hidden'">`:'<img alt="">';
+const nats=[...new Set(['South Korea',...DATA.players.map(p=>p.nat)])];
 
-function start(name){
-  g={name:name||'무명',age:17,season:1,week:1,energy:100,club:0,money:0,
-     s:{shoot:30,pass:30,speed:30,defense:30},goals:0,apps:0,wins:0,
-     seasonPts:0,sa:0,log:['프로 입단! 커리어 시작.'],over:false};
+function begin(){
+  g=newGame(DATA,{name:$('n').value,nat:$('nat').value,pos:$('pos').value,clubId:$('cl').value});
   save();draw();
 }
-const ovr=()=>Math.round(Object.values(g.s).reduce((a,b)=>a+b)/4);
-
-function train(k){
-  if(g.energy<20)return;
-  g.energy-=20;
-  const gain=1+rnd(4)+(g.age<24?1:0)-(g.age>31?1:0); // 젊을수록 성장 빠름
-  g.s[k]=clamp(g.s[k]+Math.max(gain,0),0,99);
-  log(`${STATS[k]} 훈련 +${Math.max(gain,0)}`);next();
-}
-function rest(){g.energy=Math.min(100,g.energy+50);log('휴식으로 체력 회복');next()}
-
-function match(){
-  if(g.energy<30)return;
-  g.energy-=30;g.apps++;g.sa++;
-  const opp=20+g.club*20+rnd(25), me=ovr()+rnd(25)-10;
-  const goals=me>opp-5&&rnd(100)<g.s.shoot+10?1+(g.s.shoot>70&&rnd(2)):0;
-  g.goals+=goals;
-  const r=me>opp+5?'승':me>opp-5?'무':'패';
-  if(r=='승'){g.wins++;g.seasonPts+=3}else if(r=='무')g.seasonPts+=1;
-  g.money+=100*(g.club+1);
-  log(`경기 ${r}! ${goals?`⚽ ${goals}골`:'득점 없음'} (상대 ${opp} / 나 ${me})`);next();
-}
-
-function next(){
-  if(++g.week>WEEKS)endSeason();
+function act(a){doWeek(DATA,g,a);g.lastAct=a;save();draw()}
+function auto(){ // 마지막 훈련을 유지하되 피로 70 이상이면 휴식, 시즌 끝/제의 도착 시 정지
+  const s=g.season,a=g.lastAct||'attack';
+  while(!g.over&&!g.offers&&g.season===s)doWeek(DATA,g,g.fatigue>=70?'rest':a);
   save();draw();
 }
-function endSeason(){
-  const avg=g.seasonPts/Math.max(1,g.sa);
-  let msg=`시즌 ${g.season} 종료 (${g.age}세, 승점 ${g.seasonPts}).`;
-  if(avg>1.8&&g.club<3&&ovr()>=30+g.club*15){g.club++;msg+=` 🎉 ${CLUBS[g.club]}(으)로 이적!`}
-  log(msg);
-  g.season++;g.age++;g.week=1;g.energy=100;g.seasonPts=0;g.sa=0;
-  if(g.age>=RETIRE){g.over=true;log('은퇴합니다.')}
-}
+function offer(i){if(i<0)declineOffers(g);else acceptOffer(DATA,g,i);save();draw()}
+function reset(){g=null;try{localStorage.removeItem(KEY)}catch(e){}draw()}
+function setTab(t){tab=t;draw()}
 
 function draw(){
-  const a=document.getElementById('app');
-  if(!g){a.innerHTML=`<div class=card>선수 이름<br><br><input id=n placeholder="이름"> <button onclick="start(n.value)">시작</button></div>`;return}
-  const bars=Object.entries(STATS).map(([k,l])=>
-    `<div class=row><span>${l}</span><span>${g.s[k]}</span></div><div class=bar><i style="width:${g.s[k]}%"></i></div>`).join('');
+  const a=$('app');
+  if(!g){
+    a.innerHTML=`<div class=card><b>새 선수 (15세, 유스부터 시작)</b><br>
+    <input id=n placeholder="선수 이름">
+    <select id=nat>${nats.map(n=>`<option>${n}</option>`).join('')}</select>
+    <select id=pos>${Object.entries(POSN).map(([k,v])=>`<option value=${k}>${v}</option>`).join('')}</select>
+    <select id=cl>${DATA.clubs.map(c=>`<option value=${c.id}>${c.name} 유스</option>`).join('')}</select>
+    <button onclick="begin()">입단</button></div>`;return}
   if(g.over){
-    a.innerHTML=`<div class=card><b>🏆 ${g.name} 은퇴</b><br>최종 능력치 ${ovr()} · 최고 소속 ${CLUBS[g.club]}<br>통산 ${g.apps}경기 ${g.goals}골 ${g.wins}승<br>
-    <button onclick="g=null;localStorage.removeItem(KEY);draw()">새 선수 키우기</button></div>`;return}
-  const t=g.energy<20;
-  a.innerHTML=`<div class=card><b>${g.name}</b> · ${g.age}세 · ${CLUBS[g.club]}<br>
-  시즌 ${g.season} · ${g.week}/${WEEKS}주 · 종합 ${ovr()} · 💰${g.money} · ${g.goals}골
-  <div class=row><span>체력</span><span>${g.energy}</span></div><div class=bar><i style="width:${g.energy}%;background:#4ade80"></i></div></div>
-  <div class=card>${bars}</div>
-  <div class="card grid">${Object.entries(STATS).map(([k,l])=>`<button ${t?'disabled':''} onclick="train('${k}')">${l} 훈련 (-20)</button>`).join('')}
-  <button onclick="rest()">😴 휴식 (+50)</button><button ${g.energy<30?'disabled':''} onclick="match()">⚽ 경기 (-30)</button></div>
+    a.innerHTML=`<div class=card><b>🏆 ${g.name} 은퇴</b><br>최종 종합 ${ovr(g).toFixed(1)} · 소속 ${club(DATA,g.club).name}<br>통산 ${g.apps}경기 ${g.goals}골 ${g.assists}도움 · A매치 ${g.caps}회 · ${g.w}승 ${g.d}무 ${g.l}패<br>
+    <button onclick="reset()">새 선수 키우기</button></div>`;return}
+  if(g.offers){
+    const L=g.offers.list;
+    a.innerHTML=`<div class=card><b>📨 ${g.age}세 시즌 종료 — ${g.offers.expired?'계약 만료, 하나를 선택하세요':'이적 제의가 도착했습니다'}</b>
+    ${L.map((f,i)=>`<div class=offer>${logo(f.club)}<div><b>${{promote:'프로 승격',renew:'재계약',transfer:'이적 제의'}[f.type]}</b> · ${club(DATA,f.club).name}<br>${f.years}년 · 주급 £${f.wage.toLocaleString()}</div><button onclick="offer(${i})">수락</button></div>`).join('')}
+    ${g.offers.expired?'':'<button class=sub onclick="offer(-1)">모두 거절 (현 소속 유지)</button>'}</div>`;return}
+  const o=ovr(g),c=club(DATA,g.club),f=g.fix,wk=Math.ceil(g.fatigue);
+  const bars=Object.entries(STATN).map(([k,l])=>{const d=g.delta[k]||0;
+    return `<div class=row><span>${l} ${d>0.005?`<span class=up>+${d.toFixed(2)}</span>`:''}</span><span>${g.st[k].toFixed(1)}</span></div><div class=bar><i style="width:${g.st[k]}%"></i></div>`}).join('');
+  const fix=f.brk?'🌍 A매치 기간 (실력에 따라 대표팀 차출)':`<span class=fix>vs ${logo(f.opp)} ${club(DATA,f.opp).name}${g.youth?' U18':''}</span>`;
+  const grade=g.pot>=90?'S':g.pot>=84?'A':g.pot>=78?'B':'C';
+  const main=`<div class=card>${bars}
+    <div class=row><span>피로도</span><span>${wk}</span></div><div class=bar><i style="width:${wk}%;background:${wk>=70?'#f87171':'#4ade80'}"></i></div></div>
+  <div class=card>이번 주: ${fix}<div class=grid style="margin-top:8px">${TR.map(([k,l])=>`<button onclick="act('${k}')">${l}</button>`).join('')}
+  <button class=sub onclick="auto()" style="grid-column:span 1">⏩ 시즌 끝까지</button></div></div>
   <div class=card id=log>${g.log.join('<br>')}</div>`;
+  const squad=`<div class=card><b>${c.name} ${g.youth?'(1군 선수단)':'선수단'}</b><div class=sq style="margin-top:8px">${roster(DATA,g.club).map(p=>`<div>${photo(p)}${p.no}. ${p.name}<br>${p.pos}</div>`).join('')}</div></div>`;
+  a.innerHTML=`<div class="card head">${logo(g.club)}<div><b>${g.name}</b> · ${POSN[g.pos]} · ${g.nat}<br>${c.name}${g.youth?' 유스':''} · ${g.age}세 · 시즌 ${g.season} ${g.week}/${WEEKS}주<br>
+    종합 <b>${o.toFixed(1)}</b> · 잠재 ${grade} · 계약 ${g.contractLeft}년${g.wage?' · 주급 £'+g.wage.toLocaleString():''}<br>
+    ${g.apps}경기 ${g.goals}골 ${g.assists}도움 · A매치 ${g.caps}</div></div>
+  <div><button class="${tab=='main'?'':'sub'}" onclick="setTab('main')">훈련</button><button class="${tab=='sq'?'':'sub'}" onclick="setTab('sq')">선수단</button></div>
+  ${tab=='main'?main:squad}`;
 }
 draw();
 </script></body></html>
