@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>축구선수 키우기</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#0b3d1e;color:#fff;margin:0;padding:16px;max-width:480px;margin:auto}
+h1{font-size:20px;margin:0 0 8px}
+.card{background:#14532d;border-radius:12px;padding:12px;margin:8px 0}
+.bar{background:#0b3d1e;border-radius:6px;height:10px;overflow:hidden}.bar>i{display:block;height:100%;background:#facc15}
+.row{display:flex;justify-content:space-between;font-size:14px;margin:6px 0 2px}
+button{background:#facc15;border:0;border-radius:8px;padding:12px;font-size:15px;margin:3px;color:#000}
+button:disabled{opacity:.4}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+#log{font-size:13px;line-height:1.5;max-height:160px;overflow:auto}
+input{padding:10px;font-size:15px;border-radius:8px;border:0;width:60%}
+</style></head><body>
+<h1>⚽ 축구선수 키우기</h1><div id="app"></div>
+<script>
+const STATS={shoot:'슈팅',pass:'패스',speed:'속도',defense:'수비'};
+const CLUBS=['동네 클럽','2부 리그','1부 리그','빅클럽'];
+const WEEKS=20, RETIRE=35, KEY='gamsung';
+let g; try{g=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+const save=()=>localStorage.setItem(KEY,JSON.stringify(g));
+const rnd=n=>Math.floor(Math.random()*n);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const log=t=>{g.log.unshift(t);g.log=g.log.slice(0,30)};
+
+function start(name){
+  g={name:name||'무명',age:17,season:1,week:1,energy:100,club:0,money:0,
+     s:{shoot:30,pass:30,speed:30,defense:30},goals:0,apps:0,wins:0,
+     seasonPts:0,sa:0,log:['프로 입단! 커리어 시작.'],over:false};
+  save();draw();
+}
+const ovr=()=>Math.round(Object.values(g.s).reduce((a,b)=>a+b)/4);
+
+function train(k){
+  if(g.energy<20)return;
+  g.energy-=20;
+  const gain=1+rnd(4)+(g.age<24?1:0)-(g.age>31?1:0); // 젊을수록 성장 빠름
+  g.s[k]=clamp(g.s[k]+Math.max(gain,0),0,99);
+  log(`${STATS[k]} 훈련 +${Math.max(gain,0)}`);next();
+}
+function rest(){g.energy=Math.min(100,g.energy+50);log('휴식으로 체력 회복');next()}
+
+function match(){
+  if(g.energy<30)return;
+  g.energy-=30;g.apps++;g.sa++;
+  const opp=20+g.club*20+rnd(25), me=ovr()+rnd(25)-10;
+  const goals=me>opp-5&&rnd(100)<g.s.shoot+10?1+(g.s.shoot>70&&rnd(2)):0;
+  g.goals+=goals;
+  const r=me>opp+5?'승':me>opp-5?'무':'패';
+  if(r=='승'){g.wins++;g.seasonPts+=3}else if(r=='무')g.seasonPts+=1;
+  g.money+=100*(g.club+1);
+  log(`경기 ${r}! ${goals?`⚽ ${goals}골`:'득점 없음'} (상대 ${opp} / 나 ${me})`);next();
+}
+
+function next(){
+  if(++g.week>WEEKS)endSeason();
+  save();draw();
+}
+function endSeason(){
+  const avg=g.seasonPts/Math.max(1,g.sa);
+  let msg=`시즌 ${g.season} 종료 (${g.age}세, 승점 ${g.seasonPts}).`;
+  if(avg>1.8&&g.club<3&&ovr()>=30+g.club*15){g.club++;msg+=` 🎉 ${CLUBS[g.club]}(으)로 이적!`}
+  log(msg);
+  g.season++;g.age++;g.week=1;g.energy=100;g.seasonPts=0;g.sa=0;
+  if(g.age>=RETIRE){g.over=true;log('은퇴합니다.')}
+}
+
+function draw(){
+  const a=document.getElementById('app');
+  if(!g){a.innerHTML=`<div class=card>선수 이름<br><br><input id=n placeholder="이름"> <button onclick="start(n.value)">시작</button></div>`;return}
+  const bars=Object.entries(STATS).map(([k,l])=>
+    `<div class=row><span>${l}</span><span>${g.s[k]}</span></div><div class=bar><i style="width:${g.s[k]}%"></i></div>`).join('');
+  if(g.over){
+    a.innerHTML=`<div class=card><b>🏆 ${g.name} 은퇴</b><br>최종 능력치 ${ovr()} · 최고 소속 ${CLUBS[g.club]}<br>통산 ${g.apps}경기 ${g.goals}골 ${g.wins}승<br>
+    <button onclick="g=null;localStorage.removeItem(KEY);draw()">새 선수 키우기</button></div>`;return}
+  const t=g.energy<20;
+  a.innerHTML=`<div class=card><b>${g.name}</b> · ${g.age}세 · ${CLUBS[g.club]}<br>
+  시즌 ${g.season} · ${g.week}/${WEEKS}주 · 종합 ${ovr()} · 💰${g.money} · ${g.goals}골
+  <div class=row><span>체력</span><span>${g.energy}</span></div><div class=bar><i style="width:${g.energy}%;background:#4ade80"></i></div></div>
+  <div class=card>${bars}</div>
+  <div class="card grid">${Object.entries(STATS).map(([k,l])=>`<button ${t?'disabled':''} onclick="train('${k}')">${l} 훈련 (-20)</button>`).join('')}
+  <button onclick="rest()">😴 휴식 (+50)</button><button ${g.energy<30?'disabled':''} onclick="match()">⚽ 경기 (-30)</button></div>
+  <div class=card id=log>${g.log.join('<br>')}</div>`;
+}
+draw();
+</script></body></html>
