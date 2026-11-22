@@ -1,8 +1,12 @@
 package com.gamsung.soccer.data
 
-enum class Pos { GK, CB, FB, DM, CM, CAM, WG, ST }
+import kotlin.math.roundToInt
 
-/** 1차 대상 리그. id는 이미지/데이터 매핑용 고정 키. */
+enum class Pos(val label: String) { GK("GK"), CB("CB"), FB("FB"), DM("DM"), CM("CM"), CAM("CAM"), WG("WG"), ST("ST") }
+
+enum class Focus(val label: String) { ATK("공격 훈련"), DEF("수비 훈련"), PHY("체력 훈련"), REST("휴식") }
+
+/** 1차 대상 리그. 구단/로고 데이터는 assets/data/<이름>.json 에 붙는다. */
 enum class League(val label: String, val tier: Int) {
     EPL("잉글랜드 1부", 1), EFL("잉글랜드 2부", 2),
     LALIGA("라리가 1부", 1), LALIGA2("라리가 2부", 2),
@@ -12,27 +16,34 @@ enum class League(val label: String, val tier: Int) {
     SUPER_LIG("튀르키예 1부", 1)
 }
 
-data class Club(val id: String, val name: String, val league: League)
+data class Stat(val goals: Int = 0, val assists: Int = 0, val apps: Int = 0) {
+    operator fun plus(o: Stat) = Stat(goals + o.goals, assists + o.assists, apps + o.apps)
+}
 
 data class Player(
-    val name: String,
-    val pos: Pos,
-    val age: Int,
-    val ovr: Int,
-    val salary: Long,
-    val clubId: String,
-    val stamina: Int = 100,
-)
+    val name: String, val pos: Pos, val age: Int,
+    val atk: Int, val def: Int, val phy: Int,
+    val stamina: Int = 100, val salary: Long = 1_000_000,
+) {
+    val ovr: Int
+        get() {
+            val w = when (pos) {
+                Pos.ST, Pos.WG, Pos.CAM -> doubleArrayOf(.6, .1, .3)
+                Pos.CM -> doubleArrayOf(.35, .3, .35)
+                Pos.DM, Pos.FB, Pos.CB -> doubleArrayOf(.15, .55, .3)
+                Pos.GK -> doubleArrayOf(0.0, .7, .3)
+            }
+            return (atk * w[0] + def * w[1] + phy * w[2]).roundToInt()
+        }
+}
+
+data class SeasonReport(val season: Int, val ovrBefore: Int, val ovrAfter: Int, val stat: Stat, val salary: Long, val age: Int)
 
 data class GameState(
-    val season: Int = 1,
-    val week: Int = 1,
+    val season: Int = 1, val week: Int = 1, val seasonWeeks: Int = 34,
     val player: Player,
-    val seasonWeeks: Int = 34,
-) {
-    /** 한 주 진행. 시즌 끝이면 나이 +1, 주차 리셋. 훈련 효과는 다음 단계에서. */
-    fun nextWeek(): GameState =
-        if (week >= seasonWeeks)
-            copy(season = season + 1, week = 1, player = player.copy(age = player.age + 1, stamina = 100))
-        else copy(week = week + 1)
-}
+    val seasonStat: Stat = Stat(), val career: Stat = Stat(),
+    val earned: Long = 0, val peak: Int = player.ovr, val startOvr: Int = player.ovr,
+    val last: String? = null, val log: List<String> = emptyList(),
+    val report: SeasonReport? = null, val retired: Boolean = false,
+)
