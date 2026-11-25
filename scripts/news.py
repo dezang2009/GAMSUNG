@@ -105,14 +105,16 @@ def parse_feed(xml: bytes) -> list[dict]:
 def fetch_topic(topic: dict) -> list[dict]:
     since = datetime.now(timezone.utc) - timedelta(hours=24)
     seen, articles = set(), []
-    for url in topic["feeds"]:
-        for a in parse_feed(get_feed(url)):
+    for fi, url in enumerate(topic["feeds"]):
+        for pos, a in enumerate(parse_feed(get_feed(url))):
             key = re.sub(r"\W", "", a["title"])[:40]
             if not a["title"] or key in seen or a["pub"] < since:
                 continue
             seen.add(key)
+            a["rank"] = pos + 1 if fi == 0 else None  # 첫 피드 = 구글 뉴스 주요뉴스 순위
             articles.append(a)
-    articles.sort(key=lambda a: a["pub"], reverse=True)
+    # 주요뉴스 순위가 있는 기사 먼저(순위순), 나머지는 최신순
+    articles.sort(key=lambda a: (a["rank"] is None, a["rank"] or 0, -a["pub"].timestamp()))
     for a in articles:
         a["pub"] = a["pub"].isoformat()
     return articles[:MAX_ARTICLES]
@@ -201,9 +203,11 @@ PROMPT = """다음은 최근 24시간 '{topic}' 분야 한국 뉴스 {count}건�
   · 제공된 제목·발췌문에 있는 사실만 쓰고, 추측하거나 지어내지 않습니다.
   · 원문 문장을 그대로 옮기지 말고 자연스러운 기사체로 새로 씁니다.
 - articles: 이 묶음에 속한 기사 번호 배열
+- importance: 1~10 정수. 국민 생활·경제·안보에 미치는 영향, 새로움, 파급력이 클수록 높게.
+  연예·홍보성·지역 행사·단순 인사 소식은 낮게.
 - JSON으로만 답합니다.
 
-{{"issues": [{{"title": "...", "summary": "...", "body": ["...", "..."], "articles": [1, 5, 9]}}]}}
+{{"issues": [{{"title": "...", "summary": "...", "body": ["...", "..."], "articles": [1, 5, 9], "importance": 7}}]}}
 
 기사 목록:
 {items}"""
@@ -258,7 +262,21 @@ def gemini(prompt: str) -> dict:
     raise RuntimeError(f"Gemini 호출 실패: {last_err}")
 
 
-def make_issue(title: str, summary: str, body: list, members: list[dict]) -> dict:
+def _int(v, default):
+    try:
+        return max(1, min(10, int(v)))
+    except (TypeError, ValueError):
+        return default
+
+
+def score_of(iss: dict) -> float:
+    """정렬 점수 = AI 중요도 + 보도 언론사 수(최대 6) + 주요뉴스 순위 보너스"""
+    rank = iss.get("rank")
+    bonus = 3 if rank and rank <= 10 else 2 if rank and rank <= 25 else 1 if rank else 0
+    return iss.get("importance", 3) + min(len(iss.get("sources", [])), 6) + bonus
+
+
+def make_issue(title: str, summary: str, body: list, members: list[dict], importance: int = 3) -> dict:
     """묶음 → 요약 기사. 같은 언론사는 하나만 남기고, 대표 사진은 첫 사진."""
     seen, sources = set(), []
     for a in members:
@@ -274,6 +292,8 @@ def make_issue(title: str, summary: str, body: list, members: list[dict]) -> dic
         "body": body,
         "image": next((a["image"] for a in members if a.get("image")), ""),
         "pub": max(a["pub"] for a in members),
+        "importance": importance,
+        "rank": min((a["rank"] for a in members if a.get("rank")), default=None),
         "sources": sources,
     }
 
@@ -294,14 +314,15 @@ def summarize(topic: dict, articles: list[dict]) -> list[dict]:
         used.update(nums)
         body = [str(b).strip() for b in iss.get("body", []) if str(b).strip()][:4]
         issues.append(make_issue(str(iss.get("title", "")).strip(), str(iss.get("summary", "")).strip(),
-                                 body, [articles[n - 1] for n in nums]))
+                                 body, [articles[n - 1] for n in nums], _int(iss.get("importance"), 3)))
 
     # AI가 빠뜨린 기사도 버리지 않고 단독 항목으로 추가 (요약 없이 제목·발췌만)
     for n, a in enumerate(articles, 1):
         if n not in used:
-            item = make_issue(a["title"], (a.get("excerpt") or a.get("desc") or "")[:120], [], [a])
+            item = make_issue(a["title"], (a.get("excerpt") or a.get("desc") or "")[:120], [], [a], 2)
             item["excerpt"] = a.get("excerpt") or a.get("desc") or ""
             issues.append(item)
+    issues.sort(key=score_of, reverse=True)
     return issues
 
 
@@ -312,11 +333,12 @@ FILL_PROMPT = """아래 한국 뉴스 기사들 각각에 대해 앱에서 읽�
 - title: 요약 기사 제목 (30자 이내)
 - summary: 한두 문장 요약
 - body: 문단 1~2개 배열, 각 문단 2~3문장
+- importance: 1~10 정수 (국민 생활·경제·안보 영향과 파급력이 클수록 높게, 홍보성·연예는 낮게)
 - 제공된 제목·발췌문에 있는 사실만 쓰고, 추측하거나 지어내지 않습니다.
 - 원문 문장을 그대로 옮기지 말고 자연스러운 기사체로 새로 씁니다.
 - JSON으로만 답합니다.
 
-{{"items": [{{"id": 1, "title": "...", "summary": "...", "body": ["..."]}}]}}
+{{"items": [{{"id": 1, "title": "...", "summary": "...", "body": ["..."], "importance": 3}}]}}
 
 기사 목록:
 {items}"""
@@ -345,7 +367,10 @@ def fill_missing(doc: dict) -> int:
         iss["body"] = body
         iss["title"] = str(it.get("title") or iss["title"]).strip()
         iss["summary"] = str(it.get("summary") or iss["summary"]).strip()
+        iss["importance"] = _int(it.get("importance"), iss.get("importance", 2))
         filled += 1
+    for t in doc["topics"]:
+        t["issues"].sort(key=score_of, reverse=True)
     return filled
 
 
