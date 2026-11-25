@@ -1,3 +1,14 @@
+@font-face { font-family: "Paperlogy"; font-weight: 400; font-style: normal; font-display: swap;
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2") format("woff2"); }
+@font-face { font-family: "Paperlogy"; font-weight: 500; font-style: normal; font-display: swap;
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-5Medium.woff2") format("woff2"); }
+@font-face { font-family: "Paperlogy"; font-weight: 600; font-style: normal; font-display: swap;
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2") format("woff2"); }
+@font-face { font-family: "Paperlogy"; font-weight: 700; font-style: normal; font-display: swap;
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2") format("woff2"); }
+@font-face { font-family: "Paperlogy"; font-weight: 800; font-style: normal; font-display: swap;
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2") format("woff2"); }
+
 :root {
   color-scheme: light;
   --bg: #f7f8fa;
@@ -22,11 +33,14 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+  font: 16px/1.6 "Paperlogy", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+  word-break: keep-all;        /* 한글 단어 중간에서 줄바꿈 금지 */
+  overflow-wrap: break-word;   /* 너무 긴 단어만 예외적으로 줄바꿈 */
   -webkit-font-smoothing: antialiased;
   padding-bottom: env(safe-area-inset-bottom);
 }
-button, select { font: inherit; color: inherit; }
+button, select, textarea { font-family: inherit; color: inherit; }
+button, select { font-size: inherit; }
 
 /* 글래스가 비칠 은은한 배경 */
 .bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
@@ -181,7 +195,7 @@ dialog.closing::backdrop { animation: fade .2s ease reverse both; }
 .field label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
 .field .box { display: flex; gap: 8px; align-items: stretch; }
 .field textarea {
-  flex: 1; min-height: 76px; resize: none; font: 12px/1.45 ui-monospace, Menlo, monospace;
+  flex: 1; min-height: 76px; resize: none; font-size: 12.5px; line-height: 1.45; word-break: break-all;
   background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px;
 }
 .field .copy { height: auto; padding: 0 14px; font-size: 13px; }
