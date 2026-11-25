@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>감성 뉴스</title>
+  <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#16171a" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="감성 뉴스">
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <div>
+        <p class="eyebrow" id="dateLabel">&nbsp;</p>
+        <h1>오늘의 뉴스</h1>
+      </div>
+      <div class="actions">
+        <select id="dateSelect" aria-label="날짜 선택"></select>
+        <button id="settingsBtn" class="icon-btn" aria-label="설정">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        </button>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs" role="tablist"></nav>
+  </header>
+
+  <main id="content" aria-live="polite"></main>
+
+  <dialog id="settings">
+    <form method="dialog" class="sheet">
+      <div class="sheet-head">
+        <h2>알림 설정</h2>
+        <button class="icon-btn" aria-label="닫기">✕</button>
+      </div>
+      <div id="settingsBody"></div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

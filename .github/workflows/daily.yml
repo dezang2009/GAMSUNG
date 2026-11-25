@@ -1,0 +1,76 @@
+name: Daily News
+
+on:
+  schedule:
+    - cron: "40 21 * * *" # 매일 06:40 KST
+  workflow_dispatch: # Actions 탭에서 수동 실행
+  push:
+    branches: [main]
+    paths: ["web/**", ".github/workflows/daily.yml"]
+
+permissions:
+  contents: write
+  models: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: daily-news
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: 뉴스 수집 + 요약
+        if: github.event_name != 'push'
+        env:
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/news.py collect
+
+      - name: 결과 커밋
+        if: github.event_name != 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "news: $(TZ=Asia/Seoul date +%F)"
+          git pull --rebase
+          git push
+
+      - name: 사이트 조립
+        env:
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+        run: |
+          mkdir -p _site
+          cp -r web/. _site/
+          mkdir -p _site/data && cp -r data/. _site/data/ 2>/dev/null || true
+          echo "window.APP_CONFIG = { vapidPublicKey: \"${VAPID_PUBLIC_KEY}\" };" > _site/config.js
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: 푸시 알림
+        if: github.event_name != 'push'
+        env:
+          PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          SITE_URL: ${{ steps.deploy.outputs.page_url }}
+        run: python scripts/news.py notify
