@@ -16,6 +16,7 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.window.OnBackInvokedDispatcher;
 
 import androidx.webkit.WebViewAssetLoader;
 
@@ -70,6 +71,17 @@ public class MainActivity extends Activity {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         }
         NewsWorker.scheduleNext(this);
+
+        // Android 13+ : 시스템 뒤로가기 → 기사 화면이면 목록으로, 목록이면 앱 종료
+        if (Build.VERSION.SDK_INT >= 33) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
+        }
+    }
+
+    private void handleBack() {
+        if (web.canGoBack()) web.goBack();
+        else finish();
     }
 
     @Override
@@ -79,9 +91,8 @@ public class MainActivity extends Activity {
     }
 
     @Override
-    public void onBackPressed() {
-        if (web.canGoBack()) web.goBack(); // 기사 화면 → 목록
-        else super.onBackPressed();
+    public void onBackPressed() { // Android 12 이하
+        handleBack();
     }
 
     /** 웹 화면에서 호출하는 앱 기능 */
