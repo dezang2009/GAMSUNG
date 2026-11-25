@@ -64,7 +64,8 @@ def clean(text: str) -> str:
 
 
 def get_feed(url: str) -> bytes:
-    for attempt in range(4):
+    for attempt in range(5):
+        time.sleep(2)  # 피드 사이 간격 (429 예방)
         try:
             r = requests.get(url, headers={"User-Agent": UA}, timeout=20)
             if r.status_code == 200:
@@ -72,7 +73,7 @@ def get_feed(url: str) -> bytes:
             err = f"HTTP {r.status_code}"
         except requests.RequestException as e:
             err = str(e)
-        time.sleep(3 * (attempt + 1))
+        time.sleep(15 * (attempt + 1))  # 15, 30, 45, 60초
     raise RuntimeError(f"피드 실패 {err}: {url}")
 
 
@@ -181,13 +182,13 @@ PROMPT = """다음은 최근 24시간 '{topic}' 분야 한국 뉴스 목록입�
 
 할 일:
 1. 비슷한 기사를 묶어 오늘의 핵심 이슈 3~5개를 중요도 순으로 뽑습니다.
-2. 이슈마다 대표 기사 1~3개를 고르고, 각 기사를 앱에서 읽을 '요약 기사'로 새로 씁니다.
+2. 이슈마다 대표 기사 1~2개를 고르고, 각 기사를 앱에서 읽을 '요약 기사'로 새로 씁니다.
 
 규칙:
 - issue.title: 이슈 제목 (25자 이내)
 - issue.summary: 무슨 일이 있었는지 1~2문장
 - article.n: 기사 번호
-- article.body: 문단 3~4개 배열. 각 문단 2~3문장.
+- article.body: 문단 3개 배열. 각 문단 2~3문장.
   · 제공된 제목·발췌문에 있는 사실만 사용하고, 추측하거나 지어내지 않습니다.
   · 원문 문장을 그대로 옮기지 말고 자연스러운 기사체로 새로 씁니다.
   · 발췌문이 없는 기사는 제목에서 알 수 있는 내용만 1~2문단으로 짧게 씁니다.
@@ -214,21 +215,29 @@ def gemini(prompt: str) -> dict:
     }
     last_err = ""
     for model in GEMINI_MODELS:
+        r = None
         for attempt in range(3):
             _last_call[0] = time.time()
-            r = requests.post(
-                GEMINI_URL.format(model=model),
-                headers={"x-goog-api-key": key, "Content-Type": "application/json"},
-                json=body, timeout=120,
-            )
+            try:
+                r = requests.post(
+                    GEMINI_URL.format(model=model),
+                    headers={"x-goog-api-key": key, "Content-Type": "application/json"},
+                    json=body, timeout=240,
+                )
+            except requests.RequestException as e:
+                r, last_err = None, f"{model} 연결 오류: {e}"
+                time.sleep(20)
+                continue
             if r.status_code == 429 or r.status_code >= 500:
                 last_err = f"{model} HTTP {r.status_code}: {r.text[:200]}"
-                time.sleep(65 if r.status_code == 429 else 10)
+                time.sleep(65 if r.status_code == 429 else 30)
                 continue
             break
-        if r.status_code == 404:
-            last_err = f"{model} 없음(404)"
-            continue
+        if r is None or r.status_code == 404 or r.status_code == 429 or r.status_code >= 500:
+            if r is not None and r.status_code == 404:
+                last_err = f"{model} 없음(404)"
+            print(f"  {last_err[:160]} → 다음 모델", flush=True)
+            continue  # 다음 모델로
         try:
             r.raise_for_status()
             parts = r.json()["candidates"][0]["content"]["parts"]
@@ -251,7 +260,7 @@ def summarize(topic: dict, articles: list[dict]) -> list[dict]:
     issues = []
     for iss in parsed.get("issues", [])[:5]:
         links = []
-        for art in iss.get("articles", [])[:3]:
+        for art in iss.get("articles", [])[:2]:
             n = art.get("n") if isinstance(art, dict) else art
             if not isinstance(n, int) or not 1 <= n <= len(articles):
                 continue
