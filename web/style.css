@@ -128,8 +128,9 @@ main { padding-top: 18px; padding-bottom: 48px; }
 dialog { padding: 0; color: var(--text); background: var(--glass-strong); }
 dialog::backdrop { background: rgb(17 24 39 / 0.28); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
 dialog[open]::backdrop { animation: fade .25s ease both; }
-dialog.closing::backdrop { animation: fade .2s ease reverse both; }
+dialog.closing::backdrop { animation: fade-out .2s ease both; }
 @keyframes fade { from { opacity: 0; } }
+@keyframes fade-out { to { opacity: 0; } }
 
 /* 중앙 모달 */
 .modal {
@@ -137,8 +138,9 @@ dialog.closing::backdrop { animation: fade .2s ease reverse both; }
   border-radius: 24px; box-shadow: var(--shadow-lg); overflow: auto;
 }
 .modal[open] { animation: pop .28s var(--ease) both; }
-.modal.closing { animation: pop .18s ease reverse both; }
+.modal.closing { animation: pop-out .18s ease both; }
 @keyframes pop { from { opacity: 0; transform: scale(.94) translateY(8px); } }
+@keyframes pop-out { to { opacity: 0; transform: scale(.96) translateY(6px); } }
 .modal-body { padding: 22px 22px 20px; }
 .modal-body .badge { margin-bottom: 10px; }
 .modal-body h2 { margin: 0 0 10px; font-size: 21px; font-weight: 800; line-height: 1.35; letter-spacing: -0.03em; }
@@ -164,8 +166,9 @@ dialog.closing::backdrop { animation: fade .2s ease reverse both; }
   box-shadow: 0 -12px 40px rgb(17 24 39 / 0.14);
 }
 .sheet[open] { animation: up .34s var(--ease) both; }
-.sheet.closing { animation: up .24s ease-in reverse both; }
+.sheet.closing { animation: down .24s ease-in both; }
 @keyframes up { from { transform: translateY(100%); } }
+@keyframes down { to { transform: translateY(100%); } }
 .grabber { width: 40px; height: 5px; border-radius: 99px; background: rgb(17 24 39 / 0.15); margin: 4px auto 10px; }
 .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .sheet h2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.03em; }
@@ -200,3 +203,41 @@ dialog.closing::backdrop { animation: fade .2s ease reverse both; }
 }
 .field .copy { height: auto; padding: 0 14px; font-size: 13px; }
 .notice { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font-size: 13.5px; font-weight: 600; }
+
+/* ---------- 이슈 모달의 기사 목록 ---------- */
+.article-list button.item {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px; border-radius: 16px; text-align: left;
+  background: var(--card); border: 1px solid var(--line); cursor: pointer; transition: border-color .2s;
+}
+.article-list button.item:hover { border-color: var(--accent); }
+.thumb { flex: none; width: 64px; height: 64px; border-radius: 12px; object-fit: cover; background: var(--line); }
+
+/* ---------- 기사 화면 ---------- */
+.reader {
+  position: fixed; inset: 0; z-index: 20; overflow-y: auto; background: var(--card);
+  animation: slide .32s var(--ease) both;
+}
+.reader.closing { animation: slide-out .22s ease-in both; }
+@keyframes slide { from { transform: translateX(100%); } }
+@keyframes slide-out { to { transform: translateX(100%); } }
+.reader-bar {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top)) 16px 10px; border-width: 0 0 1px; border-color: rgb(17 24 39 / 0.06);
+}
+.reader-src { flex: 1; text-align: center; font-size: 14px; font-weight: 700; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reader-bar .spacer { width: 38px; flex: none; }
+.reader article { max-width: 720px; margin: 0 auto; padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
+.hero { position: relative; aspect-ratio: 16 / 9; background: var(--line); overflow: hidden; }
+.hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@media (min-width: 720px) { .hero { margin: 16px 16px 0; border-radius: 20px; } }
+.reader-content { padding: 22px 20px 0; }
+.reader-content h1 { font-size: 25px; line-height: 1.4; margin: 10px 0 10px; }
+.byline { margin: 0; font-size: 13.5px; color: var(--muted); font-weight: 500; }
+.ai-note {
+  display: inline-flex; align-items: center; gap: 6px; margin: 16px 0 6px; padding: 6px 10px; border-radius: 10px;
+  background: var(--bg); color: var(--sub); font-size: 12.5px; font-weight: 600;
+}
+.ai-note::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.reader-content .para { margin: 16px 0 0; font-size: 17px; line-height: 1.85; color: #1f2937; }
+.reader-content .src-btn { margin-top: 28px; }
+body.reading { overflow: hidden; }

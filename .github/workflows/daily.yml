@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: write
-  models: read
   pages: write
   id-token: write
 
@@ -36,7 +35,7 @@ jobs:
       - name: 뉴스 수집 + 요약
         if: github.event_name != 'push'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/news.py collect
 
       - name: 결과 커밋

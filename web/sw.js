@@ -1,4 +1,4 @@
-const CACHE = "news-v2";
+const CACHE = "news-v3";
 const SHELL = ["./", "index.html", "style.css", "app.js", "config.js", "manifest.json", "icon.svg", "icon-192.png"];
 
 self.addEventListener("install", (e) => {

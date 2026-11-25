@@ -3,7 +3,8 @@
 매일 아침 7시, 경제 · IT/AI · 국제 · 스포츠 뉴스를 AI로 요약해 푸시 알림으로 보내주는 개인용 PWA.
 
 - 수집: 구글 뉴스 RSS (키 불필요)
-- 요약: GitHub Models (`openai/gpt-4o-mini`, 무료)
+- 요약: Gemini API 무료 티어 (토픽당 1회 호출)
+- 기사 화면: 원문 대표 사진 + AI가 새로 쓴 요약 기사 (원문 본문은 저장하지 않음)
 - 실행: GitHub Actions (매일 06:40 KST)
 - 앱: GitHub Pages (PWA, 웹 푸시)
 
@@ -20,6 +21,7 @@ data/                         날짜별 요약 JSON (최근 30일)
 
 | 종류 | 이름 | 값 |
 |---|---|---|
+| Secret | `GEMINI_API_KEY` | aistudio.google.com → Get API key |
 | Variable | `VAPID_PUBLIC_KEY` | 앱 알림 설정 1단계에서 생성 |
 | Secret | `VAPID_PRIVATE_KEY` | 앱 알림 설정 1단계에서 생성 |
 | Secret | `PUSH_SUBSCRIPTION` | 앱 알림 설정 2단계에서 생성 |
