@@ -112,13 +112,18 @@ function render() {
     const srcs = sourcesOf(iss);
     const names = [...new Set(srcs.map((a) => a.source).filter(Boolean))];
     const who = names.length > 2 ? `${names.slice(0, 2).join(" · ")} 외 ${names.length - 2}곳` : names.join(" · ");
+    const fb = graphic(iss.title, t.id);
+    const img = iss.image || srcs.find((a) => a.image)?.image || fb;
     return `
-      <button class="card" data-i="${i}" style="animation-delay:${Math.min(i, 10) * 40}ms">
-        <div class="card-top"><span class="badge">${pad(i + 1)}</span><h3>${esc(iss.title)}</h3></div>
-        <p>${esc(iss.summary)}</p>
-        <div class="card-foot">
-          <span class="src">${esc(who || "관련 기사")}</span>
-          <span class="more">언론사 ${names.length || srcs.length}곳 →</span>
+      <button class="card photo-card" data-i="${i}" style="animation-delay:${Math.min(i, 10) * 40}ms;background-image:url('${fb}')">
+        <img class="card-bg" alt="" loading="lazy" referrerpolicy="no-referrer" src="${esc(img)}" data-fallback="${esc(fb)}">
+        <div class="card-glass">
+          <div class="card-top"><span class="badge">${pad(i + 1)}</span><h3>${esc(iss.title)}</h3></div>
+          <p>${esc(iss.summary)}</p>
+          <div class="card-foot">
+            <span class="src">${esc(who || "관련 기사")}</span>
+            <span class="more">언론사 ${names.length || srcs.length}곳 →</span>
+          </div>
         </div>
       </button>`;
   }).join("");
@@ -126,6 +131,7 @@ function render() {
   const time = doc.generated_at ? doc.generated_at.slice(11, 16) : "";
   $("#content").innerHTML = html + (time ? `<p class="meta">${time} 업데이트 · AI 요약은 틀릴 수 있어요</p>` : "");
   $("#content").querySelectorAll(".card").forEach((c) => { c.onclick = () => openReader(t, t.issues[+c.dataset.i]); });
+  bindFallback($("#content"));
 }
 
 // 예전 데이터(articles)와 새 데이터(sources) 모두 지원
