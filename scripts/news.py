@@ -299,8 +299,54 @@ def summarize(topic: dict, articles: list[dict]) -> list[dict]:
     # AI가 빠뜨린 기사도 버리지 않고 단독 항목으로 추가 (요약 없이 제목·발췌만)
     for n, a in enumerate(articles, 1):
         if n not in used:
-            issues.append(make_issue(a["title"], (a.get("excerpt") or a.get("desc") or "")[:120], [], [a]))
+            item = make_issue(a["title"], (a.get("excerpt") or a.get("desc") or "")[:120], [], [a])
+            item["excerpt"] = a.get("excerpt") or a.get("desc") or ""
+            issues.append(item)
     return issues
+
+
+FILL_PROMPT = """아래 한국 뉴스 기사들 각각에 대해 앱에서 읽을 요약 기사를 새로 씁니다.
+
+규칙:
+- id: 주어진 번호 그대로
+- title: 요약 기사 제목 (30자 이내)
+- summary: 한두 문장 요약
+- body: 문단 1~2개 배열, 각 문단 2~3문장
+- 제공된 제목·발췌문에 있는 사실만 쓰고, 추측하거나 지어내지 않습니다.
+- 원문 문장을 그대로 옮기지 말고 자연스러운 기사체로 새로 씁니다.
+- JSON으로만 답합니다.
+
+{{"items": [{{"id": 1, "title": "...", "summary": "...", "body": ["..."]}}]}}
+
+기사 목록:
+{items}"""
+
+
+def fill_missing(doc: dict) -> int:
+    """AI 요약 본문이 없는 항목만 모아 한 번 더 요약 (전체 토픽 합쳐 1회 호출)."""
+    todo = [iss for t in doc["topics"] for iss in t["issues"] if not iss.get("body")]
+    if not todo:
+        return 0
+    lines = []
+    for n, iss in enumerate(todo, 1):
+        src = (iss.get("sources") or [{}])[0]
+        hint = iss.get("excerpt") or iss.get("summary") or ""
+        lines.append(f"{n}. [{src.get('source', '')}] {src.get('title') or iss['title']}" + (f"\n   발췌: {hint}" if hint else ""))
+    parsed = gemini(FILL_PROMPT.format(items="\n".join(lines)))
+    filled = 0
+    for it in parsed.get("items", []):
+        n = it.get("id")
+        if not isinstance(n, int) or not 1 <= n <= len(todo):
+            continue
+        body = [str(b).strip() for b in it.get("body", []) if str(b).strip()][:3]
+        if not body:
+            continue
+        iss = todo[n - 1]
+        iss["body"] = body
+        iss["title"] = str(it.get("title") or iss["title"]).strip()
+        iss["summary"] = str(it.get("summary") or iss["summary"]).strip()
+        filled += 1
+    return filled
 
 
 def fake_issues(topic: dict) -> list[dict]:
@@ -366,6 +412,14 @@ def collect(dry_run: bool) -> None:
             entry["error"] = "요약을 가져오지 못했습니다."
             print(f"[{t['name']}] 실패: {e}", flush=True)
         out.append(entry)
+    if not dry_run:
+        try:
+            print(f"본문 채우기: {fill_missing({'topics': out})}개", flush=True)
+        except Exception as e:
+            print(f"본문 채우기 실패: {e}", flush=True)
+    for t in out:
+        for iss in t["issues"]:
+            iss.pop("excerpt", None)
     save(day, out)
     print(f"저장 완료: data/{day}.json")
     if failed == len(TOPICS):
@@ -412,9 +466,18 @@ def notify() -> None:
         sys.exit(1)
 
 
+def fill_today() -> None:
+    """이미 만든 오늘 파일에서 본문 없는 항목만 채운다."""
+    day = datetime.now(KST).strftime("%Y-%m-%d")
+    path = DATA_DIR / f"{day}.json"
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    print(f"본문 채우기: {fill_missing(doc)}개", flush=True)
+    path.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("cmd", choices=["collect", "notify"])
+    p.add_argument("cmd", choices=["collect", "notify", "fill"])
     p.add_argument("--dry-run", action="store_true")
     a = p.parse_args()
-    collect(a.dry_run) if a.cmd == "collect" else notify()
+    {"collect": lambda: collect(a.dry_run), "notify": notify, "fill": fill_today}[a.cmd]()

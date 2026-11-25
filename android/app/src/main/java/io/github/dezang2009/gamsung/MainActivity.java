@@ -79,9 +79,11 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** 기사 화면·팝업이 열려 있으면 닫고 홈 목록으로, 홈 목록이면 앱 종료 */
     private void handleBack() {
-        if (web.canGoBack()) web.goBack();
-        else finish();
+        web.evaluateJavascript("(window.appBack && window.appBack()) ? 'y' : 'n'", v -> {
+            if (!"\"y\"".equals(v)) finish();
+        });
     }
 
     @Override
