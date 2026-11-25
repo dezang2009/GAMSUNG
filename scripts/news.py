@@ -139,23 +139,27 @@ def summarize(topic: dict, articles: list[dict]) -> list[dict]:
         MODELS_URL,
         headers={
             "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
             "Content-Type": "application/json",
         },
         json={
             "model": MODEL,
             "messages": [
-                {"role": "system", "content": "당신은 간결하고 정확한 한국어 뉴스 에디터입니다."},
+                {"role": "system", "content": "당신은 간결하고 정확한 한국어 뉴스 에디터입니다. 반드시 JSON으로만 답합니다."},
                 {"role": "user", "content": PROMPT.format(topic=topic["name"], items=items)},
             ],
             "temperature": 0.3,
-            "response_format": {"type": "json_object"},
         },
         timeout=60,
     )
-    r.raise_for_status()
-    content = r.json()["choices"][0]["message"]["content"]
-    match = re.search(r"\{.*\}", content, re.S)
-    parsed = json.loads(match.group(0) if match else content)
+    try:
+        r.raise_for_status()
+        content = r.json()["choices"][0]["message"]["content"] or ""
+        match = re.search(r"\{.*\}", content, re.S)
+        parsed = json.loads(match.group(0) if match else content)
+    except Exception as e:
+        raise RuntimeError(f"모델 응답 오류 HTTP {r.status_code}: {type(e).__name__}: {e} | 본문: {r.text[:300]!r}") from e
 
     issues = []
     for iss in parsed.get("issues", [])[:5]:
@@ -219,13 +223,13 @@ def collect(dry_run: bool) -> None:
                 entry["issues"] = fake_issues(t)
             else:
                 articles = fetch_topic(t)
-                print(f"[{t['name']}] 기사 {len(articles)}개")
+                print(f"[{t['name']}] 기사 {len(articles)}개", flush=True)
                 if articles:
                     entry["issues"] = summarize(t, articles)
         except Exception as e:  # 한 토픽이 실패해도 나머지는 계속
             failed += 1
             entry["error"] = "요약을 가져오지 못했습니다."
-            print(f"[{t['name']}] 실패: {e}", file=sys.stderr)
+            print(f"[{t['name']}] 실패: {e}", flush=True)
         out.append(entry)
     save(day, out)
     print(f"저장 완료: data/{day}.json")
