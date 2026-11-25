@@ -1,0 +1,48 @@
+plugins { id "com.android.application" }
+
+// 서명 정보는 레포에 넣지 않고 환경변수로 받는다
+def ks = System.getenv("GAMSUNG_KEYSTORE")
+
+android {
+    namespace "io.github.dezang2009.gamsung"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "io.github.dezang2009.gamsung"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        release {
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv("GAMSUNG_KEYSTORE_PASSWORD")
+                keyAlias "gamsung"
+                keyPassword System.getenv("GAMSUNG_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (ks) signingConfig signingConfigs.release
+        }
+    }
+
+    lint {
+        checkReleaseBuilds false   // 웹 래퍼 앱이라 릴리스 lint 생략
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation "com.google.androidbrowserhelper:androidbrowserhelper:2.7.4"
+}

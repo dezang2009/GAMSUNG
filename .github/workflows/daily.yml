@@ -33,7 +33,9 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: 뉴스 수집 + 요약
+        id: collect
         if: github.event_name != 'push'
+        continue-on-error: true
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/news.py collect
@@ -65,9 +67,15 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: 푸시 알림
-        if: github.event_name != 'push'
+        if: github.event_name != 'push' && steps.collect.outcome == 'success'
         env:
           PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           SITE_URL: ${{ steps.deploy.outputs.page_url }}
         run: python scripts/news.py notify
+
+      - name: 요약 실패 표시
+        if: steps.collect.outcome == 'failure'
+        run: |
+          echo "::error::뉴스 요약 단계가 실패했습니다. 위 '뉴스 수집 + 요약' 로그를 확인하세요."
+          exit 1
