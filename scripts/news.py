@@ -16,6 +16,7 @@ import re
 import sys
 import time
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -27,7 +28,7 @@ KST = timezone(timedelta(hours=9))
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 KEEP_DAYS = 30
-MAX_ARTICLES = 25
+MAX_ARTICLES = 80        # 토픽당 최대 기사 수 (24시간 이내 전부)
 
 GN = "https://news.google.com/rss"
 GN_PARAMS = "hl=ko&gl=KR&ceid=KR:ko"
@@ -51,7 +52,6 @@ TOPICS = [
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 # 앞에서부터 시도, 404(모델 없음)면 다음 모델로
 GEMINI_MODELS = [m for m in [os.environ.get("GEMINI_MODEL"), "gemini-flash-latest", "gemini-flash-lite-latest"] if m]
-ENRICH_LIMIT = 15        # 토픽당 원문 페이지를 열어볼 기사 수
 GEMINI_GAP_SEC = 15      # 무료 한도(분당 요청 수) 대비 호출 간격
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
 
@@ -126,12 +126,19 @@ def decode_links(articles: list[dict]) -> None:
     """구글 뉴스 링크 → 언론사 원문 링크 (실패하면 구글 링크 유지)"""
     try:
         from googlenewsdecoder import gnewsdecoder
-        res = gnewsdecoder([a["url"] for a in articles], timeout=15)
-        for a, r in zip(articles, res):
-            if r.get("success") and r.get("decoded_url"):
-                a["url"] = r["decoded_url"]
     except Exception as e:
-        print(f"  링크 변환 실패: {e}", flush=True)
+        print(f"  링크 변환 모듈 없음: {e}", flush=True)
+        return
+    for i in range(0, len(articles), 20):
+        chunk = articles[i:i + 20]
+        try:
+            res = gnewsdecoder([a["url"] for a in chunk], timeout=20)
+            for a, r in zip(chunk, res):
+                if r.get("success") and r.get("decoded_url"):
+                    a["url"] = r["decoded_url"]
+        except Exception as e:
+            print(f"  링크 변환 실패: {e}", flush=True)
+        time.sleep(1)
 
 
 def meta(page: str, *names: str) -> str:
@@ -173,28 +180,30 @@ def enrich(a: dict) -> None:
         pass
     if len(text) < 80:
         text = meta(page, "og:description", "description")
-    a["excerpt"] = re.sub(r"\s+", " ", text)[:1000]
+    a["excerpt"] = re.sub(r"\s+", " ", text)[:500]
 
 
 # ---------- 요약 (Gemini) ----------
 
-PROMPT = """다음은 최근 24시간 '{topic}' 분야 한국 뉴스 목록입니다.
+PROMPT = """다음은 최근 24시간 '{topic}' 분야 한국 뉴스 {count}건입니다.
 
 할 일:
-1. 비슷한 기사를 묶어 오늘의 핵심 이슈 3~5개를 중요도 순으로 뽑습니다.
-2. 이슈마다 대표 기사 1~2개를 고르고, 각 기사를 앱에서 읽을 '요약 기사'로 새로 씁니다.
+1. 같은 사건·같은 내용을 다룬 기사끼리 하나의 묶음으로 모읍니다. 언론사가 달라도 내용이 같으면 같은 묶음입니다.
+2. 다른 기사와 겹치지 않는 기사는 혼자서 하나의 묶음이 됩니다.
+3. 모든 기사 번호는 정확히 한 묶음에만 들어가야 합니다. 빠뜨리지 마세요.
+4. 묶음마다 앱에서 읽을 요약 기사를 새로 씁니다.
 
 규칙:
-- issue.title: 이슈 제목 (25자 이내)
-- issue.summary: 무슨 일이 있었는지 1~2문장
-- article.n: 기사 번호
-- article.body: 문단 3개 배열. 각 문단 2~3문장.
-  · 제공된 제목·발췌문에 있는 사실만 사용하고, 추측하거나 지어내지 않습니다.
+- 묶음 순서: 보도한 기사가 많고 중요한 것부터
+- title: 요약 기사 제목 (30자 이내)
+- summary: 한두 문장 요약
+- body: 문단 배열. 기사 2개 이상 묶음은 2~3문단, 단독 기사는 1~2문단. 각 문단 2~3문장.
+  · 제공된 제목·발췌문에 있는 사실만 쓰고, 추측하거나 지어내지 않습니다.
   · 원문 문장을 그대로 옮기지 말고 자연스러운 기사체로 새로 씁니다.
-  · 발췌문이 없는 기사는 제목에서 알 수 있는 내용만 1~2문단으로 짧게 씁니다.
+- articles: 이 묶음에 속한 기사 번호 배열
 - JSON으로만 답합니다.
 
-{{"issues": [{{"title": "...", "summary": "...", "articles": [{{"n": 1, "body": ["...", "..."]}}]}}]}}
+{{"issues": [{{"title": "...", "summary": "...", "body": ["...", "..."], "articles": [1, 5, 9]}}]}}
 
 기사 목록:
 {items}"""
@@ -211,7 +220,7 @@ def gemini(prompt: str) -> dict:
     body = {
         "systemInstruction": {"parts": [{"text": "당신은 간결하고 정확한 한국어 뉴스 에디터입니다."}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.4, "responseMimeType": "application/json"},
+        "generationConfig": {"temperature": 0.3, "responseMimeType": "application/json", "maxOutputTokens": 32768},
     }
     last_err = ""
     for model in GEMINI_MODELS:
@@ -249,56 +258,61 @@ def gemini(prompt: str) -> dict:
     raise RuntimeError(f"Gemini 호출 실패: {last_err}")
 
 
+def make_issue(title: str, summary: str, body: list, members: list[dict]) -> dict:
+    """묶음 → 요약 기사. 같은 언론사는 하나만 남기고, 대표 사진은 첫 사진."""
+    seen, sources = set(), []
+    for a in members:
+        key = a["source"] or a["url"]
+        if key in seen:
+            continue
+        seen.add(key)
+        sources.append({"title": a["title"], "source": a["source"], "url": a["url"],
+                        "image": a.get("image", ""), "pub": a["pub"]})
+    return {
+        "title": title,
+        "summary": summary,
+        "body": body,
+        "image": next((a["image"] for a in members if a.get("image")), ""),
+        "pub": max(a["pub"] for a in members),
+        "sources": sources,
+    }
+
+
 def summarize(topic: dict, articles: list[dict]) -> list[dict]:
     items = "\n".join(
         f"{i}. [{a['source']}] {a['title']}"
         + (f"\n   발췌: {a['excerpt']}" if a.get("excerpt") else (f"\n   관련: {a['desc']}" if a.get("desc") else ""))
         for i, a in enumerate(articles, 1)
     )
-    parsed = gemini(PROMPT.format(topic=topic["name"], items=items))
+    parsed = gemini(PROMPT.format(topic=topic["name"], count=len(articles), items=items))
 
-    issues = []
-    for iss in parsed.get("issues", [])[:5]:
-        links = []
-        for art in iss.get("articles", [])[:2]:
-            n = art.get("n") if isinstance(art, dict) else art
-            if not isinstance(n, int) or not 1 <= n <= len(articles):
-                continue
-            a = articles[n - 1]
-            body = art.get("body", []) if isinstance(art, dict) else []
-            links.append({
-                "title": a["title"],
-                "source": a["source"],
-                "url": a["url"],
-                "image": a.get("image", ""),
-                "pub": a["pub"],
-                "body": [str(b).strip() for b in body if str(b).strip()][:5],
-            })
-        if links:
-            issues.append({
-                "title": str(iss.get("title", "")).strip(),
-                "summary": str(iss.get("summary", "")).strip(),
-                "articles": links,
-            })
+    used, issues = set(), []
+    for iss in parsed.get("issues", []):
+        nums = [n for n in iss.get("articles", []) if isinstance(n, int) and 1 <= n <= len(articles) and n not in used]
+        if not nums:
+            continue
+        used.update(nums)
+        body = [str(b).strip() for b in iss.get("body", []) if str(b).strip()][:4]
+        issues.append(make_issue(str(iss.get("title", "")).strip(), str(iss.get("summary", "")).strip(),
+                                 body, [articles[n - 1] for n in nums]))
+
+    # AI가 빠뜨린 기사도 버리지 않고 단독 항목으로 추가 (요약 없이 제목·발췌만)
+    for n, a in enumerate(articles, 1):
+        if n not in used:
+            issues.append(make_issue(a["title"], (a.get("excerpt") or a.get("desc") or "")[:120], [], [a]))
     return issues
 
 
 def fake_issues(topic: dict) -> list[dict]:
     now = datetime.now(timezone.utc).isoformat()
+    src = lambda n, name: {"title": f"{topic['name']} 예시 기사 {n}", "source": name, "url": "https://news.google.com",
+                           "image": "", "pub": now, "excerpt": ""}
     return [
-        {
-            "title": f"{topic['name']} 테스트 이슈 {n}",
-            "summary": f"{topic['name']} 분야의 가짜 요약 문장입니다. 실제 실행 시 AI 요약이 들어갑니다.",
-            "articles": [{
-                "title": f"{topic['name']} 예시 기사 {n}",
-                "source": "예시신문",
-                "url": "https://news.google.com",
-                "image": "",
-                "pub": now,
-                "body": ["첫 번째 문단입니다. 실제 실행 시 AI가 쓴 요약 기사가 들어갑니다.",
-                         "두 번째 문단입니다. 원문 내용을 바탕으로 새로 쓴 글이 표시됩니다."],
-            }],
-        }
+        make_issue(f"{topic['name']} 테스트 이슈 {n}",
+                   f"{topic['name']} 분야의 가짜 요약 문장입니다.",
+                   ["첫 번째 문단입니다. 실제 실행 시 AI가 쓴 요약 기사가 들어갑니다.",
+                    "두 번째 문단입니다. 여러 언론사 기사를 하나로 묶어 정리합니다."],
+                   [src(n, "예시신문"), src(n, "샘플일보"), src(n, "예시신문")])
         for n in range(1, 4)
     ]
 
@@ -338,15 +352,15 @@ def collect(dry_run: bool) -> None:
             if dry_run:
                 entry["issues"] = fake_issues(t)
             else:
-                articles = fetch_topic(t)[:ENRICH_LIMIT]
+                articles = fetch_topic(t)
                 print(f"[{t['name']}] 기사 {len(articles)}개", flush=True)
                 if articles:
                     decode_links(articles)
-                    for a in articles:
-                        enrich(a)
+                    with ThreadPoolExecutor(max_workers=8) as ex:
+                        list(ex.map(enrich, articles))
                     print(f"[{t['name']}] 원문 {sum(1 for a in articles if a['excerpt'])}개 · 사진 {sum(1 for a in articles if a['image'])}개", flush=True)
                     entry["issues"] = summarize(t, articles)
-                    print(f"[{t['name']}] 이슈 {len(entry['issues'])}개", flush=True)
+                    print(f"[{t['name']}] 요약 {len(entry['issues'])}개 (언론사 {sum(len(i['sources']) for i in entry['issues'])}곳)", flush=True)
         except Exception as e:  # 한 토픽이 실패해도 나머지는 계속
             failed += 1
             entry["error"] = "요약을 가져오지 못했습니다."

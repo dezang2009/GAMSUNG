@@ -205,11 +205,12 @@ dialog.closing::backdrop { animation: fade-out .2s ease both; }
 .notice { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font-size: 13.5px; font-weight: 600; }
 
 /* ---------- 이슈 모달의 기사 목록 ---------- */
-.article-list button.item {
+.article-list .item {
   display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px; border-radius: 16px; text-align: left;
   background: var(--card); border: 1px solid var(--line); cursor: pointer; transition: border-color .2s;
 }
-.article-list button.item:hover { border-color: var(--accent); }
+.article-list .item:hover { border-color: var(--accent); }
+.article-list a.item { color: var(--text); text-decoration: none; }
 .thumb { flex: none; width: 64px; height: 64px; border-radius: 12px; object-fit: cover; background: var(--line); }
 
 /* ---------- 기사 화면 ---------- */
@@ -241,3 +242,5 @@ dialog.closing::backdrop { animation: fade-out .2s ease both; }
 .reader-content .para { margin: 16px 0 0; font-size: 17px; line-height: 1.85; color: #1f2937; }
 .reader-content .src-btn { margin-top: 28px; }
 body.reading { overflow: hidden; }
+
+.src-head { margin: 32px 0 10px; font-size: 14px; color: var(--muted); font-weight: 700; }
