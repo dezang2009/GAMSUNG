@@ -1,4 +1,6 @@
 const CONFIG = window.APP_CONFIG || {};
+const DATA = CONFIG.dataBase || "data/";
+const NATIVE = !!CONFIG.native && !!window.AndroidApp;
 const $ = (s) => document.querySelector(s);
 const state = { doc: null, topic: null };
 
@@ -64,7 +66,7 @@ document.querySelectorAll("dialog").forEach((d) => {
 
 async function init() {
   let dates = [];
-  try { dates = (await getJSON("data/index.json")).dates || []; } catch {}
+  try { dates = (await getJSON(`${DATA}index.json?t=${Date.now()}`)).dates || []; } catch {}
 
   if (!dates.length) {
     $("#dateLabel").textContent = formatDate(new Date().toISOString().slice(0, 10));
@@ -80,7 +82,7 @@ async function loadDate(date) {
   $("#dateLabel").textContent = formatDate(date);
   $("#content").innerHTML = `<div class="empty">불러오는 중…</div>`;
   try {
-    state.doc = await getJSON(`data/${date}.json`);
+    state.doc = await getJSON(`${DATA}${date}.json?t=${Date.now()}`);
   } catch {
     $("#content").innerHTML = `<div class="empty error">데이터를 불러오지 못했어요.</div>`;
     return;
@@ -107,43 +109,27 @@ function render() {
   if (t.error && !t.issues.length) html = `<div class="empty error">${esc(t.error)}</div>`;
   else if (!t.issues.length) html = `<div class="empty">이 분야는 오늘 기사가 없어요.</div>`;
   else html = t.issues.map((iss, i) => {
-    const sources = [...new Set((iss.articles || []).map((a) => a.source).filter(Boolean))];
+    const srcs = sourcesOf(iss);
+    const names = [...new Set(srcs.map((a) => a.source).filter(Boolean))];
+    const who = names.length > 2 ? `${names.slice(0, 2).join(" · ")} 외 ${names.length - 2}곳` : names.join(" · ");
     return `
-      <button class="card" data-i="${i}" style="animation-delay:${i * 50}ms">
+      <button class="card" data-i="${i}" style="animation-delay:${Math.min(i, 10) * 40}ms">
         <div class="card-top"><span class="badge">${pad(i + 1)}</span><h3>${esc(iss.title)}</h3></div>
         <p>${esc(iss.summary)}</p>
         <div class="card-foot">
-          <span class="src">${esc(sources.join(" · ") || "관련 기사")}</span>
-          <span class="more">기사 ${iss.articles?.length || 0}개 →</span>
+          <span class="src">${esc(who || "관련 기사")}</span>
+          <span class="more">언론사 ${names.length || srcs.length}곳 →</span>
         </div>
       </button>`;
   }).join("");
 
   const time = doc.generated_at ? doc.generated_at.slice(11, 16) : "";
   $("#content").innerHTML = html + (time ? `<p class="meta">${time} 업데이트 · AI 요약은 틀릴 수 있어요</p>` : "");
-  $("#content").querySelectorAll(".card").forEach((c) => { c.onclick = () => openIssue(+c.dataset.i); });
+  $("#content").querySelectorAll(".card").forEach((c) => { c.onclick = () => openReader(t, t.issues[+c.dataset.i]); });
 }
 
-function openIssue(i) {
-  const t = currentTopic();
-  const iss = t.issues[i];
-  const arrow = `<svg class="go" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>`;
-  $("#modalBody").innerHTML = `
-    <span class="badge">${esc(t.name)} ${pad(i + 1)}</span>
-    <h2 id="modalTitle">${esc(iss.title)}</h2>
-    <p>${esc(iss.summary)}</p>
-    ${iss.articles?.length ? `<h4>관련 기사</h4><ul class="article-list">${iss.articles.map((a, j) => `
-      <li><button type="button" class="item" data-j="${j}">
-        <img class="thumb" alt="" loading="lazy" referrerpolicy="no-referrer" src="${esc(a.image || graphic(a.title, t.id))}" data-fallback="${esc(graphic(a.title, t.id))}">
-        <span class="t">${esc(a.title)}${a.source ? `<span class="s">${esc(a.source)}</span>` : ""}</span>${arrow}
-      </button></li>`).join("")}</ul>` : ""}
-    <div class="modal-actions"><button type="button" class="btn block" data-close>닫기</button></div>`;
-  bindFallback($("#modalBody"));
-  $("#modalBody").querySelectorAll(".item").forEach((b) => {
-    b.onclick = () => { closeDialog($("#modal")); openReader(t, iss, +b.dataset.j); };
-  });
-  openDialog($("#modal"));
-}
+// 예전 데이터(articles)와 새 데이터(sources) 모두 지원
+const sourcesOf = (iss) => iss.sources || iss.articles || [];
 
 // ---------- 사진 없는 기사용 그래픽 ----------
 
@@ -190,20 +176,31 @@ function timeLabel(iso) {
   return `${k.getUTCMonth() + 1}월 ${k.getUTCDate()}일 ${pad(k.getUTCHours())}:${pad(k.getUTCMinutes())}`;
 }
 
-function openReader(t, iss, j) {
-  const a = iss.articles[j];
-  const body = a.body?.length ? a.body : [iss.summary];
-  const fb = graphic(a.title, t.id);
-  $("#readerSrc").textContent = a.source || t.name;
+function openReader(t, iss) {
+  const srcs = sourcesOf(iss);
+  const first = srcs[0] || {};
+  const body = iss.body?.length ? iss.body : first.body?.length ? first.body : [iss.summary].filter(Boolean);
+  const image = iss.image || srcs.find((a) => a.image)?.image || "";
+  const fb = graphic(iss.title, t.id);
+  const names = [...new Set(srcs.map((a) => a.source).filter(Boolean))];
+  const arrow = `<svg class="go" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>`;
+
+  $("#readerSrc").textContent = t.name;
   $("#readerBody").innerHTML = `
-    <div class="hero"><img alt="" referrerpolicy="no-referrer" src="${esc(a.image || fb)}" data-fallback="${esc(fb)}"></div>
+    <div class="hero"><img alt="" referrerpolicy="no-referrer" src="${esc(image || fb)}" data-fallback="${esc(fb)}"></div>
     <div class="reader-content">
       <span class="badge">${esc(t.name)}</span>
-      <h1>${esc(a.title)}</h1>
-      <p class="byline">${esc([a.source, timeLabel(a.pub)].filter(Boolean).join(" · "))}</p>
-      <span class="ai-note">AI가 원문을 바탕으로 요약한 기사예요</span>
+      <h1>${esc(iss.title)}</h1>
+      <p class="byline">${esc([names.length > 1 ? `언론사 ${names.length}곳 종합` : names[0], timeLabel(iss.pub || first.pub)].filter(Boolean).join(" · "))}</p>
+      ${iss.body?.length || first.body?.length ? `<span class="ai-note">AI가 여러 기사를 바탕으로 요약했어요</span>` : ""}
       ${body.map((p) => `<p class="para">${esc(p)}</p>`).join("")}
-      <a class="btn block src-btn" href="${esc(a.url)}" target="_blank" rel="noopener">원문 보기</a>
+      ${srcs.length ? `
+        <h4 class="src-head">보도한 언론사 ${names.length || srcs.length}곳</h4>
+        <ul class="article-list">${srcs.map((a) => `
+          <li><a class="item" href="${esc(a.url)}" target="_blank" rel="noopener">
+            <img class="thumb" alt="" loading="lazy" referrerpolicy="no-referrer" src="${esc(a.image || graphic(a.title, t.id))}" data-fallback="${esc(graphic(a.title, t.id))}">
+            <span class="t">${esc(a.title)}<span class="s">${esc(a.source || "")}</span></span>${arrow}
+          </a></li>`).join("")}</ul>` : ""}
     </div>`;
   bindFallback($("#readerBody"));
   const r = $("#reader");
@@ -249,6 +246,20 @@ function bindCopy(root) {
 
 function openSettings() {
   const body = $("#sheetBody");
+  if (NATIVE) {
+    const on = window.AndroidApp.notificationsEnabled();
+    body.innerHTML = `
+      <div class="step">
+        <span class="step-label">매일 알림</span>
+        <h4>${on ? "오전 7시쯤 알림이 와요" : "알림이 꺼져 있어요"}</h4>
+        <p>${on ? "새 요약이 올라오면 앱이 알아서 알려드려요. 따로 설정할 건 없어요."
+               : "휴대폰 설정 → 앱 → 감성 뉴스 → 알림에서 허용해 주세요."}</p>
+        <div class="row"><button type="button" class="btn line" id="testBtn">테스트 알림</button></div>
+      </div>`;
+    $("#testBtn").onclick = () => window.AndroidApp.testNotification();
+    openDialog($("#sheet"));
+    return;
+  }
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
   const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
 
@@ -324,5 +335,5 @@ async function subscribe() {
 }
 
 $("#settingsBtn").onclick = openSettings;
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+if (!NATIVE && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 init();
