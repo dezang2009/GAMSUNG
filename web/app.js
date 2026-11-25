@@ -219,6 +219,18 @@ function hideReader() {
 }
 
 $("#readerBack").onclick = () => (history.state?.reader ? history.back() : hideReader());
+
+// 앱(안드로이드) 뒤로가기: 처리했으면 true, 홈 목록이면 false(앱 종료)
+window.appBack = () => {
+  const openDlg = [...document.querySelectorAll("dialog")].find((d) => d.open);
+  if (openDlg) { closeDialog(openDlg); return true; }
+  if (!$("#reader").hidden) {
+    hideReader();
+    if (history.state?.reader) history.replaceState(null, "", location.pathname + location.search);
+    return true;
+  }
+  return false;
+};
 addEventListener("popstate", hideReader); // 폰 뒤로가기
 if (location.hash === "#article") history.replaceState(null, "", location.pathname + location.search);
 

@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "40 21 * * *" # 매일 06:40 KST
   workflow_dispatch: # Actions 탭에서 수동 실행
+    inputs:
+      mode:
+        description: "collect = 전체 수집·요약, fill = 오늘 파일의 빈 본문만 채우기"
+        type: choice
+        options: [collect, fill]
+        default: collect
   push:
     branches: [main]
     paths: ["web/**", ".github/workflows/daily.yml"]
@@ -38,7 +44,7 @@ jobs:
         continue-on-error: true
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python scripts/news.py collect
+        run: python scripts/news.py ${{ inputs.mode || 'collect' }}
 
       - name: 결과 커밋
         if: github.event_name != 'push'
@@ -67,7 +73,7 @@ jobs:
         uses: actions/deploy-pages@v5
 
       - name: 푸시 알림
-        if: github.event_name != 'push' && steps.collect.outcome == 'success'
+        if: github.event_name != 'push' && steps.collect.outcome == 'success' && inputs.mode != 'fill'
         env:
           PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
