@@ -11,8 +11,8 @@ android {
         applicationId "io.github.dezang2009.gamsung"
         minSdk 24
         targetSdk 36
-        versionCode 1
-        versionName "1.0.0"
+        versionCode 2
+        versionName "2.0.0"
     }
 
     signingConfigs {
@@ -44,5 +44,20 @@ android {
 }
 
 dependencies {
-    implementation "com.google.androidbrowserhelper:androidbrowserhelper:2.7.4"
+    implementation "androidx.webkit:webkit:1.14.0"
+    implementation "androidx.work:work-runtime:2.10.5"
+    implementation "androidx.core:core:1.17.0"
 }
+
+// 웹 화면(../web)을 앱 안에 넣는다. 데이터는 GitHub 레포에서 직접 받는다.
+def webAssets = layout.buildDirectory.dir("generated/webassets")
+tasks.register("copyWeb", Sync) {
+    from("${rootDir}/../web") { exclude "config.js", "sw.js", "data/**" }
+    into(webAssets.map { it.dir("web") })
+    doLast {
+        file(webAssets.get().file("web/config.js").asFile).text =
+            'window.APP_CONFIG = { native: true, dataBase: "https://raw.githubusercontent.com/dezang2009/GAMSUNG/main/data/" };\n'
+    }
+}
+android.sourceSets.main.assets.srcDirs += webAssets
+preBuild.dependsOn "copyWeb"

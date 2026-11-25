@@ -1,4 +1,6 @@
 const CONFIG = window.APP_CONFIG || {};
+const DATA = CONFIG.dataBase || "data/";
+const NATIVE = !!CONFIG.native && !!window.AndroidApp;
 const $ = (s) => document.querySelector(s);
 const state = { doc: null, topic: null };
 
@@ -64,7 +66,7 @@ document.querySelectorAll("dialog").forEach((d) => {
 
 async function init() {
   let dates = [];
-  try { dates = (await getJSON("data/index.json")).dates || []; } catch {}
+  try { dates = (await getJSON(`${DATA}index.json?t=${Date.now()}`)).dates || []; } catch {}
 
   if (!dates.length) {
     $("#dateLabel").textContent = formatDate(new Date().toISOString().slice(0, 10));
@@ -80,7 +82,7 @@ async function loadDate(date) {
   $("#dateLabel").textContent = formatDate(date);
   $("#content").innerHTML = `<div class="empty">불러오는 중…</div>`;
   try {
-    state.doc = await getJSON(`data/${date}.json`);
+    state.doc = await getJSON(`${DATA}${date}.json?t=${Date.now()}`);
   } catch {
     $("#content").innerHTML = `<div class="empty error">데이터를 불러오지 못했어요.</div>`;
     return;
@@ -249,6 +251,20 @@ function bindCopy(root) {
 
 function openSettings() {
   const body = $("#sheetBody");
+  if (NATIVE) {
+    const on = window.AndroidApp.notificationsEnabled();
+    body.innerHTML = `
+      <div class="step">
+        <span class="step-label">매일 알림</span>
+        <h4>${on ? "오전 7시쯤 알림이 와요" : "알림이 꺼져 있어요"}</h4>
+        <p>${on ? "새 요약이 올라오면 앱이 알아서 알려드려요. 따로 설정할 건 없어요."
+               : "휴대폰 설정 → 앱 → 감성 뉴스 → 알림에서 허용해 주세요."}</p>
+        <div class="row"><button type="button" class="btn line" id="testBtn">테스트 알림</button></div>
+      </div>`;
+    $("#testBtn").onclick = () => window.AndroidApp.testNotification();
+    openDialog($("#sheet"));
+    return;
+  }
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
   const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
 
@@ -324,5 +340,5 @@ async function subscribe() {
 }
 
 $("#settingsBtn").onclick = openSettings;
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+if (!NATIVE && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 init();
