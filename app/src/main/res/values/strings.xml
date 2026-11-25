@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">뉴스 요약</string>
+    <string name="widget_desc">오늘의 뉴스 요약</string>
+</resources>
