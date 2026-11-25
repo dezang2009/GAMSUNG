@@ -38,6 +38,18 @@
 
   <main id="content" aria-live="polite"></main>
 
+  <!-- 기사 화면 (앱 내 요약 기사) -->
+  <section id="reader" class="reader" hidden aria-label="기사">
+    <header class="reader-bar glass">
+      <button type="button" class="icon-btn" id="readerBack" aria-label="뒤로">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="reader-src" id="readerSrc"></span>
+      <span class="spacer"></span>
+    </header>
+    <article id="readerBody"></article>
+  </section>
+
   <!-- 중앙 모달: 이슈 상세 -->
   <dialog id="modal" class="modal glass" aria-labelledby="modalTitle">
     <div class="modal-body" id="modalBody"></div>

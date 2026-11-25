@@ -24,17 +24,33 @@ async function getJSON(url) {
 
 // ---------- 다이얼로그 (모달 / 바텀시트 공통) ----------
 
+// 닫힘 애니메이션이 끝나면 실제로 닫는다. 다시 열면 대기 중인 닫기는 취소.
+function animateOut(el, finish) {
+  el.classList.add("closing");
+  let doneFlag = false;
+  const done = (e) => {
+    if (doneFlag || (e && e.target !== el)) return;
+    doneFlag = true;
+    el.removeEventListener("animationend", done);
+    clearTimeout(timer);
+    el.classList.remove("closing");
+    el._cancelOut = null;
+    finish();
+  };
+  const timer = setTimeout(done, 400); // 애니메이션 미지원 대비
+  el.addEventListener("animationend", done);
+  el._cancelOut = () => { doneFlag = true; el.removeEventListener("animationend", done); clearTimeout(timer); el.classList.remove("closing"); };
+}
+
 function openDialog(d) {
-  d.classList.remove("closing");
+  d._cancelOut?.();
+  if (d.open) d.close();
   d.showModal();
 }
 
 function closeDialog(d) {
   if (!d.open || d.classList.contains("closing")) return;
-  d.classList.add("closing");
-  const done = () => { d.classList.remove("closing"); d.close(); };
-  d.addEventListener("animationend", done, { once: true });
-  setTimeout(() => d.open && done(), 400); // 애니메이션 미지원 대비
+  animateOut(d, () => d.close());
 }
 
 document.querySelectorAll("dialog").forEach((d) => {
@@ -111,18 +127,103 @@ function render() {
 function openIssue(i) {
   const t = currentTopic();
   const iss = t.issues[i];
-  const arrow = `<svg class="go" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>`;
+  const arrow = `<svg class="go" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>`;
   $("#modalBody").innerHTML = `
     <span class="badge">${esc(t.name)} ${pad(i + 1)}</span>
     <h2 id="modalTitle">${esc(iss.title)}</h2>
     <p>${esc(iss.summary)}</p>
-    ${iss.articles?.length ? `<h4>관련 기사</h4><ul class="article-list">${iss.articles.map((a) => `
-      <li><a href="${esc(a.url)}" target="_blank" rel="noopener">
+    ${iss.articles?.length ? `<h4>관련 기사</h4><ul class="article-list">${iss.articles.map((a, j) => `
+      <li><button type="button" class="item" data-j="${j}">
+        <img class="thumb" alt="" loading="lazy" referrerpolicy="no-referrer" src="${esc(a.image || graphic(a.title, t.id))}" data-fallback="${esc(graphic(a.title, t.id))}">
         <span class="t">${esc(a.title)}${a.source ? `<span class="s">${esc(a.source)}</span>` : ""}</span>${arrow}
-      </a></li>`).join("")}</ul>` : ""}
+      </button></li>`).join("")}</ul>` : ""}
     <div class="modal-actions"><button type="button" class="btn block" data-close>닫기</button></div>`;
+  bindFallback($("#modalBody"));
+  $("#modalBody").querySelectorAll(".item").forEach((b) => {
+    b.onclick = () => { closeDialog($("#modal")); openReader(t, iss, +b.dataset.j); };
+  });
   openDialog($("#modal"));
 }
+
+// ---------- 사진 없는 기사용 그래픽 ----------
+
+const PALETTES = {
+  economy: ["#2563eb", "#60a5fa", "#dbeafe"],
+  it_ai: ["#4f46e5", "#a78bfa", "#ede9fe"],
+  world: ["#0d9488", "#5eead4", "#ccfbf1"],
+  sports: ["#ea580c", "#fdba74", "#ffedd5"],
+};
+
+function hash(str) {
+  let h = 2166136261;
+  for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return h >>> 0;
+}
+
+function graphic(seed, topicId) {
+  const [a, b, c] = PALETTES[topicId] || PALETTES.economy;
+  let h = hash(seed || "news");
+  const rnd = () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0) % 1000) / 1000;
+  const blobs = Array.from({ length: 4 }, (_, k) =>
+    `<circle cx="${(rnd() * 160).toFixed(0)}" cy="${(rnd() * 90).toFixed(0)}" r="${(20 + rnd() * 40).toFixed(0)}" fill="${k % 2 ? b : c}" opacity="${(0.35 + rnd() * 0.4).toFixed(2)}"/>`).join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>
+    <filter id="f"><feGaussianBlur stdDeviation="9"/></filter></defs>
+    <rect width="160" height="90" fill="url(#g)"/><g filter="url(#f)">${blobs}</g>
+    <g fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.2"><circle cx="${(30 + rnd() * 100).toFixed(0)}" cy="45" r="26"/><circle cx="${(30 + rnd() * 100).toFixed(0)}" cy="45" r="40"/></g></svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
+function bindFallback(root) {
+  root.querySelectorAll("img[data-fallback]").forEach((img) => {
+    img.onerror = () => { img.onerror = null; img.src = img.dataset.fallback; };
+  });
+}
+
+// ---------- 기사 화면 ----------
+
+function timeLabel(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const k = new Date(d.getTime() + 9 * 3600e3); // KST
+  return `${k.getUTCMonth() + 1}월 ${k.getUTCDate()}일 ${pad(k.getUTCHours())}:${pad(k.getUTCMinutes())}`;
+}
+
+function openReader(t, iss, j) {
+  const a = iss.articles[j];
+  const body = a.body?.length ? a.body : [iss.summary];
+  const fb = graphic(a.title, t.id);
+  $("#readerSrc").textContent = a.source || t.name;
+  $("#readerBody").innerHTML = `
+    <div class="hero"><img alt="" referrerpolicy="no-referrer" src="${esc(a.image || fb)}" data-fallback="${esc(fb)}"></div>
+    <div class="reader-content">
+      <span class="badge">${esc(t.name)}</span>
+      <h1>${esc(a.title)}</h1>
+      <p class="byline">${esc([a.source, timeLabel(a.pub)].filter(Boolean).join(" · "))}</p>
+      <span class="ai-note">AI가 원문을 바탕으로 요약한 기사예요</span>
+      ${body.map((p) => `<p class="para">${esc(p)}</p>`).join("")}
+      <a class="btn block src-btn" href="${esc(a.url)}" target="_blank" rel="noopener">원문 보기</a>
+    </div>`;
+  bindFallback($("#readerBody"));
+  const r = $("#reader");
+  r._cancelOut?.();
+  r.hidden = false;
+  r.scrollTop = 0;
+  document.body.classList.add("reading");
+  history.pushState({ reader: true }, "", "#article");
+}
+
+function hideReader() {
+  const r = $("#reader");
+  if (r.hidden) return;
+  if (r.classList.contains("closing")) return;
+  animateOut(r, () => { r.hidden = true; document.body.classList.remove("reading"); });
+}
+
+$("#readerBack").onclick = () => (history.state?.reader ? history.back() : hideReader());
+addEventListener("popstate", hideReader); // 폰 뒤로가기
+if (location.hash === "#article") history.replaceState(null, "", location.pathname + location.search);
 
 // ---------- 알림 설정 (바텀시트) ----------
 
