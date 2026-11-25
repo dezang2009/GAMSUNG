@@ -70,7 +70,7 @@ function render() {
         <h3>${esc(iss.title)}</h3>
         <p>${esc(iss.summary)}</p>
         ${iss.articles?.length ? `<ul class="links">${iss.articles.map((a) =>
-          `<li><a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.title)}</a></li>`).join("")}</ul>` : ""}
+          `<li><a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.title)}${a.source ? ` <span class="src">· ${esc(a.source)}</span>` : ""}</a></li>`).join("")}</ul>` : ""}
       </article>`).join("");
 
   const time = doc.generated_at ? doc.generated_at.slice(11, 16) : "";

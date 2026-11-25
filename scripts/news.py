@@ -1,7 +1,7 @@
 """매일 뉴스 수집 → 요약 → 저장 → 푸시 알림.
 
 사용법:
-  python scripts/news.py collect   # 네이버 수집 + GitHub Models 요약 → data/ 저장
+  python scripts/news.py collect   # 구글 뉴스 수집 + GitHub Models 요약 → data/ 저장
   python scripts/news.py notify    # 오늘 요약으로 웹 푸시 발송
   python scripts/news.py collect --dry-run   # API 없이 가짜 데이터로 테스트
 """
@@ -14,9 +14,12 @@ import json
 import os
 import re
 import sys
+import time
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+from urllib.parse import quote
 
 import requests
 
@@ -26,59 +29,87 @@ DATA_DIR = ROOT / "data"
 KEEP_DAYS = 30
 MAX_ARTICLES = 25
 
+GN = "https://news.google.com/rss"
+GN_PARAMS = "hl=ko&gl=KR&ceid=KR:ko"
+
+
+def gn_topic(name: str) -> str:
+    return f"{GN}/headlines/section/topic/{name}?{GN_PARAMS}"
+
+
+def gn_search(q: str) -> str:
+    return f"{GN}/search?q={quote(q + ' when:1d')}&{GN_PARAMS}"
+
+
 TOPICS = [
-    {"id": "economy", "name": "경제", "queries": ["경제", "증시", "금리", "환율"]},
-    {"id": "it_ai", "name": "IT/AI", "queries": ["인공지능", "AI", "반도체", "IT"]},
-    {"id": "world", "name": "국제", "queries": ["국제", "외교", "미국", "중국"]},
-    {"id": "sports", "name": "스포츠", "queries": ["스포츠", "야구", "축구"]},
+    {"id": "economy", "name": "경제", "feeds": [gn_topic("BUSINESS"), gn_search("경제")]},
+    {"id": "it_ai", "name": "IT/AI", "feeds": [gn_topic("TECHNOLOGY"), gn_search("인공지능 OR AI")]},
+    {"id": "world", "name": "국제", "feeds": [gn_topic("WORLD")]},
+    {"id": "sports", "name": "스포츠", "feeds": [gn_topic("SPORTS")]},
 ]
 
-NAVER_URL = "https://openapi.naver.com/v1/search/news.json"
 MODELS_URL = "https://models.github.ai/inference/chat/completions"
 MODEL = os.environ.get("NEWS_MODEL", "openai/gpt-4o-mini")
 
 
-# ---------- 수집 ----------
+# ---------- 수집 (구글 뉴스 RSS) ----------
 
 def clean(text: str) -> str:
-    text = re.sub(r"<[^>]+>", "", text or "")
-    return html.unescape(text).strip()
+    text = re.sub(r"<[^>]+>", " ", html.unescape(text or ""))
+    return re.sub(r"\s+", " ", html.unescape(text)).strip()
+
+
+def get_feed(url: str) -> bytes:
+    for attempt in range(4):
+        try:
+            r = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (news-digest)"}, timeout=20)
+            if r.status_code == 200:
+                return r.content
+            err = f"HTTP {r.status_code}"
+        except requests.RequestException as e:
+            err = str(e)
+        time.sleep(3 * (attempt + 1))
+    raise RuntimeError(f"피드 실패 {err}: {url}")
+
+
+def parse_feed(xml: bytes) -> list[dict]:
+    """구글 뉴스 RSS → [{title, source, desc, url, pub}]"""
+    out = []
+    for it in ET.fromstring(xml).iter("item"):
+        source = (it.findtext("source") or "").strip()
+        title = clean(it.findtext("title"))
+        if source and title.endswith(f" - {source}"):
+            title = title[: -len(source) - 3].strip()
+        # description 안에 묶인 관련 기사 제목들 → 요약 재료
+        related = [clean(a) for a in re.findall(r"<a [^>]*>(.*?)</a>", html.unescape(it.findtext("description") or ""))]
+        related = [t for t in related if t and t != title]
+        try:
+            pub = parsedate_to_datetime(it.findtext("pubDate"))
+        except Exception:
+            continue
+        out.append({
+            "title": title,
+            "source": source,
+            "desc": " / ".join(related)[:150],
+            "url": (it.findtext("link") or "").strip(),
+            "pub": pub,
+        })
+    return out
 
 
 def fetch_topic(topic: dict) -> list[dict]:
-    headers = {
-        "X-Naver-Client-Id": os.environ["NAVER_CLIENT_ID"],
-        "X-Naver-Client-Secret": os.environ["NAVER_CLIENT_SECRET"],
-    }
-    since = datetime.now(KST) - timedelta(hours=24)
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
     seen, articles = set(), []
-    for q in topic["queries"]:
-        r = requests.get(
-            NAVER_URL,
-            headers=headers,
-            params={"query": q, "display": 30, "sort": "date"},
-            timeout=15,
-        )
-        r.raise_for_status()
-        for it in r.json().get("items", []):
-            title = clean(it.get("title"))
-            key = re.sub(r"\W", "", title)[:40]
-            if not title or key in seen:
-                continue
-            try:
-                pub = parsedate_to_datetime(it["pubDate"])
-            except Exception:
-                continue
-            if pub < since:
+    for url in topic["feeds"]:
+        for a in parse_feed(get_feed(url)):
+            key = re.sub(r"\W", "", a["title"])[:40]
+            if not a["title"] or key in seen or a["pub"] < since:
                 continue
             seen.add(key)
-            articles.append({
-                "title": title,
-                "desc": clean(it.get("description"))[:150],
-                "url": it.get("originallink") or it.get("link"),
-                "pub": pub.isoformat(),
-            })
+            articles.append(a)
     articles.sort(key=lambda a: a["pub"], reverse=True)
+    for a in articles:
+        a["pub"] = a["pub"].isoformat()
     return articles[:MAX_ARTICLES]
 
 
@@ -102,7 +133,7 @@ PROMPT = """다음은 최근 24시간 '{topic}' 분야 한국 뉴스 목록입�
 
 def summarize(topic: dict, articles: list[dict]) -> list[dict]:
     items = "\n".join(
-        f"{i}. {a['title']} — {a['desc']}" for i, a in enumerate(articles, 1)
+        f"{i}. [{a['source']}] {a['title']}" + (f" (관련: {a['desc']})" if a["desc"] else "") for i, a in enumerate(articles, 1)
     )
     r = requests.post(
         MODELS_URL,
@@ -132,7 +163,7 @@ def summarize(topic: dict, articles: list[dict]) -> list[dict]:
         for n in iss.get("articles", []):
             if isinstance(n, int) and 1 <= n <= len(articles):
                 a = articles[n - 1]
-                links.append({"title": a["title"], "url": a["url"]})
+                links.append({"title": a["title"], "source": a["source"], "url": a["url"]})
         issues.append({
             "title": str(iss.get("title", "")).strip(),
             "summary": str(iss.get("summary", "")).strip(),
@@ -146,7 +177,7 @@ def fake_issues(topic: dict) -> list[dict]:
         {
             "title": f"{topic['name']} 테스트 이슈 {n}",
             "summary": f"{topic['name']} 분야의 가짜 요약 문장입니다. 실제 실행 시 AI 요약이 들어갑니다.",
-            "articles": [{"title": "예시 기사", "url": "https://news.naver.com"}],
+            "articles": [{"title": "예시 기사", "source": "예시신문", "url": "https://news.google.com"}],
         }
         for n in range(1, 4)
     ]
