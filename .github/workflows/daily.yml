@@ -59,12 +59,12 @@ jobs:
           mkdir -p _site/data && cp -r data/. _site/data/ 2>/dev/null || true
           echo "window.APP_CONFIG = { vapidPublicKey: \"${VAPID_PUBLIC_KEY}\" };" > _site/config.js
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       - name: 푸시 알림
         if: github.event_name != 'push' && steps.collect.outcome == 'success'
