@@ -95,38 +95,98 @@ async function loadDate(date) {
 
 const currentTopic = () => state.doc.topics.find((x) => x.id === state.topic);
 
+function issueMeta(iss, t) {
+  const srcs = sourcesOf(iss);
+  const names = [...new Set(srcs.map((a) => a.source).filter(Boolean))];
+  const who = names.length > 2 ? `${names.slice(0, 2).join(" · ")} 외 ${names.length - 2}곳` : names.join(" · ");
+  const fb = graphic(iss.title, t.id);
+  const img = iss.image || srcs.find((a) => a.image)?.image || fb;
+  return { srcs, names, who, fb, img, count: names.length || srcs.length };
+}
+
+function pageHtml(t) {
+  if (t.error && !t.issues.length) return `<div class="empty error">${esc(t.error)}</div>`;
+  if (!t.issues.length) return `<div class="empty">이 분야는 오늘 기사가 없어요.</div>`;
+  const [top, ...rest] = t.issues;
+  const m = issueMeta(top, t);
+  // 1위: 큰 사진 카드
+  let html = `
+    <button class="card photo-card hero-card" data-i="0" style="background-image:url('${m.fb}')">
+      <img class="card-bg" alt="" referrerpolicy="no-referrer" src="${esc(m.img)}" data-fallback="${esc(m.fb)}">
+      <div class="card-glass">
+        <div class="card-top"><span class="badge">TOP</span><h3>${esc(top.title)}</h3></div>
+        <p>${esc(top.summary)}</p>
+        <div class="card-foot">
+          <span class="src">${esc(m.who || "관련 기사")}</span>
+          <span class="more">언론사 ${m.count}곳 →</span>
+        </div>
+      </div>
+    </button>`;
+  // 나머지: 썸네일 + 제목 한 줄 목록
+  html += `<div class="rows">` + rest.map((iss, k) => {
+    const r = issueMeta(iss, t);
+    return `
+      <button class="row glass" data-i="${k + 1}">
+        <img class="row-thumb" alt="" loading="lazy" referrerpolicy="no-referrer" src="${esc(r.img)}" data-fallback="${esc(r.fb)}">
+        <span class="row-text">
+          <span class="row-title">${esc(iss.title)}</span>
+          <span class="row-meta"><b>${pad(k + 2)}</b> ${esc(r.who || "관련 기사")}${r.count > 1 ? ` · ${r.count}곳` : ""}</span>
+        </span>
+      </button>`;
+  }).join("") + `</div>`;
+  return html;
+}
+
 function render() {
   const { doc } = state;
   $("#tabs").innerHTML = doc.topics
     .map((t) => `<button class="tab" role="tab" data-id="${t.id}" aria-selected="${t.id === state.topic}">${esc(t.name)}</button>`)
     .join("");
   $("#tabs").querySelectorAll(".tab").forEach((b) => {
-    b.onclick = () => { state.topic = b.dataset.id; store.set("topic", state.topic); render(); };
+    b.onclick = () => goTopic(b.dataset.id, true);
   });
 
-  const t = currentTopic();
-  let html;
-  if (t.error && !t.issues.length) html = `<div class="empty error">${esc(t.error)}</div>`;
-  else if (!t.issues.length) html = `<div class="empty">이 분야는 오늘 기사가 없어요.</div>`;
-  else html = t.issues.map((iss, i) => {
-    const srcs = sourcesOf(iss);
-    const names = [...new Set(srcs.map((a) => a.source).filter(Boolean))];
-    const who = names.length > 2 ? `${names.slice(0, 2).join(" · ")} 외 ${names.length - 2}곳` : names.join(" · ");
-    return `
-      <button class="card" data-i="${i}" style="animation-delay:${Math.min(i, 10) * 40}ms">
-        <div class="card-top"><span class="badge">${pad(i + 1)}</span><h3>${esc(iss.title)}</h3></div>
-        <p>${esc(iss.summary)}</p>
-        <div class="card-foot">
-          <span class="src">${esc(who || "관련 기사")}</span>
-          <span class="more">언론사 ${names.length || srcs.length}곳 →</span>
-        </div>
-      </button>`;
-  }).join("");
-
   const time = doc.generated_at ? doc.generated_at.slice(11, 16) : "";
-  $("#content").innerHTML = html + (time ? `<p class="meta">${time} 업데이트 · AI 요약은 틀릴 수 있어요</p>` : "");
-  $("#content").querySelectorAll(".card").forEach((c) => { c.onclick = () => openReader(t, t.issues[+c.dataset.i]); });
+  const meta = time ? `<p class="meta">${time} 업데이트 · AI 요약은 틀릴 수 있어요</p>` : "";
+  $("#content").innerHTML = `<div class="pager" id="pager">${doc.topics
+    .map((t) => `<section class="page" data-id="${t.id}" aria-label="${esc(t.name)}">${pageHtml(t)}${meta}</section>`)
+    .join("")}</div>`;
+
+  const pager = $("#pager");
+  pager.querySelectorAll(".page").forEach((pg) => {
+    const t = doc.topics.find((x) => x.id === pg.dataset.id);
+    pg.querySelectorAll("[data-i]").forEach((c) => { c.onclick = () => openReader(t, t.issues[+c.dataset.i]); });
+  });
+  bindFallback(pager);
+
+  // 좌우 스와이프로 카테고리 이동 → 탭 동기화
+  let timer;
+  pager.addEventListener("scroll", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const idx = Math.round(pager.scrollLeft / pager.clientWidth);
+      const id = doc.topics[idx]?.id;
+      if (id && id !== state.topic) goTopic(id, false);
+    }, 80);
+  }, { passive: true });
+
+  goTopic(state.topic, false, true);
 }
+
+function goTopic(id, scroll, instant) {
+  state.topic = id;
+  store.set("topic", id);
+  $("#tabs").querySelectorAll(".tab").forEach((b) => {
+    const on = b.dataset.id === id;
+    b.setAttribute("aria-selected", on);
+    if (on) b.scrollIntoView({ block: "nearest", inline: "center", behavior: instant ? "auto" : "smooth" });
+  });
+  const idx = state.doc.topics.findIndex((t) => t.id === id);
+  const pager = $("#pager");
+  if (pager && (scroll || instant)) pager.scrollTo({ left: idx * pager.clientWidth, behavior: instant ? "auto" : "smooth" });
+}
+
+const currentTopicPage = () => document.querySelector(`.page[data-id="${state.topic}"]`);
 
 // 예전 데이터(articles)와 새 데이터(sources) 모두 지원
 const sourcesOf = (iss) => iss.sources || iss.articles || [];
